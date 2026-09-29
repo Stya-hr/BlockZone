@@ -1,0 +1,109 @@
+plugins {
+    id 'java'
+    id 'net.neoforged.moddev.legacyforge' version '2.0.140'
+}
+
+group = mod_group_id
+version = mod_version
+base.archivesName = mod_id
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+legacyForge {
+    version = "${minecraft_version}-${forge_version}"
+    parchment {
+        mappingsVersion = parchment_mappings_version
+        minecraftVersion = minecraft_version
+    }
+    runs {
+        client {
+            client()
+            gameDirectory = file('run/client')
+        }
+        server {
+            server()
+            gameDirectory = file(providers.gradleProperty('blockzoneServerRunDir').orElse('run/server').get())
+            programArgument '--nogui'
+        }
+        data {
+            data()
+            gameDirectory = file('run/data')
+            programArguments.addAll '--mod', mod_id, '--all',
+                    '--output', file('src/generated/resources').absolutePath,
+                    '--existing', file('src/main/resources').absolutePath
+        }
+        configureEach {
+            systemProperty 'forge.enabledGameTestNamespaces', mod_id
+        }
+    }
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url = 'https://api.modrinth.com/maven'
+        content { includeGroup 'maven.modrinth' }
+    }
+    maven {
+        url = 'https://maven.izzel.io/releases/'
+        content { includeGroup 'icyllis.modernui' }
+    }
+    // The 1.3.0 Forge snapshot is a GitHub release asset without Maven metadata.
+    ivy {
+        url = 'https://github.com/PhasetransCrystal/FPSMatch/releases/download'
+        patternLayout {
+            artifact '[revision]/[artifact].jar'
+        }
+        metadataSources { artifact() }
+        content { includeGroup 'github.release.fpsmatch' }
+    }
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.0'
+    modImplementation "github.release.fpsmatch:fpsmatch-1.20.1-1.3.0-forge-snapshot:${fpsmatch_snapshot_tag}"
+    modRuntimeOnly "maven.modrinth:kotlin-for-forge:${kotlin_forge_version}"
+    modRuntimeOnly "maven.modrinth:timeless-and-classics-zero:${tacz_version}"
+    modRuntimeOnly "icyllis.modernui:ModernUI-Forge:${minecraft_version}-${modernui_forge_version}"
+    additionalRuntimeClasspath "icyllis.modernui:ModernUI-Core:${modernui_core_version}"
+    additionalRuntimeClasspath "icyllis.modernui:ModernUI-Markflow:${modernui_core_version}"
+}
+
+tasks.named('test', Test) {
+    useJUnitPlatform()
+}
+
+sourceSets.main.resources.srcDir 'src/generated/resources'
+
+sourceSets.test.compileClasspath += sourceSets.main.compileClasspath
+sourceSets.test.runtimeClasspath += sourceSets.main.runtimeClasspath
+
+tasks.named('processResources', ProcessResources) {
+    def replacements = [
+            mod_id: mod_id, mod_name: mod_name, mod_version: mod_version,
+            mod_license: mod_license, mod_authors: mod_authors,
+            mod_description: mod_description,
+            minecraft_version_range: minecraft_version_range,
+            forge_version_range: forge_version_range,
+            loader_version_range: loader_version_range,
+            fpsmatch_version: fpsmatch_version
+    ]
+    inputs.properties replacements
+    filesMatching('META-INF/mods.toml') {
+        expand replacements
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.named('runServer', JavaExec) {
+    standardInput = System.in
+}

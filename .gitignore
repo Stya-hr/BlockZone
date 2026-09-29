@@ -1,0 +1,17 @@
+# Project documentation is kept outside Git history by request.
+/docs/
+
+# Gradle and Forge development output.
+/.gradle/
+/build/
+/out/
+/run/
+/src/generated/
+
+# Editor and local machine files.
+/.idea/
+/.vscode/
+*.iml
+*.log
+/logs/
+/crash-reports/

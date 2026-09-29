@@ -2,21 +2,30 @@ package dev.stya.blockzone.game.battlezone;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntArrayTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.lighting.LightEngine;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.phys.AABB;
+import io.netty.buffer.ByteBufUtil;
+import io.netty.buffer.Unpooled;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,16 +34,21 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 /** Persistent baseline of a Battlezone arena, captured only by an explicit admin action. */
 final class BattlezoneSceneSnapshot {
     private static final Logger LOGGER = LoggerFactory.getLogger(BattlezoneSceneSnapshot.class);
-    private static final int FORMAT_VERSION = 2;
+    private static final int FORMAT_VERSION = 3;
     private static final int PIECE_SIZE = 16;
-    private static final long MAX_BLOCKS = 5_000_000L;
+    private static final int RESTORE_BLOCK_BATCH_SIZE = 1024;
+    private static final long RESTORE_NANOS_PER_TICK = 5_000_000L;
+    private static final long MAX_BLOCKS = 25_000_000L;
     private static final String FILE_SUFFIX = ".battlezone-scene.nbt";
 
     private final BattlezoneMap map;
@@ -141,7 +155,8 @@ final class BattlezoneSceneSnapshot {
 
     private void tickCapture(Operation current) throws IOException {
         if (current.index < current.pieceCount) {
-            current.pieces.add(capturePiece(current.level, pieceAt(current.bounds, current.index)));
+            Piece piece = pieceAt(current.bounds, current.index);
+            current.pieces.add(capturePiece(current.level, piece));
             current.index++;
             return;
         }
@@ -164,13 +179,44 @@ final class BattlezoneSceneSnapshot {
     }
 
     private void tickRestore(Operation current) throws IOException {
-        if (current.index == 0) {
+        if (!current.restoreEntitiesRemoved) {
             removeCurrentNonPlayerEntities(current.level, current.bounds);
+            current.restoreEntitiesRemoved = true;
+        }
+        long tickStart = System.nanoTime();
+        while (current.index < current.pieceCount) {
+            if (current.restoreCursor == null) {
+                current.restoreCursor = createRestoreCursor(current.level, current.pieces.getCompound(current.index));
+            }
+            if (!restorePieceBatch(current.level, current.restoreCursor)) {
+                break;
+            }
+            restoreBlockEntities(current.level, current.restoreCursor.blockEntities);
+            finishRestoredPiece(current, current.restoreCursor);
+            current.index++;
+            current.restoreCursor = null;
+            if (System.nanoTime() - tickStart >= RESTORE_NANOS_PER_TICK) {
+                return;
+            }
         }
         if (current.index < current.pieceCount) {
-            restorePiece(current.level, current.pieces.getCompound(current.index));
-            current.index++;
             return;
+        }
+
+        if (!current.lightUpdatesSettled) {
+            if (current.level.getLightEngine().hasLightWork()) {
+                return;
+            }
+            current.lightUpdatesSettled = true;
+        }
+        Iterator<Map.Entry<Long, LevelChunk>> refreshes = current.chunksToRefresh.entrySet().iterator();
+        while (refreshes.hasNext()) {
+            Map.Entry<Long, LevelChunk> entry = refreshes.next();
+            refreshChunkForTrackingPlayers(current.level, entry.getValue());
+            refreshes.remove();
+            if (System.nanoTime() - tickStart >= RESTORE_NANOS_PER_TICK) {
+                return;
+            }
         }
 
         restoreEntities(current.level, current.data.getList("entities", Tag.TAG_COMPOUND));
@@ -181,10 +227,21 @@ final class BattlezoneSceneSnapshot {
 
     private CompoundTag capturePiece(ServerLevel level, Piece piece) {
         ensureChunksLoaded(level, piece);
+        if (piece.isWholeSection()) {
+            int sectionY = piece.minY >> 4;
+            LevelChunk chunk = level.getChunk(piece.minX >> 4, piece.minZ >> 4);
+            int sectionIndex = level.getSectionIndex(sectionY << 4);
+            CompoundTag result = piece.save();
+            result.putBoolean("whole_section", true);
+            result.putByteArray("section_data", writeSection(chunk.getSections()[sectionIndex]));
+            result.put("block_entities", captureBlockEntities(level, piece));
+            return result;
+        }
+
         Map<BlockState, Integer> paletteIds = new HashMap<>();
         List<BlockState> palette = new ArrayList<>();
         int[] states = new int[piece.volume()];
-        ListTag blockEntities = new ListTag();
+        ListTag blockEntities = captureBlockEntities(level, piece);
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         int index = 0;
         for (int y = piece.minY; y <= piece.maxY; y++) {
@@ -200,10 +257,6 @@ final class BattlezoneSceneSnapshot {
                     }
                     states[index++] = paletteId;
 
-                    BlockEntity blockEntity = level.getBlockEntity(pos);
-                    if (blockEntity != null) {
-                        blockEntities.add(blockEntity.saveWithFullMetadata());
-                    }
                 }
             }
         }
@@ -217,35 +270,148 @@ final class BattlezoneSceneSnapshot {
         return result;
     }
 
-    private void restorePiece(ServerLevel level, CompoundTag pieceData) {
+    private ListTag captureBlockEntities(ServerLevel level, Piece piece) {
+        ListTag blockEntities = new ListTag();
+        for (int chunkX = piece.minX >> 4; chunkX <= piece.maxX >> 4; chunkX++) {
+            for (int chunkZ = piece.minZ >> 4; chunkZ <= piece.maxZ >> 4; chunkZ++) {
+                LevelChunk chunk = level.getChunk(chunkX, chunkZ);
+                for (BlockPos pos : new ArrayList<>(chunk.getBlockEntitiesPos())) {
+                    if (pos.getX() >= piece.minX && pos.getX() <= piece.maxX
+                            && pos.getY() >= piece.minY && pos.getY() <= piece.maxY
+                            && pos.getZ() >= piece.minZ && pos.getZ() <= piece.maxZ) {
+                        BlockEntity blockEntity = level.getBlockEntity(pos);
+                        if (blockEntity != null) {
+                            blockEntities.add(blockEntity.saveWithFullMetadata());
+                        }
+                    }
+                }
+            }
+        }
+        return blockEntities;
+    }
+
+    private byte[] writeSection(LevelChunkSection section) {
+        FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.buffer());
+        try {
+            section.write(buffer);
+            return ByteBufUtil.getBytes(buffer);
+        } finally {
+            buffer.release();
+        }
+    }
+
+    private RestoreCursor createRestoreCursor(ServerLevel level, CompoundTag pieceData) {
         Piece piece = Piece.load(pieceData);
+        if (pieceData.getBoolean("whole_section")) {
+            return RestoreCursor.section(piece, pieceData.getByteArray("section_data"),
+                    pieceData.getList("block_entities", Tag.TAG_COMPOUND));
+        }
         ListTag paletteTag = pieceData.getList("palette", Tag.TAG_COMPOUND);
-        List<BlockState> palette = new ArrayList<>(paletteTag.size());
+        BlockState[] palette = new BlockState[paletteTag.size()];
         for (int index = 0; index < paletteTag.size(); index++) {
-            palette.add(NbtUtils.readBlockState(level.registryAccess().lookupOrThrow(Registries.BLOCK), paletteTag.getCompound(index)));
+            palette[index] = NbtUtils.readBlockState(
+                    level.registryAccess().lookupOrThrow(Registries.BLOCK), paletteTag.getCompound(index));
         }
 
         int[] states = pieceData.getIntArray("states");
         if (states.length != piece.volume()) {
             throw new IllegalStateException("Invalid Battlezone scene piece state count");
         }
-        ensureChunksLoaded(level, piece);
+        return RestoreCursor.blocks(piece, palette, states,
+                pieceData.getList("block_entities", Tag.TAG_COMPOUND));
+    }
+
+    private boolean restorePieceBatch(ServerLevel level, RestoreCursor cursor) {
+        if (cursor.sectionData != null) {
+            restoreWholeSection(level, cursor);
+            return true;
+        }
+        int endIndex = Math.min(cursor.stateIndex + RESTORE_BLOCK_BATCH_SIZE, cursor.states.length);
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
-        int index = 0;
-        for (int y = piece.minY; y <= piece.maxY; y++) {
-            for (int z = piece.minZ; z <= piece.maxZ; z++) {
-                for (int x = piece.minX; x <= piece.maxX; x++) {
-                    int paletteId = states[index++];
-                    if (paletteId < 0 || paletteId >= palette.size()) {
-                        throw new IllegalStateException("Invalid Battlezone scene palette index " + paletteId);
+        while (cursor.stateIndex < endIndex) {
+            int stateIndex = cursor.stateIndex++;
+            int paletteId = cursor.states[stateIndex];
+            if (paletteId < 0 || paletteId >= cursor.palette.length) {
+                throw new IllegalStateException("Invalid Battlezone scene palette index " + paletteId);
+            }
+            int x = cursor.piece.minX + stateIndex % cursor.sizeX;
+            int z = cursor.piece.minZ + stateIndex / cursor.sizeX % cursor.sizeZ;
+            int y = cursor.piece.minY + stateIndex / (cursor.sizeX * cursor.sizeZ);
+            pos.set(x, y, z);
+            int chunkX = x >> 4;
+            int chunkZ = z >> 4;
+            long chunkKey = ChunkPos.asLong(chunkX, chunkZ);
+            LevelChunk chunk = cursor.touchedChunks.computeIfAbsent(chunkKey, ignored -> level.getChunk(chunkX, chunkZ));
+            chunk.setBlockState(pos, cursor.palette[paletteId], false);
+        }
+        return cursor.stateIndex >= cursor.states.length;
+    }
+
+    private void restoreWholeSection(ServerLevel level, RestoreCursor cursor) {
+        Piece piece = cursor.piece;
+        int sectionY = piece.minY >> 4;
+        int sectionIndex = level.getSectionIndex(sectionY << 4);
+        LevelChunk chunk = level.getChunk(piece.minX >> 4, piece.minZ >> 4);
+        LevelChunkSection previous = chunk.getSections()[sectionIndex];
+        LevelChunkSection restored = new LevelChunkSection(level.registryAccess().registryOrThrow(Registries.BIOME));
+        FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.wrappedBuffer(cursor.sectionData));
+        try {
+            restored.read(buffer);
+        } finally {
+            buffer.release();
+        }
+
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        BitSet changedPositions = new BitSet(PIECE_SIZE * PIECE_SIZE * PIECE_SIZE);
+        for (int y = 0; y < PIECE_SIZE; y++) {
+            for (int z = 0; z < PIECE_SIZE; z++) {
+                for (int x = 0; x < PIECE_SIZE; x++) {
+                    BlockState oldState = previous.getBlockState(x, y, z);
+                    BlockState newState = restored.getBlockState(x, y, z);
+                    if (oldState != newState) {
+                        changedPositions.set((y << 8) | (z << 4) | x);
+                        if (LightEngine.hasDifferentLightProperties(level,
+                                pos.set(piece.minX + x, piece.minY + y, piece.minZ + z), oldState, newState)) {
+                            level.getLightEngine().checkBlock(pos);
+                        }
                     }
-                    pos.set(x, y, z);
-                    level.setBlock(pos, palette.get(paletteId), Block.UPDATE_CLIENTS);
                 }
             }
         }
 
-        ListTag blockEntities = pieceData.getList("block_entities", Tag.TAG_COMPOUND);
+        cursor.touchedChunks.put(chunk.getPos().toLong(), chunk);
+        if (changedPositions.isEmpty()) {
+            return;
+        }
+        for (BlockPos blockEntityPos : new ArrayList<>(chunk.getBlockEntitiesPos())) {
+            if (blockEntityPos.getY() >= piece.minY && blockEntityPos.getY() <= piece.maxY) {
+                chunk.removeBlockEntity(blockEntityPos);
+            }
+        }
+        chunk.getSections()[sectionIndex] = restored;
+        for (int packed = changedPositions.nextSetBit(0); packed >= 0; packed = changedPositions.nextSetBit(packed + 1)) {
+            int x = packed & 15;
+            int z = packed >> 4 & 15;
+            int y = packed >> 8;
+            BlockState state = restored.getBlockState(x, y, z);
+            for (Map.Entry<Heightmap.Types, Heightmap> heightmap : chunk.getHeightmaps()) {
+                heightmap.getValue().update(x, piece.minY + y, z, state);
+            }
+        }
+        chunk.setUnsaved(true);
+    }
+
+    private void finishRestoredPiece(Operation current, RestoreCursor cursor) {
+        for (LevelChunk chunk : cursor.touchedChunks.values()) {
+            long chunkKey = chunk.getPos().toLong();
+            if (current.lastPieceByChunk.getOrDefault(chunkKey, -1) == current.index) {
+                chunk.setUnsaved(true);
+                current.chunksToRefresh.put(chunkKey, chunk);
+            }
+        }
+    }
+
+    private void restoreBlockEntities(ServerLevel level, ListTag blockEntities) {
         for (int blockEntityIndex = 0; blockEntityIndex < blockEntities.size(); blockEntityIndex++) {
             CompoundTag blockEntityData = blockEntities.getCompound(blockEntityIndex);
             BlockPos blockEntityPos = new BlockPos(
@@ -254,9 +420,19 @@ final class BattlezoneSceneSnapshot {
             if (blockEntity != null) {
                 blockEntity.load(blockEntityData);
                 blockEntity.setChanged();
-                BlockState state = level.getBlockState(blockEntityPos);
-                level.sendBlockUpdated(blockEntityPos, state, state, Block.UPDATE_ALL);
             }
+        }
+    }
+
+    private void refreshChunkForTrackingPlayers(ServerLevel level, LevelChunk chunk) {
+        List<ServerPlayer> players = level.getChunkSource().chunkMap.getPlayers(chunk.getPos(), false);
+        if (players.isEmpty()) {
+            return;
+        }
+        ClientboundLevelChunkWithLightPacket packet = new ClientboundLevelChunkWithLightPacket(
+                chunk, level.getLightEngine(), null, null);
+        for (ServerPlayer player : players) {
+            player.connection.send(packet);
         }
     }
 
@@ -339,13 +515,13 @@ final class BattlezoneSceneSnapshot {
         int pieceX = index % countX;
         int pieceZ = index / countX % countZ;
         int pieceY = index / (countX * countZ);
-        int minX = bounds.minX + pieceX * PIECE_SIZE;
-        int minY = bounds.minY + pieceY * PIECE_SIZE;
-        int minZ = bounds.minZ + pieceZ * PIECE_SIZE;
-        return new Piece(minX, minY, minZ,
-                Math.min(minX + PIECE_SIZE - 1, bounds.maxX),
-                Math.min(minY + PIECE_SIZE - 1, bounds.maxY),
-                Math.min(minZ + PIECE_SIZE - 1, bounds.maxZ));
+        int sectionMinX = ((bounds.minX >> 4) + pieceX) << 4;
+        int sectionMinY = ((bounds.minY >> 4) + pieceY) << 4;
+        int sectionMinZ = ((bounds.minZ >> 4) + pieceZ) << 4;
+        return new Piece(Math.max(sectionMinX, bounds.minX), Math.max(sectionMinY, bounds.minY), Math.max(sectionMinZ, bounds.minZ),
+                Math.min(sectionMinX + PIECE_SIZE - 1, bounds.maxX),
+                Math.min(sectionMinY + PIECE_SIZE - 1, bounds.maxY),
+                Math.min(sectionMinZ + PIECE_SIZE - 1, bounds.maxZ));
     }
 
     private Path snapshotPath() {
@@ -362,15 +538,15 @@ final class BattlezoneSceneSnapshot {
         }
 
         private int piecesX() {
-            return (maxX - minX) / PIECE_SIZE + 1;
+            return (maxX >> 4) - (minX >> 4) + 1;
         }
 
         private int piecesY() {
-            return (maxY - minY) / PIECE_SIZE + 1;
+            return (maxY >> 4) - (minY >> 4) + 1;
         }
 
         private int piecesZ() {
-            return (maxZ - minZ) / PIECE_SIZE + 1;
+            return (maxZ >> 4) - (minZ >> 4) + 1;
         }
 
         private BlockPos minPos() {
@@ -391,6 +567,11 @@ final class BattlezoneSceneSnapshot {
             return (maxX - minX + 1) * (maxY - minY + 1) * (maxZ - minZ + 1);
         }
 
+        private boolean isWholeSection() {
+            return volume() == PIECE_SIZE * PIECE_SIZE * PIECE_SIZE
+                    && (minX & 15) == 0 && (minY & 15) == 0 && (minZ & 15) == 0;
+        }
+
         private CompoundTag save() {
             CompoundTag tag = new CompoundTag();
             tag.putInt("min_x", minX);
@@ -405,6 +586,36 @@ final class BattlezoneSceneSnapshot {
         private static Piece load(CompoundTag tag) {
             return new Piece(tag.getInt("min_x"), tag.getInt("min_y"), tag.getInt("min_z"),
                     tag.getInt("max_x"), tag.getInt("max_y"), tag.getInt("max_z"));
+        }
+    }
+
+    private static final class RestoreCursor {
+        private final Piece piece;
+        private final int sizeX;
+        private final int sizeZ;
+        private final BlockState[] palette;
+        private final int[] states;
+        private final byte[] sectionData;
+        private final ListTag blockEntities;
+        private final Map<Long, LevelChunk> touchedChunks = new HashMap<>();
+        private int stateIndex;
+
+        private RestoreCursor(Piece piece, BlockState[] palette, int[] states, byte[] sectionData, ListTag blockEntities) {
+            this.piece = piece;
+            this.sizeX = piece.maxX - piece.minX + 1;
+            this.sizeZ = piece.maxZ - piece.minZ + 1;
+            this.palette = palette;
+            this.states = states;
+            this.sectionData = sectionData;
+            this.blockEntities = blockEntities;
+        }
+
+        private static RestoreCursor section(Piece piece, byte[] sectionData, ListTag blockEntities) {
+            return new RestoreCursor(piece, null, null, sectionData, blockEntities);
+        }
+
+        private static RestoreCursor blocks(Piece piece, BlockState[] palette, int[] states, ListTag blockEntities) {
+            return new RestoreCursor(piece, palette, states, null, blockEntities);
         }
     }
 
@@ -427,6 +638,11 @@ final class BattlezoneSceneSnapshot {
         private final Path temporaryPath;
         private final CompoundTag data;
         private final ListTag pieces;
+        private final Map<Long, Integer> lastPieceByChunk;
+        private final Map<Long, LevelChunk> chunksToRefresh = new LinkedHashMap<>();
+        private RestoreCursor restoreCursor;
+        private boolean restoreEntitiesRemoved;
+        private boolean lightUpdatesSettled;
         private int index;
 
         private Operation(OperationType type, ServerLevel level, Bounds bounds, int pieceCount, Path path, CompoundTag data) {
@@ -438,6 +654,7 @@ final class BattlezoneSceneSnapshot {
             this.temporaryPath = path == null ? null : path.resolveSibling(path.getFileName() + ".tmp");
             this.data = data;
             this.pieces = type == OperationType.CAPTURE ? new ListTag() : data.getList("pieces", Tag.TAG_COMPOUND);
+            this.lastPieceByChunk = type == OperationType.RESTORE ? findLastPieceByChunk(this.pieces) : Map.of();
         }
 
         private static Operation capture(ServerLevel level, Bounds bounds, int pieceCount, Path path, CompoundTag data) {
@@ -446,6 +663,19 @@ final class BattlezoneSceneSnapshot {
 
         private static Operation restore(ServerLevel level, Bounds bounds, CompoundTag data) {
             return new Operation(OperationType.RESTORE, level, bounds, data.getInt("piece_count"), null, data);
+        }
+
+        private static Map<Long, Integer> findLastPieceByChunk(ListTag pieces) {
+            Map<Long, Integer> lastPieceByChunk = new HashMap<>();
+            for (int pieceIndex = 0; pieceIndex < pieces.size(); pieceIndex++) {
+                Piece piece = Piece.load(pieces.getCompound(pieceIndex));
+                for (int chunkX = piece.minX >> 4; chunkX <= piece.maxX >> 4; chunkX++) {
+                    for (int chunkZ = piece.minZ >> 4; chunkZ <= piece.maxZ >> 4; chunkZ++) {
+                        lastPieceByChunk.put(ChunkPos.asLong(chunkX, chunkZ), pieceIndex);
+                    }
+                }
+            }
+            return lastPieceByChunk;
         }
     }
 }

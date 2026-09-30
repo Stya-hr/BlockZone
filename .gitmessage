@@ -1,0 +1,5 @@
+
+# <type>(<scope>)!: 简短描述
+# type: feat fix docs style refactor perf test build ci chore revert
+# scope 可省略，示例：feat(combat): 加入倒地状态
+# 详细说明可写在空行之后；提交规则见 CONTRIBUTING.md。

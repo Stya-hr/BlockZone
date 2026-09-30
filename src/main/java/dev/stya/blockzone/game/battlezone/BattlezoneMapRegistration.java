@@ -29,18 +29,17 @@ public final class BattlezoneMapRegistration {
         var snapshot = Commands.literal("snapshot")
                 .then(saveSnapshot);
         var mapName = Commands.argument("map_name", StringArgumentType.string())
-                .suggests((context, builder) -> net.minecraft.commands.SharedSuggestionProvider.suggest(
-                        FPSMCore.getInstance().getMapNamesWithType(BattlezoneMap.GAME_TYPE), builder))
                 .then(snapshot);
+        var gameType = Commands.argument("game_type", StringArgumentType.string())
+                .then(mapName);
 
         event.addChild(Commands.literal("map")
                 .then(Commands.literal("modify")
-                        .then(Commands.literal(BattlezoneMap.GAME_TYPE)
-                                .then(mapName))));
+                        .then(gameType)));
 
-        event.registerHelp("fpsm map modify battlezone snapshot save",
+        event.registerHelp("fpsm map modify snapshot save",
                 Component.literal("Save the scene snapshot for a Battlezone map."));
-        event.registerParameters("fpsm map modify battlezone snapshot save", "*map_name");
+        event.registerParameters("fpsm map modify snapshot save", "*game_type", "*map_name");
     }
 
     private static int saveSnapshot(CommandContext<CommandSourceStack> context) {

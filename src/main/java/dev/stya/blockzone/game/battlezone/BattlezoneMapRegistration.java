@@ -2,10 +2,12 @@ package dev.stya.blockzone.game.battlezone;
 
 import dev.stya.blockzone.BlockZone;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.context.CommandContext;
 import com.ptcrys.fpsmatch.common.event.register.RegisterFPSMapEvent;
 import com.ptcrys.fpsmatch.common.event.register.RegisterFPSMCommandEvent;
 import com.ptcrys.fpsmatch.core.FPSMCore;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -22,35 +24,46 @@ public final class BattlezoneMapRegistration {
 
     @SubscribeEvent
     public static void registerSnapshotCommand(RegisterFPSMCommandEvent event) {
-        event.getTree().then(Commands.literal("battlezone")
-                .requires(source -> source.hasPermission(2))
-                .then(Commands.literal("snapshot")
-                        .then(Commands.literal("save")
-                                .then(Commands.argument("map", StringArgumentType.word())
-                                        .suggests((context, builder) -> net.minecraft.commands.SharedSuggestionProvider.suggest(
-                                                FPSMCore.getInstance().getMapNamesWithType(BattlezoneMap.GAME_TYPE), builder))
-                                        .executes(context -> {
-                                            String mapName = StringArgumentType.getString(context, "map");
-                                            BattlezoneMap map = FPSMCore.getInstance()
-                                                    .getMapByTypeWithName(BattlezoneMap.GAME_TYPE, mapName)
-                                                    .filter(BattlezoneMap.class::isInstance)
-                                                    .map(BattlezoneMap.class::cast)
-                                                    .orElse(null);
-                                            if (map == null) {
-                                                context.getSource().sendFailure(Component.literal("No loaded Battlezone map named " + mapName + "."));
-                                                return 0;
-                                            }
-                                            if (map.isStart()) {
-                                                context.getSource().sendFailure(Component.literal("Stop the Battlezone match before saving its scene snapshot."));
-                                                return 0;
-                                            }
-                                            if (!map.saveSceneSnapshot()) {
-                                                context.getSource().sendFailure(Component.literal("Could not start saving the Battlezone scene snapshot."));
-                                                return 0;
-                                            }
-                                            context.getSource().sendSuccess(
-                                                    () -> Component.literal("Started saving scene snapshot for Battlezone map " + mapName + "."), false);
-                                            return 1;
-                                        })))));
+        var saveSnapshot = Commands.literal("save")
+                .executes(BattlezoneMapRegistration::saveSnapshot);
+        var snapshot = Commands.literal("snapshot")
+                .then(saveSnapshot);
+        var mapName = Commands.argument("map_name", StringArgumentType.string())
+                .suggests((context, builder) -> net.minecraft.commands.SharedSuggestionProvider.suggest(
+                        FPSMCore.getInstance().getMapNamesWithType(BattlezoneMap.GAME_TYPE), builder))
+                .then(snapshot);
+
+        event.addChild(Commands.literal("map")
+                .then(Commands.literal("modify")
+                        .then(Commands.literal(BattlezoneMap.GAME_TYPE)
+                                .then(mapName))));
+
+        event.registerHelp("fpsm map modify battlezone snapshot save",
+                Component.literal("Save the scene snapshot for a Battlezone map."));
+        event.registerParameters("fpsm map modify battlezone snapshot save", "*map_name");
+    }
+
+    private static int saveSnapshot(CommandContext<CommandSourceStack> context) {
+        String mapName = StringArgumentType.getString(context, "map_name");
+        BattlezoneMap map = FPSMCore.getInstance()
+                .getMapByTypeWithName(BattlezoneMap.GAME_TYPE, mapName)
+                .filter(BattlezoneMap.class::isInstance)
+                .map(BattlezoneMap.class::cast)
+                .orElse(null);
+        if (map == null) {
+            context.getSource().sendFailure(Component.literal("No loaded Battlezone map named " + mapName + "."));
+            return 0;
+        }
+        if (map.isStart()) {
+            context.getSource().sendFailure(Component.literal("Stop the Battlezone match before saving its scene snapshot."));
+            return 0;
+        }
+        if (!map.saveSceneSnapshot()) {
+            context.getSource().sendFailure(Component.literal("Could not start saving the Battlezone scene snapshot."));
+            return 0;
+        }
+        context.getSource().sendSuccess(
+                () -> Component.literal("Started saving scene snapshot for Battlezone map " + mapName + "."), false);
+        return 1;
     }
 }

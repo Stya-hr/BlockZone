@@ -52,8 +52,8 @@ public final class BattlezoneMap extends BaseMap {
     private int poisonPhaseTicks;
     private float poisonStartRadius;
     private float poisonCurrentRadius;
-    private boolean snapshotChecked;
     private boolean snapshotValid;
+    private boolean snapshotSavePending;
     private boolean victoryAnnounced;
 
     public BattlezoneMap(ServerLevel serverLevel, String mapName, AreaData areaData) {
@@ -73,10 +73,9 @@ public final class BattlezoneMap extends BaseMap {
         this.poisonPhases = addSetting(new Setting<>("battlezone", "poison_phases", POISON_PHASE_CODEC.listOf(), DEFAULT_POISON_PHASES));
         this.sceneSnapshot = new BattlezoneSceneSnapshot(this);
         this.snapshotValid = sceneSnapshot.load();
-        this.snapshotChecked = true;
         if (!snapshotValid && !sceneSnapshot.exists()) {
-            // New maps have no baseline yet. Capture once when their editor-created map object is registered.
-            snapshotValid = sceneSnapshot.save();
+            // New maps capture their initial baseline over several map ticks.
+            sceneSnapshot.beginSave();
         }
 
         // Use the FPSMatch lobby timer for Battlezone's configured countdown.
@@ -87,10 +86,14 @@ public final class BattlezoneMap extends BaseMap {
 
     @Override
     public void tick() {
-        if (!snapshotChecked) {
-            snapshotValid = sceneSnapshot.load();
-            snapshotChecked = true;
+        sceneSnapshot.tick();
+        if (snapshotSavePending && !sceneSnapshot.isBusy()) {
+            snapshotSavePending = false;
+            if (sceneSnapshot.beginSave()) {
+                snapshotValid = false;
+            }
         }
+        snapshotValid = sceneSnapshot.hasValidSnapshot();
 
         switch (phase) {
             case WAITING -> tickWaiting();
@@ -98,7 +101,7 @@ public final class BattlezoneMap extends BaseMap {
             case DEPLOYMENT -> tickDeployment();
             case MATCH -> tickMatch();
             case SETTLEMENT -> tickSettlement();
-            case RESETTING -> resetMatch();
+            case RESETTING -> tickResetting();
         }
     }
 
@@ -146,12 +149,18 @@ public final class BattlezoneMap extends BaseMap {
     private void tickSettlement() {
         phaseTicks++;
         if (phaseTicks >= Math.max(0, settlementSeconds.get()) * 20) {
-            phase = MatchPhase.RESETTING;
+            reset();
         }
     }
 
-    private void resetMatch() {
-        reset();
+    private void tickResetting() {
+        if (!sceneSnapshot.isBusy()) {
+            if (!sceneSnapshot.lastOperationSucceeded()) {
+                broadcast(Component.literal("Battlezone scene restore failed; save a new snapshot before the next match."));
+            }
+            phase = MatchPhase.WAITING;
+            phaseTicks = 0;
+        }
     }
 
     private void tickPoisonZone() {
@@ -229,7 +238,7 @@ public final class BattlezoneMap extends BaseMap {
     }
 
     private boolean hasValidSnapshot() {
-        return snapshotChecked && snapshotValid;
+        return snapshotValid;
     }
 
     private void broadcast(Component message) {
@@ -240,7 +249,7 @@ public final class BattlezoneMap extends BaseMap {
 
     @Override
     protected boolean canAutoStart() {
-        return hasMinimumTeams() && hasValidSnapshot();
+        return hasMinimumTeams() && hasValidSnapshot() && !sceneSnapshot.isBusy();
     }
 
     @Override
@@ -252,10 +261,6 @@ public final class BattlezoneMap extends BaseMap {
     public boolean start() {
         if (isStart || !hasMinimumTeams()) {
             return false;
-        }
-        if (!snapshotChecked) {
-            snapshotValid = sceneSnapshot.load();
-            snapshotChecked = true;
         }
         if (!snapshotValid) {
             broadcast(Component.literal("Battlezone cannot start: save a valid scene snapshot first."));
@@ -369,29 +374,33 @@ public final class BattlezoneMap extends BaseMap {
         poisonCurrentRadius = poisonStartRadius;
         victoryAnnounced = false;
         getMapTeams().getNormalTeams().forEach(ServerTeam::resetLiving);
-        if (!hasValidSnapshot()) {
+        if (!hasValidSnapshot() || !sceneSnapshot.beginRestore()) {
+            phase = MatchPhase.WAITING;
+            broadcast(Component.literal("Battlezone scene restore could not start; save a valid snapshot first."));
             return;
         }
-        if (!sceneSnapshot.restore()) {
-            snapshotValid = false;
-            broadcast(Component.literal("Battlezone scene restore failed; save a new snapshot before the next match."));
-        }
+        phase = MatchPhase.RESETTING;
     }
 
     @Override
     public void setMapArea(AreaData areaData) {
         super.setMapArea(areaData);
         if (sceneSnapshot != null && !isStart && areaData != null) {
-            snapshotValid = sceneSnapshot.save();
-            snapshotChecked = true;
+            snapshotValid = false;
+            if (sceneSnapshot.isBusy()) {
+                snapshotSavePending = true;
+            } else {
+                sceneSnapshot.beginSave();
+            }
         }
     }
 
     public boolean saveSceneSnapshot() {
-        boolean saved = sceneSnapshot.save();
-        snapshotChecked = true;
-        snapshotValid = saved;
-        return saved;
+        boolean started = sceneSnapshot.beginSave();
+        if (started) {
+            snapshotValid = false;
+        }
+        return started;
     }
 
     public MatchPhase getPhase() {

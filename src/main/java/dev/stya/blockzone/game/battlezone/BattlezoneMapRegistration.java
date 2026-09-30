@@ -45,11 +45,11 @@ public final class BattlezoneMapRegistration {
                                                 return 0;
                                             }
                                             if (!map.saveSceneSnapshot()) {
-                                                context.getSource().sendFailure(Component.literal("Failed to save the Battlezone scene snapshot."));
+                                                context.getSource().sendFailure(Component.literal("Could not start saving the Battlezone scene snapshot."));
                                                 return 0;
                                             }
                                             context.getSource().sendSuccess(
-                                                    () -> Component.literal("Saved scene snapshot for Battlezone map " + mapName + "."), false);
+                                                    () -> Component.literal("Started saving scene snapshot for Battlezone map " + mapName + "."), false);
                                             return 1;
                                         })))));
     }

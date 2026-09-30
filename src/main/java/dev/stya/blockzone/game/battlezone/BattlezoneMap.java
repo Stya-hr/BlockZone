@@ -108,7 +108,9 @@ public final class BattlezoneMap extends BaseMap {
     private void tickWaiting() {
         autoStart.set(true);
         readyStartEnabled.set(false);
-        if (!hasMinimumTeams()) {
+        // Restoration and snapshot capture both run across multiple ticks.
+        // Keep the lobby waiting until the scene is ready for a match.
+        if (sceneSnapshot.isBusy() || !hasMinimumTeams()) {
             return;
         }
         if (!hasValidSnapshot()) {
@@ -122,11 +124,11 @@ public final class BattlezoneMap extends BaseMap {
     private void tickCountdown() {
         autoStart.set(true);
         readyStartEnabled.set(false);
-        if (!hasMinimumTeams() || !hasValidSnapshot()) {
+        if (sceneSnapshot.isBusy() || !hasMinimumTeams() || !hasValidSnapshot()) {
             phase = MatchPhase.WAITING;
+            autoStartTime.set(Math.max(0, countdownSeconds.get()) * 20);
             broadcast(Component.literal("Battlezone countdown cancelled."));
         }
-        autoStartTime.set(Math.max(0, countdownSeconds.get()) * 20);
     }
 
     private void tickDeployment() {
@@ -260,6 +262,13 @@ public final class BattlezoneMap extends BaseMap {
     @Override
     public boolean start() {
         if (isStart || !hasMinimumTeams()) {
+            return false;
+        }
+        if (phase != MatchPhase.WAITING && phase != MatchPhase.COUNTDOWN) {
+            return false;
+        }
+        if (sceneSnapshot.isBusy()) {
+            broadcast(Component.literal("Battlezone cannot start: scene restore is still in progress."));
             return false;
         }
         if (!snapshotValid) {

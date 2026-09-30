@@ -413,6 +413,7 @@ public final class BattlezoneMap extends BaseMap {
 
     @Override
     public MapTeams.JoinTeamResult join(ServerPlayer player) {
+        ensureConfiguredTeams();
         if (isStart && !allowJoinInProgress()) {
             return MapTeams.JoinTeamResult.of(MapTeams.JoinTeamResult.Status.MID_MATCH_JOIN_DISABLED);
         }
@@ -432,6 +433,7 @@ public final class BattlezoneMap extends BaseMap {
 
     @Override
     public MapTeams.JoinTeamResult join(String teamName, ServerPlayer player) {
+        ensureConfiguredTeams();
         if (isStart && !allowJoinInProgress()) {
             return MapTeams.JoinTeamResult.of(MapTeams.JoinTeamResult.Status.MID_MATCH_JOIN_DISABLED);
         }
@@ -454,6 +456,28 @@ public final class BattlezoneMap extends BaseMap {
     public ServerTeam addTeam(TeamData teamData) {
         TeamData limited = new TeamData(teamData.name(), Math.max(1, teamPlayerLimit.get()), teamData.capabilities());
         return super.addTeam(limited);
+    }
+
+    private void ensureConfiguredTeams() {
+        // Create the roster on the first join so saved map settings have already been loaded.
+        int maxPlayers = Math.max(1, totalPlayerLimit.get());
+        int playersPerTeam = Math.max(1, teamPlayerLimit.get());
+        int capacityTeamCount = (int) (((long) maxPlayers + playersPerTeam - 1) / playersPerTeam);
+        int requiredTeams = Math.max(Math.max(1, minimumTeamsToStart.get()), capacityTeamCount);
+        List<ServerTeam> teams = getMapTeams().getNormalTeams();
+        if (teams.size() >= requiredTeams) {
+            return;
+        }
+
+        int nextNumber = 1;
+        while (teams.size() < requiredTeams) {
+            String teamName = "squad_" + nextNumber++;
+            if (getMapTeams().getTeamByName(teamName).isPresent()) {
+                continue;
+            }
+            addTeam(new TeamData(teamName, playersPerTeam));
+            teams = getMapTeams().getNormalTeams();
+        }
     }
 
     @Override

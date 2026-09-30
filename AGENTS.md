@@ -1,5 +1,6 @@
 # 开发文档
-- [FPSMatch开发者文档](https://fpsmatch.ptcrys.net/master/docs/developer/)
+- 理解[FPSMatch开发者文档](https://fpsmatch.ptcrys.net/master/docs/developer/)
+- 学习[依赖FPSMatch的开发示例模组](https://github.com/PhasetransCrystal/BlockOffensive)
 
 # 仓库协作习惯
 

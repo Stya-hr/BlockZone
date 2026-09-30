@@ -516,6 +516,14 @@ public final class BattlezoneMap extends BaseMap {
     }
 
     @Override
+    public boolean cleanupMap() {
+        if (!super.cleanupMap()) {
+            return false;
+        }
+        return hasValidSnapshot() && sceneSnapshot.beginRestore();
+    }
+
+    @Override
     public void reset() {
         super.reset();
         isStart = false;
@@ -529,7 +537,7 @@ public final class BattlezoneMap extends BaseMap {
         poisonStageInitialized = false;
         victoryAnnounced = false;
         getMapTeams().getNormalTeams().forEach(ServerTeam::resetLiving);
-        if (!hasValidSnapshot() || !sceneSnapshot.beginRestore()) {
+        if (!cleanupMap()) {
             phase = MatchPhase.WAITING;
             broadcast(Component.literal("Battlezone scene restore could not start; save a valid snapshot first."));
             return;

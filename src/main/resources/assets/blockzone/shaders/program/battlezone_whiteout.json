@@ -5,7 +5,7 @@
     "dstrgb": "zero"
   },
   "vertex": "blit",
-  "fragment": "blockzone:shaders/program/battlezone_whiteout",
+  "fragment": "blockzone:battlezone_whiteout",
   "attributes": [ "Position" ],
   "samplers": [
     { "name": "DiffuseSampler" },

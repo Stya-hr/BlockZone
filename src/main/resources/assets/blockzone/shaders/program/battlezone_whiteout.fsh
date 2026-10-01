@@ -12,6 +12,8 @@ uniform vec4 MapBounds;
 uniform mat4 InverseProjection;
 uniform mat4 InverseViewRotation;
 
+const float OUTSIDE_DESATURATION = 0.78;
+
 void main() {
     vec4 sceneColor = texture(DiffuseSampler, texCoord);
     float depth = texture(DepthSampler, texCoord).r;
@@ -35,7 +37,9 @@ void main() {
             || abs(worldXZ.y - MapBounds.w) <= 0.15));
 
     if (distanceFromCenter > CircleRadius && !onCircleBoundary && !onMapBoundary) {
-        fragColor = vec4(1.0, 1.0, 1.0, sceneColor.a);
+        float luminance = dot(sceneColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+        vec3 desaturatedColor = mix(sceneColor.rgb, vec3(luminance), OUTSIDE_DESATURATION);
+        fragColor = vec4(desaturatedColor, sceneColor.a);
     } else {
         fragColor = sceneColor;
     }

@@ -76,6 +76,7 @@ public final class BattlezoneMap extends BaseMap {
     private boolean snapshotValid;
     private boolean snapshotSavePending;
     private boolean victoryAnnounced;
+    private long lastVisualStateSync = Long.MIN_VALUE;
 
     public BattlezoneMap(ServerLevel serverLevel, String mapName, AreaData areaData) {
         super(serverLevel, mapName, areaData);
@@ -125,6 +126,7 @@ public final class BattlezoneMap extends BaseMap {
             case SETTLEMENT -> tickSettlement();
             case RESETTING -> tickResetting();
         }
+        syncVisualState(false);
     }
 
     private void tickWaiting() {
@@ -162,6 +164,7 @@ public final class BattlezoneMap extends BaseMap {
             poisonPhaseTicks = 0;
             initializePoisonZone();
             broadcast(Component.literal("Battlezone match started."));
+            syncVisualState(true);
         }
     }
 
@@ -183,6 +186,7 @@ public final class BattlezoneMap extends BaseMap {
             }
             phase = MatchPhase.WAITING;
             phaseTicks = 0;
+            syncVisualState(true);
         }
     }
 
@@ -403,6 +407,8 @@ public final class BattlezoneMap extends BaseMap {
         phaseTicks = 0;
         victoryAnnounced = false;
         resetMatchClock();
+        initializePoisonZone();
+        syncVisualState(true);
         return true;
     }
 
@@ -425,10 +431,10 @@ public final class BattlezoneMap extends BaseMap {
                     .filter(team -> phase != MatchPhase.MATCH || !team.getLivingPlayers().isEmpty())
                     .filter(team -> team.getPlayerCount() < Math.max(1, teamPlayerLimit.get()))
                     .min(java.util.Comparator.comparingInt(ServerTeam::getPlayerCount))
-                    .map(team -> super.join(team.getName(), player))
+                    .map(team -> syncAfterJoin(super.join(team.getName(), player), player))
                     .orElseGet(() -> MapTeams.JoinTeamResult.of(MapTeams.JoinTeamResult.Status.NO_AVAILABLE_TEAM));
         }
-        return super.join(player);
+        return syncAfterJoin(super.join(player), player);
     }
 
     @Override
@@ -449,7 +455,14 @@ public final class BattlezoneMap extends BaseMap {
         if (!alreadyInTeam && team.isPresent() && team.get().getPlayerCount() >= Math.max(1, teamPlayerLimit.get())) {
             return MapTeams.JoinTeamResult.of(MapTeams.JoinTeamResult.Status.TEAM_FULL);
         }
-        return super.join(teamName, player);
+        return syncAfterJoin(super.join(teamName, player), player);
+    }
+
+    private MapTeams.JoinTeamResult syncAfterJoin(MapTeams.JoinTeamResult result, ServerPlayer player) {
+        if (result.isSuccess() && isStart) {
+            BattlezoneNetwork.send(player, createVisualStatePacket());
+        }
+        return result;
     }
 
     @Override
@@ -502,6 +515,7 @@ public final class BattlezoneMap extends BaseMap {
         super.victory();
         phase = MatchPhase.SETTLEMENT;
         phaseTicks = 0;
+        syncVisualState(true);
     }
 
     @Override
@@ -540,9 +554,11 @@ public final class BattlezoneMap extends BaseMap {
         if (!cleanupMap()) {
             phase = MatchPhase.WAITING;
             broadcast(Component.literal("Battlezone scene restore could not start; save a valid snapshot first."));
+            syncVisualState(true);
             return;
         }
         phase = MatchPhase.RESETTING;
+        syncVisualState(true);
     }
 
     @Override
@@ -568,6 +584,36 @@ public final class BattlezoneMap extends BaseMap {
 
     public MatchPhase getPhase() {
         return phase;
+    }
+
+    private void syncVisualState(boolean force) {
+        if (!force && !isStart) {
+            return;
+        }
+        long gameTime = getServerLevel().getGameTime();
+        if (!force && (lastVisualStateSync == Long.MIN_VALUE || gameTime - lastVisualStateSync < 5)) {
+            return;
+        }
+        lastVisualStateSync = gameTime;
+        BattlezoneZoneStateS2CPacket packet = createVisualStatePacket();
+        for (ServerPlayer player : getMapTeams().getOnlineWithSpec()) {
+            BattlezoneNetwork.send(player, packet);
+        }
+    }
+
+    private BattlezoneZoneStateS2CPacket createVisualStatePacket() {
+        AreaData area = getMapArea();
+        boolean boundaryVisible = isStart && phase != MatchPhase.RESETTING;
+        return new BattlezoneZoneStateS2CPacket(
+                getMapName(),
+                getServerLevel().dimension().location(),
+                boundaryVisible,
+                boundaryVisible && phase == MatchPhase.MATCH,
+                area.pos1(),
+                area.pos2(),
+                poisonCurrentCenterX,
+                poisonCurrentCenterZ,
+                poisonCurrentRadius);
     }
 
     @Override

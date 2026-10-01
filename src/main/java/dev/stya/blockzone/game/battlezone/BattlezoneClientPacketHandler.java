@@ -1,0 +1,13 @@
+package dev.stya.blockzone.game.battlezone;
+
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.DistExecutor;
+
+final class BattlezoneClientPacketHandler {
+    private BattlezoneClientPacketHandler() {
+    }
+
+    static void handle(BattlezoneZoneStateS2CPacket packet) {
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> BattlezoneClientState.apply(packet));
+    }
+}

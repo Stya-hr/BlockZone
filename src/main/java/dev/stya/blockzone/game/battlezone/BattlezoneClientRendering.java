@@ -16,7 +16,6 @@ import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.PostPass;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
-import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
@@ -33,8 +32,9 @@ import java.io.IOException;
 public final class BattlezoneClientRendering {
     private static final Logger LOGGER = LoggerFactory.getLogger(BattlezoneClientRendering.class);
     private static final double WARNING_FENCE_DISTANCE = 12.0;
-    private static final double WARNING_FENCE_HALF_LENGTH = 20.0;
-    private static final double WARNING_FENCE_TILE_SIZE = 3.0;
+    private static final float WARNING_FENCE_TEXTURE_BLOCKS = 3.0F;
+    private static final ResourceLocation WARNING_FENCE_TEXTURE =
+            ResourceLocation.fromNamespaceAndPath("blockzone", "textures/effect/battlezone_warning_fence.png");
 
     private static PostPass whiteoutPass;
     private static PostPass blitPass;
@@ -170,8 +170,8 @@ public final class BattlezoneClientRendering {
 
         double areaMinY = Math.min(state.y1(), state.y2());
         double areaMaxY = Math.max(state.y1(), state.y2()) + 1.0;
-        double fenceMinY = Mth.clamp(Math.floor(player.getY()) - 1.0, areaMinY, areaMaxY);
-        double fenceMaxY = Math.min(areaMaxY, fenceMinY + 4.0);
+        double fenceMinY = areaMinY;
+        double fenceMaxY = areaMaxY;
         if (fenceMaxY <= fenceMinY) {
             return;
         }
@@ -181,30 +181,23 @@ public final class BattlezoneClientRendering {
         RenderSystem.disableCull();
         RenderSystem.enableDepthTest();
         RenderSystem.depthMask(false);
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
+        Minecraft.getInstance().getTextureManager().bindForSetup(WARNING_FENCE_TEXTURE);
 
         BufferBuilder builder = Tesselator.getInstance().getBuilder();
-        builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+        builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
         Matrix4f pose = poseStack.last().pose();
         if (west) {
-            renderFenceSide(builder, pose, camera, true, minX,
-                    Math.max(minZ, player.getZ() - WARNING_FENCE_HALF_LENGTH),
-                    Math.min(maxZ, player.getZ() + WARNING_FENCE_HALF_LENGTH), fenceMinY, fenceMaxY);
+            renderFenceSide(builder, pose, camera, true, minX, minZ, maxZ, fenceMinY, fenceMaxY);
         }
         if (east) {
-            renderFenceSide(builder, pose, camera, true, maxX,
-                    Math.max(minZ, player.getZ() - WARNING_FENCE_HALF_LENGTH),
-                    Math.min(maxZ, player.getZ() + WARNING_FENCE_HALF_LENGTH), fenceMinY, fenceMaxY);
+            renderFenceSide(builder, pose, camera, true, maxX, minZ, maxZ, fenceMinY, fenceMaxY);
         }
         if (north) {
-            renderFenceSide(builder, pose, camera, false, minZ,
-                    Math.max(minX, player.getX() - WARNING_FENCE_HALF_LENGTH),
-                    Math.min(maxX, player.getX() + WARNING_FENCE_HALF_LENGTH), fenceMinY, fenceMaxY);
+            renderFenceSide(builder, pose, camera, false, minZ, minX, maxX, fenceMinY, fenceMaxY);
         }
         if (south) {
-            renderFenceSide(builder, pose, camera, false, maxZ,
-                    Math.max(minX, player.getX() - WARNING_FENCE_HALF_LENGTH),
-                    Math.min(maxX, player.getX() + WARNING_FENCE_HALF_LENGTH), fenceMinY, fenceMaxY);
+            renderFenceSide(builder, pose, camera, false, maxZ, minX, maxX, fenceMinY, fenceMaxY);
         }
         BufferUploader.drawWithShader(builder.end());
 
@@ -216,50 +209,27 @@ public final class BattlezoneClientRendering {
     private static void renderFenceSide(VertexConsumer consumer, Matrix4f pose, Vec3 camera,
                                         boolean xPlane, double plane, double alongMin, double alongMax,
                                         double minY, double maxY) {
-        for (double along = alongMin; along < alongMax; along += WARNING_FENCE_TILE_SIZE) {
-            double nextAlong = Math.min(alongMax, along + WARNING_FENCE_TILE_SIZE);
-            for (double y = minY; y < maxY; y += WARNING_FENCE_TILE_SIZE) {
-                double nextY = Math.min(maxY, y + WARNING_FENCE_TILE_SIZE);
-                addFenceQuad(consumer, pose, camera, xPlane, plane,
-                        along, y, nextAlong, nextY, 255, 190, 0, 235);
-
-                double stripe = Math.min(0.75, Math.min(nextAlong - along, nextY - y) * 0.35);
-                if (((int) Math.floor(along / WARNING_FENCE_TILE_SIZE)
-                        + (int) Math.floor(y / WARNING_FENCE_TILE_SIZE)) % 2 == 0) {
-                    addFencePolygon(consumer, pose, camera, xPlane, plane,
-                            new double[][]{
-                                    {along, y}, {along + stripe, y},
-                                    {nextAlong, nextY - stripe}, {nextAlong, nextY}
-                            }, 24, 24, 24, 235);
-                } else {
-                    addFencePolygon(consumer, pose, camera, xPlane, plane,
-                            new double[][]{
-                                    {along, nextY}, {along + stripe, nextY},
-                                    {nextAlong, y + stripe}, {nextAlong, y}
-                            }, 24, 24, 24, 235);
-                }
-            }
-        }
+        // Keep each side in fixed map coordinates. Only visibility depends on the player's
+        // distance; the rendered segment itself must not slide along the boundary with them.
+        double uMin = alongMin / WARNING_FENCE_TEXTURE_BLOCKS;
+        double uMax = alongMax / WARNING_FENCE_TEXTURE_BLOCKS;
+        double vMin = minY / WARNING_FENCE_TEXTURE_BLOCKS;
+        double vMax = maxY / WARNING_FENCE_TEXTURE_BLOCKS;
+        addTexturedFenceVertex(consumer, pose, camera, xPlane, plane, alongMin, minY, uMin, vMin);
+        addTexturedFenceVertex(consumer, pose, camera, xPlane, plane, alongMax, minY, uMax, vMin);
+        addTexturedFenceVertex(consumer, pose, camera, xPlane, plane, alongMax, maxY, uMax, vMax);
+        addTexturedFenceVertex(consumer, pose, camera, xPlane, plane, alongMin, maxY, uMin, vMax);
     }
 
-    private static void addFenceQuad(VertexConsumer consumer, Matrix4f pose, Vec3 camera, boolean xPlane,
-                                     double plane, double alongMin, double yMin, double alongMax, double yMax,
-                                     int red, int green, int blue, int alpha) {
-        addFencePolygon(consumer, pose, camera, xPlane, plane,
-                new double[][]{{alongMin, yMin}, {alongMax, yMin}, {alongMax, yMax}, {alongMin, yMax}},
-                red, green, blue, alpha);
-    }
-
-    private static void addFencePolygon(VertexConsumer consumer, Matrix4f pose, Vec3 camera, boolean xPlane,
-                                        double plane, double[][] points,
-                                        int red, int green, int blue, int alpha) {
-        for (double[] point : points) {
-            double x = xPlane ? plane - camera.x : point[0] - camera.x;
-            double y = point[1] - camera.y;
-            double z = xPlane ? point[0] - camera.z : plane - camera.z;
-            consumer.vertex(pose, (float) x, (float) y, (float) z)
-                    .color(red, green, blue, alpha).endVertex();
-        }
+    private static void addTexturedFenceVertex(VertexConsumer consumer, Matrix4f pose, Vec3 camera,
+                                               boolean xPlane, double plane, double along, double y,
+                                               double u, double v) {
+        double x = (xPlane ? plane : along) - camera.x;
+        double z = (xPlane ? along : plane) - camera.z;
+        consumer.vertex(pose, (float) x, (float) (y - camera.y), (float) z)
+                .uv((float) u, (float) v)
+                .color(255, 255, 255, 255)
+                .endVertex();
     }
 
     private static void releasePasses() {

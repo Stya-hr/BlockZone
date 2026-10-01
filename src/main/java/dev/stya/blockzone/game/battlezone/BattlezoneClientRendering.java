@@ -20,11 +20,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
 import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
-import net.minecraftforge.client.gui.overlay.ForgeGui;
-import net.minecraftforge.client.gui.overlay.IGuiOverlay;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.joml.Matrix4f;
@@ -37,7 +34,6 @@ import java.io.IOException;
 public final class BattlezoneClientRendering {
     private static final Logger LOGGER = LoggerFactory.getLogger(BattlezoneClientRendering.class);
     private static final int CIRCLE_SEGMENTS = 96;
-    private static final IGuiOverlay WHITEOUT_OVERLAY = BattlezoneClientRendering::renderWhiteout;
 
     private static PostPass whiteoutPass;
     private static PostPass blitPass;
@@ -49,13 +45,6 @@ public final class BattlezoneClientRendering {
     private static Vec3 cameraPosition;
 
     private BattlezoneClientRendering() {
-    }
-
-    @SubscribeEvent
-    public static void registerOverlay(RegisterGuiOverlaysEvent event) {
-        // GUI overlays are rendered after the world and first-person hand, so this pass
-        // can whiten the complete 3D scene while leaving the HUD untouched.
-        event.registerBelowAll("battlezone_whiteout", WHITEOUT_OVERLAY);
     }
 
     @SubscribeEvent
@@ -96,10 +85,10 @@ public final class BattlezoneClientRendering {
         AreaRenderer.renderMapBounds(state, poseStack, buffers);
         buffers.endBatch(RenderType.lines());
         renderCircleWall(state, poseStack);
+        renderWhiteout(event.getPartialTick());
     }
 
-    private static void renderWhiteout(ForgeGui gui, net.minecraft.client.gui.GuiGraphics graphics,
-                                       float partialTick, int screenWidth, int screenHeight) {
+    private static void renderWhiteout(float partialTick) {
         Minecraft minecraft = Minecraft.getInstance();
         BattlezoneClientState.Snapshot state = BattlezoneClientState.current(partialTick);
         if (state == null || !state.whiteoutActive() || minecraft.level == null

@@ -29,7 +29,6 @@ import java.io.IOException;
 @Mod.EventBusSubscriber(modid = "blockzone", value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class BattlezoneClientRendering {
     private static final Logger LOGGER = LoggerFactory.getLogger(BattlezoneClientRendering.class);
-    private static final double WARNING_FENCE_DISTANCE = 12.0;
     private static final float WARNING_FENCE_TEXTURE_BLOCKS = 3.0F;
     private static final ResourceLocation WARNING_FENCE_TEXTURE =
             ResourceLocation.fromNamespaceAndPath("blockzone", "textures/effect/battlezone_warning_fence.png");
@@ -103,12 +102,18 @@ public final class BattlezoneClientRendering {
             }
             RenderTarget mainTarget = minecraft.getMainRenderTarget();
             double cameraX = cameraPosition.x;
+            double cameraY = cameraPosition.y;
             double cameraZ = cameraPosition.z;
             whiteoutPass.getEffect().safeGetUniform("InverseProjection").set(inverseProjection);
             whiteoutPass.getEffect().safeGetUniform("InverseViewRotation").set(inverseViewRotation);
-            whiteoutPass.getEffect().safeGetUniform("CircleCenter").set(
-                    (float) (state.centerX() - cameraX), (float) (state.centerZ() - cameraZ));
-            whiteoutPass.getEffect().safeGetUniform("CircleRadius").set(state.radius());
+            whiteoutPass.getEffect().safeGetUniform("DomeCenter").set(
+                    (float) (state.centerX() - cameraX),
+                    (float) (Math.min(state.y1(), state.y2()) - cameraY),
+                    (float) (state.centerZ() - cameraZ));
+            whiteoutPass.getEffect().safeGetUniform("DomeRadius").set(state.radius());
+            whiteoutPass.getEffect().safeGetUniform("DomeHeight").set(state.radius());
+            whiteoutPass.getEffect().safeGetUniform("GameTime").set(
+                    (minecraft.level.getGameTime() + partialTick) / 20.0F);
 
             whiteoutPass.process(partialTick);
             blitPass.process(partialTick);
@@ -148,24 +153,9 @@ public final class BattlezoneClientRendering {
         double minZ = Math.min(state.z1(), state.z2());
         double maxZ = Math.max(state.z1(), state.z2()) + 1.0;
 
-        boolean west = player.getX() - minX <= WARNING_FENCE_DISTANCE;
-        boolean east = maxX - player.getX() <= WARNING_FENCE_DISTANCE;
-        boolean north = player.getZ() - minZ <= WARNING_FENCE_DISTANCE;
-        boolean south = maxZ - player.getZ() <= WARNING_FENCE_DISTANCE;
-        if (!west && !east && !north && !south) {
-            return;
-        }
-
-        double areaMinY = Math.min(state.y1(), state.y2());
-        double areaMaxY = Math.max(state.y1(), state.y2()) + 1.0;
-        // Map edit bounds may span almost the full build height. A warning fence is
-        // a short, walk-up barrier; it should follow the local terrain height without
-        // turning into a full-height wall across the player's view.
-        double fenceMinY = Math.max(areaMinY, Math.floor(player.getY()));
-        double fenceMaxY = Math.min(areaMaxY, fenceMinY + 1.5);
-        if (fenceMaxY <= fenceMinY) {
-            return;
-        }
+        // Keep the full perimeter visible at the local player's height.
+        double fenceMinY = player.getY();
+        double fenceMaxY = fenceMinY + player.getBbHeight();
 
         poseStack.pushPose();
         poseStack.translate(-camera.x, -camera.y, -camera.z);
@@ -173,18 +163,10 @@ public final class BattlezoneClientRendering {
             MultiBufferSource.BufferSource buffers = Minecraft.getInstance().renderBuffers().bufferSource();
             RenderType renderType = RenderType.entityTranslucent(WARNING_FENCE_TEXTURE);
             VertexConsumer consumer = buffers.getBuffer(renderType);
-            if (west) {
-                renderFenceSide(consumer, poseStack.last(), true, minX, minZ, maxZ, fenceMinY, fenceMaxY);
-            }
-            if (east) {
-                renderFenceSide(consumer, poseStack.last(), true, maxX, minZ, maxZ, fenceMinY, fenceMaxY);
-            }
-            if (north) {
-                renderFenceSide(consumer, poseStack.last(), false, minZ, minX, maxX, fenceMinY, fenceMaxY);
-            }
-            if (south) {
-                renderFenceSide(consumer, poseStack.last(), false, maxZ, minX, maxX, fenceMinY, fenceMaxY);
-            }
+            renderFenceSide(consumer, poseStack.last(), true, minX, minZ, maxZ, fenceMinY, fenceMaxY);
+            renderFenceSide(consumer, poseStack.last(), true, maxX, minZ, maxZ, fenceMinY, fenceMaxY);
+            renderFenceSide(consumer, poseStack.last(), false, minZ, minX, maxX, fenceMinY, fenceMaxY);
+            renderFenceSide(consumer, poseStack.last(), false, maxZ, minX, maxX, fenceMinY, fenceMaxY);
             buffers.endBatch(renderType);
         } finally {
             poseStack.popPose();
@@ -193,8 +175,7 @@ public final class BattlezoneClientRendering {
 
     private static void renderFenceSide(VertexConsumer consumer, PoseStack.Pose pose, boolean xPlane, double plane,
                                         double alongMin, double alongMax, double minY, double maxY) {
-        // Keep each side in fixed map coordinates. Only visibility depends on the player's
-        // distance; the rendered segment itself must not slide along the boundary with them.
+        // Keep every side in fixed map coordinates so the fence stays anchored to the zone.
         double uMin = alongMin / WARNING_FENCE_TEXTURE_BLOCKS;
         double uMax = alongMax / WARNING_FENCE_TEXTURE_BLOCKS;
         double vMin = minY / WARNING_FENCE_TEXTURE_BLOCKS;

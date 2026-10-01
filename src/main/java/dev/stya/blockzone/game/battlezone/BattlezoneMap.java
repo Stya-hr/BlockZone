@@ -12,7 +12,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.player.Player;
 import org.slf4j.Logger;
@@ -66,10 +65,6 @@ public final class BattlezoneMap extends BaseMap {
     private double poisonCurrentCenterZ;
     private double poisonFinalCenterX;
     private double poisonFinalCenterZ;
-    private double poisonStageStartCenterX;
-    private double poisonStageStartCenterZ;
-    private double poisonStageTargetCenterX;
-    private double poisonStageTargetCenterZ;
     private float poisonStageStartRadius;
     private float poisonStageTargetRadius;
     private boolean poisonStageInitialized;
@@ -207,20 +202,14 @@ public final class BattlezoneMap extends BaseMap {
 
         if (poisonPhaseTicks <= waitTicks) {
             poisonCurrentRadius = poisonStageStartRadius;
-            poisonCurrentCenterX = poisonStageStartCenterX;
-            poisonCurrentCenterZ = poisonStageStartCenterZ;
         } else if (shrinkTicks == 0 || poisonPhaseTicks >= waitTicks + shrinkTicks) {
             poisonCurrentRadius = poisonStageTargetRadius;
-            poisonCurrentCenterX = poisonStageTargetCenterX;
-            poisonCurrentCenterZ = poisonStageTargetCenterZ;
             poisonPhaseIndex++;
             poisonPhaseTicks = 0;
             poisonStageInitialized = false;
         } else {
             float progress = (float) (poisonPhaseTicks - waitTicks) / shrinkTicks;
             poisonCurrentRadius = poisonStageStartRadius + (poisonStageTargetRadius - poisonStageStartRadius) * progress;
-            poisonCurrentCenterX = poisonStageStartCenterX + (poisonStageTargetCenterX - poisonStageStartCenterX) * progress;
-            poisonCurrentCenterZ = poisonStageStartCenterZ + (poisonStageTargetCenterZ - poisonStageStartCenterZ) * progress;
         }
 
         damagePlayersOutsideZone();
@@ -261,6 +250,10 @@ public final class BattlezoneMap extends BaseMap {
             poisonFinalCenterX = chosen.x();
             poisonFinalCenterZ = chosen.z();
         }
+
+        // Pick the zone's world position once per match. Only its radius changes between phases.
+        poisonCurrentCenterX = poisonFinalCenterX;
+        poisonCurrentCenterZ = poisonFinalCenterZ;
     }
 
     private void initializePoisonStage(List<PoisonPhase> phases) {
@@ -270,22 +263,7 @@ public final class BattlezoneMap extends BaseMap {
         }
 
         poisonStageStartRadius = poisonCurrentRadius;
-        poisonStageStartCenterX = poisonCurrentCenterX;
-        poisonStageStartCenterZ = poisonCurrentCenterZ;
         poisonStageTargetRadius = targetRadii.get(poisonPhaseIndex);
-
-        float finalRadius = targetRadii.isEmpty() ? poisonCurrentRadius : targetRadii.get(targetRadii.size() - 1);
-        if (poisonPhaseIndex == phases.size() - 1) {
-            poisonStageTargetCenterX = poisonFinalCenterX;
-            poisonStageTargetCenterZ = poisonFinalCenterZ;
-        } else {
-            double maximumOffset = Math.max(0.0, poisonStageTargetRadius - finalRadius);
-            RandomSource random = getServerLevel().getRandom();
-            double angle = random.nextDouble() * Math.PI * 2.0;
-            double distance = Math.sqrt(random.nextDouble()) * maximumOffset;
-            poisonStageTargetCenterX = poisonFinalCenterX + Math.cos(angle) * distance;
-            poisonStageTargetCenterZ = poisonFinalCenterZ + Math.sin(angle) * distance;
-        }
         poisonStageInitialized = true;
     }
 

@@ -10,14 +10,13 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.LevelRenderer;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.PostPass;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
@@ -33,7 +32,9 @@ import java.io.IOException;
 @Mod.EventBusSubscriber(modid = "blockzone", value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class BattlezoneClientRendering {
     private static final Logger LOGGER = LoggerFactory.getLogger(BattlezoneClientRendering.class);
-    private static final int CIRCLE_SEGMENTS = 96;
+    private static final double WARNING_FENCE_DISTANCE = 12.0;
+    private static final double WARNING_FENCE_HALF_LENGTH = 20.0;
+    private static final double WARNING_FENCE_TILE_SIZE = 3.0;
 
     private static PostPass whiteoutPass;
     private static PostPass blitPass;
@@ -82,11 +83,11 @@ public final class BattlezoneClientRendering {
         inverseViewRotation = new Matrix4f().set(RenderSystem.getInverseViewRotationMatrix());
 
         PoseStack poseStack = event.getPoseStack();
-        MultiBufferSource.BufferSource buffers = minecraft.renderBuffers().bufferSource();
-        AreaRenderer.renderMapBounds(state, cameraPosition, poseStack, buffers);
-        buffers.endBatch(RenderType.lines());
-        renderCircleWall(state, cameraPosition, poseStack);
         renderWhiteout(event.getPartialTick());
+        LocalPlayer player = minecraft.player;
+        if (player != null) {
+            renderWarningFence(state, cameraPosition, poseStack, player);
+        }
     }
 
     private static void renderWhiteout(float partialTick) {
@@ -148,15 +149,28 @@ public final class BattlezoneClientRendering {
         blitPass.setOrthoMatrix(ortho);
     }
 
-    private static void renderCircleWall(BattlezoneClientState.Snapshot state, Vec3 camera, PoseStack poseStack) {
-        float radius = state.radius();
-        if (radius <= 0.0F) {
+    private static void renderWarningFence(BattlezoneClientState.Snapshot state, Vec3 camera, PoseStack poseStack,
+                                           LocalPlayer player) {
+        double minX = Math.min(state.x1(), state.x2());
+        double maxX = Math.max(state.x1(), state.x2()) + 1.0;
+        double minZ = Math.min(state.z1(), state.z2());
+        double maxZ = Math.max(state.z1(), state.z2()) + 1.0;
+
+        boolean west = player.getX() - minX <= WARNING_FENCE_DISTANCE;
+        boolean east = maxX - player.getX() <= WARNING_FENCE_DISTANCE;
+        boolean north = player.getZ() - minZ <= WARNING_FENCE_DISTANCE;
+        boolean south = maxZ - player.getZ() <= WARNING_FENCE_DISTANCE;
+        if (!west && !east && !north && !south) {
             return;
         }
-        double minY = Math.min(state.y1(), state.y2());
-        double maxY = Math.max(state.y1(), state.y2()) + 1.0;
-        double centerX = state.centerX();
-        double centerZ = state.centerZ();
+
+        double areaMinY = Math.min(state.y1(), state.y2());
+        double areaMaxY = Math.max(state.y1(), state.y2()) + 1.0;
+        double fenceMinY = Mth.clamp(Math.floor(player.getY()) - 1.0, areaMinY, areaMaxY);
+        double fenceMaxY = Math.min(areaMaxY, fenceMinY + 4.0);
+        if (fenceMaxY <= fenceMinY) {
+            return;
+        }
 
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
@@ -168,17 +182,25 @@ public final class BattlezoneClientRendering {
         BufferBuilder builder = Tesselator.getInstance().getBuilder();
         builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
         Matrix4f pose = poseStack.last().pose();
-        for (int segment = 0; segment < CIRCLE_SEGMENTS; segment++) {
-            double angle0 = segment * (Math.PI * 2.0 / CIRCLE_SEGMENTS);
-            double angle1 = (segment + 1) * (Math.PI * 2.0 / CIRCLE_SEGMENTS);
-            double x0 = centerX + Math.cos(angle0) * radius - camera.x;
-            double z0 = centerZ + Math.sin(angle0) * radius - camera.z;
-            double x1 = centerX + Math.cos(angle1) * radius - camera.x;
-            double z1 = centerZ + Math.sin(angle1) * radius - camera.z;
-            addVertex(builder, pose, x0, minY - camera.y, z0, 58);
-            addVertex(builder, pose, x1, minY - camera.y, z1, 58);
-            addVertex(builder, pose, x1, maxY - camera.y, z1, 18);
-            addVertex(builder, pose, x0, maxY - camera.y, z0, 18);
+        if (west) {
+            renderFenceSide(builder, pose, camera, true, minX,
+                    Math.max(minZ, player.getZ() - WARNING_FENCE_HALF_LENGTH),
+                    Math.min(maxZ, player.getZ() + WARNING_FENCE_HALF_LENGTH), fenceMinY, fenceMaxY);
+        }
+        if (east) {
+            renderFenceSide(builder, pose, camera, true, maxX,
+                    Math.max(minZ, player.getZ() - WARNING_FENCE_HALF_LENGTH),
+                    Math.min(maxZ, player.getZ() + WARNING_FENCE_HALF_LENGTH), fenceMinY, fenceMaxY);
+        }
+        if (north) {
+            renderFenceSide(builder, pose, camera, false, minZ,
+                    Math.max(minX, player.getX() - WARNING_FENCE_HALF_LENGTH),
+                    Math.min(maxX, player.getX() + WARNING_FENCE_HALF_LENGTH), fenceMinY, fenceMaxY);
+        }
+        if (south) {
+            renderFenceSide(builder, pose, camera, false, maxZ,
+                    Math.max(minX, player.getX() - WARNING_FENCE_HALF_LENGTH),
+                    Math.min(maxX, player.getX() + WARNING_FENCE_HALF_LENGTH), fenceMinY, fenceMaxY);
         }
         BufferUploader.drawWithShader(builder.end());
 
@@ -187,8 +209,53 @@ public final class BattlezoneClientRendering {
         RenderSystem.disableBlend();
     }
 
-    private static void addVertex(VertexConsumer consumer, Matrix4f pose, double x, double y, double z, int alpha) {
-        consumer.vertex(pose, (float) x, (float) y, (float) z).color(65, 210, 255, alpha).endVertex();
+    private static void renderFenceSide(VertexConsumer consumer, Matrix4f pose, Vec3 camera,
+                                        boolean xPlane, double plane, double alongMin, double alongMax,
+                                        double minY, double maxY) {
+        for (double along = alongMin; along < alongMax; along += WARNING_FENCE_TILE_SIZE) {
+            double nextAlong = Math.min(alongMax, along + WARNING_FENCE_TILE_SIZE);
+            for (double y = minY; y < maxY; y += WARNING_FENCE_TILE_SIZE) {
+                double nextY = Math.min(maxY, y + WARNING_FENCE_TILE_SIZE);
+                addFenceQuad(consumer, pose, camera, xPlane, plane,
+                        along, y, nextAlong, nextY, 255, 190, 0, 235);
+
+                double stripe = Math.min(0.75, Math.min(nextAlong - along, nextY - y) * 0.35);
+                if (((int) Math.floor(along / WARNING_FENCE_TILE_SIZE)
+                        + (int) Math.floor(y / WARNING_FENCE_TILE_SIZE)) % 2 == 0) {
+                    addFencePolygon(consumer, pose, camera, xPlane, plane,
+                            new double[][]{
+                                    {along, y}, {along + stripe, y},
+                                    {nextAlong, nextY - stripe}, {nextAlong, nextY}
+                            }, 24, 24, 24, 235);
+                } else {
+                    addFencePolygon(consumer, pose, camera, xPlane, plane,
+                            new double[][]{
+                                    {along, nextY}, {along + stripe, nextY},
+                                    {nextAlong, y + stripe}, {nextAlong, y}
+                            }, 24, 24, 24, 235);
+                }
+            }
+        }
+    }
+
+    private static void addFenceQuad(VertexConsumer consumer, Matrix4f pose, Vec3 camera, boolean xPlane,
+                                     double plane, double alongMin, double yMin, double alongMax, double yMax,
+                                     int red, int green, int blue, int alpha) {
+        addFencePolygon(consumer, pose, camera, xPlane, plane,
+                new double[][]{{alongMin, yMin}, {alongMax, yMin}, {alongMax, yMax}, {alongMin, yMax}},
+                red, green, blue, alpha);
+    }
+
+    private static void addFencePolygon(VertexConsumer consumer, Matrix4f pose, Vec3 camera, boolean xPlane,
+                                        double plane, double[][] points,
+                                        int red, int green, int blue, int alpha) {
+        for (double[] point : points) {
+            double x = xPlane ? plane - camera.x : point[0] - camera.x;
+            double y = point[1] - camera.y;
+            double z = xPlane ? point[0] - camera.z : plane - camera.z;
+            consumer.vertex(pose, (float) x, (float) y, (float) z)
+                    .color(red, green, blue, alpha).endVertex();
+        }
     }
 
     private static void releasePasses() {
@@ -208,19 +275,4 @@ public final class BattlezoneClientRendering {
         targetHeight = -1;
     }
 
-    private static final class AreaRenderer {
-        private static void renderMapBounds(BattlezoneClientState.Snapshot state, Vec3 camera, PoseStack poseStack,
-                                            MultiBufferSource buffers) {
-            double minX = Math.min(state.x1(), state.x2()) - camera.x;
-            double minY = Math.min(state.y1(), state.y2()) - camera.y;
-            double minZ = Math.min(state.z1(), state.z2()) - camera.z;
-            double maxX = Math.max(state.x1(), state.x2()) + 1.0 - camera.x;
-            double maxY = Math.max(state.y1(), state.y2()) + 1.0 - camera.y;
-            double maxZ = Math.max(state.z1(), state.z2()) + 1.0 - camera.z;
-            LevelRenderer.renderLineBox(poseStack, buffers.getBuffer(RenderType.lines()),
-                    minX, minY, minZ, maxX, maxY, maxZ,
-                    0.2588F, 0.8510F, 1.0F, 1.0F,
-                    0.1423F, 0.4681F, 0.55F);
-        }
-    }
 }

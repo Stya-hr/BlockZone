@@ -586,6 +586,10 @@ public final class BattlezoneMap extends BaseMap {
         return phase;
     }
 
+    public boolean isMatchActive() {
+        return isStart && phase != MatchPhase.RESETTING;
+    }
+
     private void syncVisualState(boolean force) {
         if (!force && !isStart) {
             return;

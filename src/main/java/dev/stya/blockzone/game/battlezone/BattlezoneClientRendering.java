@@ -65,7 +65,11 @@ public final class BattlezoneClientRendering {
     }
 
     static void renderWorld(RenderLevelStageEvent event) {
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES) {
+        // AFTER_PARTICLES runs while Fabulous graphics is still rendering into its
+        // separate entity/translucency targets. The main target is not the complete
+        // scene there, so the post pass misses entities and block entities. AFTER_LEVEL
+        // runs after those targets have been composited into the main target.
+        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_LEVEL) {
             return;
         }
         Minecraft minecraft = Minecraft.getInstance();
@@ -83,11 +87,11 @@ public final class BattlezoneClientRendering {
         inverseViewRotation = new Matrix4f().set(RenderSystem.getInverseViewRotationMatrix());
 
         PoseStack poseStack = event.getPoseStack();
-        renderWhiteout(event.getPartialTick());
         LocalPlayer player = minecraft.player;
         if (player != null) {
             renderWarningFence(state, cameraPosition, poseStack, player);
         }
+        renderWhiteout(event.getPartialTick());
     }
 
     private static void renderWhiteout(float partialTick) {

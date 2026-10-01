@@ -76,9 +76,10 @@ public final class BattlezoneClientRendering {
 
         cameraPosition = event.getCamera().getPosition();
         inverseProjection = new Matrix4f(event.getProjectionMatrix()).invert();
-        Matrix4f viewRotation = new Matrix4f(event.getPoseStack().last().pose());
-        viewRotation.m30(0.0F).m31(0.0F).m32(0.0F);
-        inverseViewRotation = viewRotation.invert();
+        // Use the inverse rotation calculated by GameRenderer for this frame. The
+        // render-stage pose stack can include additional transforms and is not a
+        // reliable source for reconstructing positions from the main target depth.
+        inverseViewRotation = new Matrix4f().set(RenderSystem.getInverseViewRotationMatrix());
 
         PoseStack poseStack = event.getPoseStack();
         MultiBufferSource.BufferSource buffers = minecraft.renderBuffers().bufferSource();

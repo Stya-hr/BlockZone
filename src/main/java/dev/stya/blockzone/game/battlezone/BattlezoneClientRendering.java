@@ -109,11 +109,6 @@ public final class BattlezoneClientRendering {
             whiteoutPass.getEffect().safeGetUniform("CircleCenter").set(
                     (float) (state.centerX() - cameraX), (float) (state.centerZ() - cameraZ));
             whiteoutPass.getEffect().safeGetUniform("CircleRadius").set(state.radius());
-            whiteoutPass.getEffect().safeGetUniform("MapBounds").set(
-                    Math.min(state.x1(), state.x2()) - (float) cameraX,
-                    Math.min(state.z1(), state.z2()) - (float) cameraZ,
-                    Math.max(state.x1(), state.x2()) + 1.0F - (float) cameraX,
-                    Math.max(state.z1(), state.z2()) + 1.0F - (float) cameraZ);
 
             whiteoutPass.process(partialTick);
             blitPass.process(partialTick);
@@ -176,7 +171,7 @@ public final class BattlezoneClientRendering {
         poseStack.translate(-camera.x, -camera.y, -camera.z);
         try {
             MultiBufferSource.BufferSource buffers = Minecraft.getInstance().renderBuffers().bufferSource();
-            RenderType renderType = RenderType.entityCutoutNoCull(WARNING_FENCE_TEXTURE);
+            RenderType renderType = RenderType.entityTranslucent(WARNING_FENCE_TEXTURE);
             VertexConsumer consumer = buffers.getBuffer(renderType);
             if (west) {
                 renderFenceSide(consumer, poseStack.last(), true, minX, minZ, maxZ, fenceMinY, fenceMaxY);

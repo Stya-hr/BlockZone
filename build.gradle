@@ -62,6 +62,13 @@ repositories {
         metadataSources { artifact() }
         content { includeGroup 'github.release.fpsmatch' }
     }
+    if (providers.gradleProperty('blockzoneDebugBridge').getOrElse('false').toBoolean()) {
+        maven {
+            name = 'CurseMaven'
+            url = 'https://www.cursemaven.com'
+            content { includeGroup 'curse.maven' }
+        }
+    }
 }
 
 dependencies {
@@ -73,6 +80,9 @@ dependencies {
     modRuntimeOnly "icyllis.modernui:ModernUI-Forge:${minecraft_version}-${modernui_forge_version}"
     additionalRuntimeClasspath "icyllis.modernui:ModernUI-Core:${modernui_core_version}"
     additionalRuntimeClasspath "icyllis.modernui:ModernUI-Markflow:${modernui_core_version}"
+    if (providers.gradleProperty('blockzoneDebugBridge').getOrElse('false').toBoolean()) {
+        clientAdditionalRuntimeClasspath 'curse.maven:debugbridge-1564556:8248036'
+    }
 }
 
 tasks.named('test', Test) {

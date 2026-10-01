@@ -3,17 +3,15 @@ package dev.stya.blockzone.game.battlezone;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.BufferUploader;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.PostPass;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.phys.Vec3;
@@ -65,13 +63,6 @@ public final class BattlezoneClientRendering {
     }
 
     static void renderWorld(RenderLevelStageEvent event) {
-        // AFTER_PARTICLES runs while Fabulous graphics is still rendering into its
-        // separate entity/translucency targets. The main target is not the complete
-        // scene there, so the post pass misses entities and block entities. AFTER_LEVEL
-        // runs after those targets have been composited into the main target.
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_LEVEL) {
-            return;
-        }
         Minecraft minecraft = Minecraft.getInstance();
         BattlezoneClientState.Snapshot state = BattlezoneClientState.current(event.getPartialTick());
         if (minecraft.level == null || state == null
@@ -79,18 +70,20 @@ public final class BattlezoneClientRendering {
             return;
         }
 
+        if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_SOLID_BLOCKS) {
+            LocalPlayer player = minecraft.player;
+            if (player != null) {
+                renderWarningFence(state, event.getPoseStack(), event.getCamera().getPosition(), player);
+            }
+            return;
+        }
+        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_LEVEL) {
+            return;
+        }
+
         cameraPosition = event.getCamera().getPosition();
         inverseProjection = new Matrix4f(event.getProjectionMatrix()).invert();
-        // Use the inverse rotation calculated by GameRenderer for this frame. The
-        // render-stage pose stack can include additional transforms and is not a
-        // reliable source for reconstructing positions from the main target depth.
         inverseViewRotation = new Matrix4f().set(RenderSystem.getInverseViewRotationMatrix());
-
-        PoseStack poseStack = event.getPoseStack();
-        LocalPlayer player = minecraft.player;
-        if (player != null) {
-            renderWarningFence(state, cameraPosition, poseStack, player);
-        }
         renderWhiteout(event.getPartialTick());
     }
 
@@ -153,8 +146,8 @@ public final class BattlezoneClientRendering {
         blitPass.setOrthoMatrix(ortho);
     }
 
-    private static void renderWarningFence(BattlezoneClientState.Snapshot state, Vec3 camera, PoseStack poseStack,
-                                           LocalPlayer player) {
+    private static void renderWarningFence(BattlezoneClientState.Snapshot state, PoseStack poseStack,
+                                           Vec3 camera, LocalPlayer player) {
         double minX = Math.min(state.x1(), state.x2());
         double maxX = Math.max(state.x1(), state.x2()) + 1.0;
         double minZ = Math.min(state.z1(), state.z2());
@@ -170,65 +163,65 @@ public final class BattlezoneClientRendering {
 
         double areaMinY = Math.min(state.y1(), state.y2());
         double areaMaxY = Math.max(state.y1(), state.y2()) + 1.0;
-        double fenceMinY = areaMinY;
-        double fenceMaxY = areaMaxY;
+        // Map edit bounds may span almost the full build height. A warning fence is
+        // a short, walk-up barrier; it should follow the local terrain height without
+        // turning into a full-height wall across the player's view.
+        double fenceMinY = Math.max(areaMinY, Math.floor(player.getY()));
+        double fenceMaxY = Math.min(areaMaxY, fenceMinY + 1.5);
         if (fenceMaxY <= fenceMinY) {
             return;
         }
 
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.disableCull();
-        RenderSystem.enableDepthTest();
-        RenderSystem.depthMask(false);
-        RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
-        Minecraft.getInstance().getTextureManager().bindForSetup(WARNING_FENCE_TEXTURE);
-
-        BufferBuilder builder = Tesselator.getInstance().getBuilder();
-        builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
-        Matrix4f pose = poseStack.last().pose();
-        if (west) {
-            renderFenceSide(builder, pose, camera, true, minX, minZ, maxZ, fenceMinY, fenceMaxY);
+        poseStack.pushPose();
+        poseStack.translate(-camera.x, -camera.y, -camera.z);
+        try {
+            MultiBufferSource.BufferSource buffers = Minecraft.getInstance().renderBuffers().bufferSource();
+            RenderType renderType = RenderType.entityCutoutNoCull(WARNING_FENCE_TEXTURE);
+            VertexConsumer consumer = buffers.getBuffer(renderType);
+            if (west) {
+                renderFenceSide(consumer, poseStack.last(), true, minX, minZ, maxZ, fenceMinY, fenceMaxY);
+            }
+            if (east) {
+                renderFenceSide(consumer, poseStack.last(), true, maxX, minZ, maxZ, fenceMinY, fenceMaxY);
+            }
+            if (north) {
+                renderFenceSide(consumer, poseStack.last(), false, minZ, minX, maxX, fenceMinY, fenceMaxY);
+            }
+            if (south) {
+                renderFenceSide(consumer, poseStack.last(), false, maxZ, minX, maxX, fenceMinY, fenceMaxY);
+            }
+            buffers.endBatch(renderType);
+        } finally {
+            poseStack.popPose();
         }
-        if (east) {
-            renderFenceSide(builder, pose, camera, true, maxX, minZ, maxZ, fenceMinY, fenceMaxY);
-        }
-        if (north) {
-            renderFenceSide(builder, pose, camera, false, minZ, minX, maxX, fenceMinY, fenceMaxY);
-        }
-        if (south) {
-            renderFenceSide(builder, pose, camera, false, maxZ, minX, maxX, fenceMinY, fenceMaxY);
-        }
-        BufferUploader.drawWithShader(builder.end());
-
-        RenderSystem.depthMask(true);
-        RenderSystem.enableCull();
-        RenderSystem.disableBlend();
     }
 
-    private static void renderFenceSide(VertexConsumer consumer, Matrix4f pose, Vec3 camera,
-                                        boolean xPlane, double plane, double alongMin, double alongMax,
-                                        double minY, double maxY) {
+    private static void renderFenceSide(VertexConsumer consumer, PoseStack.Pose pose, boolean xPlane, double plane,
+                                        double alongMin, double alongMax, double minY, double maxY) {
         // Keep each side in fixed map coordinates. Only visibility depends on the player's
         // distance; the rendered segment itself must not slide along the boundary with them.
         double uMin = alongMin / WARNING_FENCE_TEXTURE_BLOCKS;
         double uMax = alongMax / WARNING_FENCE_TEXTURE_BLOCKS;
         double vMin = minY / WARNING_FENCE_TEXTURE_BLOCKS;
         double vMax = maxY / WARNING_FENCE_TEXTURE_BLOCKS;
-        addTexturedFenceVertex(consumer, pose, camera, xPlane, plane, alongMin, minY, uMin, vMin);
-        addTexturedFenceVertex(consumer, pose, camera, xPlane, plane, alongMax, minY, uMax, vMin);
-        addTexturedFenceVertex(consumer, pose, camera, xPlane, plane, alongMax, maxY, uMax, vMax);
-        addTexturedFenceVertex(consumer, pose, camera, xPlane, plane, alongMin, maxY, uMin, vMax);
+        addTexturedFenceVertex(consumer, pose, xPlane, plane, alongMin, minY, uMin, vMin);
+        addTexturedFenceVertex(consumer, pose, xPlane, plane, alongMax, minY, uMax, vMin);
+        addTexturedFenceVertex(consumer, pose, xPlane, plane, alongMax, maxY, uMax, vMax);
+        addTexturedFenceVertex(consumer, pose, xPlane, plane, alongMin, maxY, uMin, vMax);
     }
 
-    private static void addTexturedFenceVertex(VertexConsumer consumer, Matrix4f pose, Vec3 camera,
-                                               boolean xPlane, double plane, double along, double y,
+    private static void addTexturedFenceVertex(VertexConsumer consumer, PoseStack.Pose pose, boolean xPlane,
+                                               double plane, double along, double y,
                                                double u, double v) {
-        double x = (xPlane ? plane : along) - camera.x;
-        double z = (xPlane ? along : plane) - camera.z;
-        consumer.vertex(pose, (float) x, (float) (y - camera.y), (float) z)
-                .uv((float) u, (float) v)
+        float normalX = xPlane ? 1.0F : 0.0F;
+        float normalZ = xPlane ? 0.0F : 1.0F;
+        consumer.vertex(pose.pose(), (float) (xPlane ? plane : along), (float) y,
+                        (float) (xPlane ? along : plane))
                 .color(255, 255, 255, 255)
+                .uv((float) u, (float) v)
+                .overlayCoords(OverlayTexture.NO_OVERLAY)
+                .uv2(LightTexture.FULL_BRIGHT)
+                .normal(pose.normal(), normalX, 0.0F, normalZ)
                 .endVertex();
     }
 

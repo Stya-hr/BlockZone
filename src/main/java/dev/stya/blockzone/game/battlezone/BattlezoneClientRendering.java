@@ -12,10 +12,10 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.PostPass;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.phys.Vec3;
@@ -83,9 +83,9 @@ public final class BattlezoneClientRendering {
 
         PoseStack poseStack = event.getPoseStack();
         MultiBufferSource.BufferSource buffers = minecraft.renderBuffers().bufferSource();
-        AreaRenderer.renderMapBounds(state, poseStack, buffers);
+        AreaRenderer.renderMapBounds(state, cameraPosition, poseStack, buffers);
         buffers.endBatch(RenderType.lines());
-        renderCircleWall(state, poseStack);
+        renderCircleWall(state, cameraPosition, poseStack);
         renderWhiteout(event.getPartialTick());
     }
 
@@ -148,7 +148,7 @@ public final class BattlezoneClientRendering {
         blitPass.setOrthoMatrix(ortho);
     }
 
-    private static void renderCircleWall(BattlezoneClientState.Snapshot state, PoseStack poseStack) {
+    private static void renderCircleWall(BattlezoneClientState.Snapshot state, Vec3 camera, PoseStack poseStack) {
         float radius = state.radius();
         if (radius <= 0.0F) {
             return;
@@ -171,14 +171,14 @@ public final class BattlezoneClientRendering {
         for (int segment = 0; segment < CIRCLE_SEGMENTS; segment++) {
             double angle0 = segment * (Math.PI * 2.0 / CIRCLE_SEGMENTS);
             double angle1 = (segment + 1) * (Math.PI * 2.0 / CIRCLE_SEGMENTS);
-            float x0 = (float) (centerX + Math.cos(angle0) * radius);
-            float z0 = (float) (centerZ + Math.sin(angle0) * radius);
-            float x1 = (float) (centerX + Math.cos(angle1) * radius);
-            float z1 = (float) (centerZ + Math.sin(angle1) * radius);
-            addVertex(builder, pose, x0, (float) minY, z0, 58);
-            addVertex(builder, pose, x1, (float) minY, z1, 58);
-            addVertex(builder, pose, x1, (float) maxY, z1, 18);
-            addVertex(builder, pose, x0, (float) maxY, z0, 18);
+            double x0 = centerX + Math.cos(angle0) * radius - camera.x;
+            double z0 = centerZ + Math.sin(angle0) * radius - camera.z;
+            double x1 = centerX + Math.cos(angle1) * radius - camera.x;
+            double z1 = centerZ + Math.sin(angle1) * radius - camera.z;
+            addVertex(builder, pose, x0, minY - camera.y, z0, 58);
+            addVertex(builder, pose, x1, minY - camera.y, z1, 58);
+            addVertex(builder, pose, x1, maxY - camera.y, z1, 18);
+            addVertex(builder, pose, x0, maxY - camera.y, z0, 18);
         }
         BufferUploader.drawWithShader(builder.end());
 
@@ -187,8 +187,8 @@ public final class BattlezoneClientRendering {
         RenderSystem.disableBlend();
     }
 
-    private static void addVertex(VertexConsumer consumer, Matrix4f pose, float x, float y, float z, int alpha) {
-        consumer.vertex(pose, x, y, z).color(65, 210, 255, alpha).endVertex();
+    private static void addVertex(VertexConsumer consumer, Matrix4f pose, double x, double y, double z, int alpha) {
+        consumer.vertex(pose, (float) x, (float) y, (float) z).color(65, 210, 255, alpha).endVertex();
     }
 
     private static void releasePasses() {
@@ -209,12 +209,18 @@ public final class BattlezoneClientRendering {
     }
 
     private static final class AreaRenderer {
-        private static void renderMapBounds(BattlezoneClientState.Snapshot state, PoseStack poseStack,
+        private static void renderMapBounds(BattlezoneClientState.Snapshot state, Vec3 camera, PoseStack poseStack,
                                             MultiBufferSource buffers) {
-            com.ptcrys.fpsmatch.core.data.AreaData area = new com.ptcrys.fpsmatch.core.data.AreaData(
-                    new BlockPos(state.x1(), state.y1(), state.z1()),
-                    new BlockPos(state.x2(), state.y2(), state.z2()));
-            area.renderArea(poseStack, buffers, 0xFF42D9FF);
+            double minX = Math.min(state.x1(), state.x2()) - camera.x;
+            double minY = Math.min(state.y1(), state.y2()) - camera.y;
+            double minZ = Math.min(state.z1(), state.z2()) - camera.z;
+            double maxX = Math.max(state.x1(), state.x2()) + 1.0 - camera.x;
+            double maxY = Math.max(state.y1(), state.y2()) + 1.0 - camera.y;
+            double maxZ = Math.max(state.z1(), state.z2()) + 1.0 - camera.z;
+            LevelRenderer.renderLineBox(poseStack, buffers.getBuffer(RenderType.lines()),
+                    minX, minY, minZ, maxX, maxY, maxZ,
+                    0.2588F, 0.8510F, 1.0F, 1.0F,
+                    0.1423F, 0.4681F, 0.55F);
         }
     }
 }

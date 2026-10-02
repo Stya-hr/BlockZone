@@ -59,6 +59,16 @@
       "values": [
         0
       ]
+    },
+    {
+      "name": "CameraLocalPosition",
+      "type": "float",
+      "count": 3,
+      "values": [
+        0,
+        0,
+        0
+      ]
     }
   ],
   "blend": {

@@ -38,6 +38,11 @@ final class BattlezoneSphereRendering {
         type.setupRenderState();
         try {
             var shader = BattlezoneRenderTypes.sphereShader();
+            // Unit-sphere coordinates; used only for visibility and the thin silhouette highlight.
+            shader.safeGetUniform("CameraLocalPosition").set(
+                    (float)((camera.x - state.centerX()) / state.radius()),
+                    (float)((camera.y - state.centerY()) / state.radius()),
+                    (float)((camera.z - state.centerZ()) / state.radius()));
             shader.safeGetUniform("ZoneTime").set((Minecraft.getInstance().level.getGameTime() + event.getPartialTick()) / 20f);
             mesh.bind();
             mesh.drawWithShader(modelView, event.getProjectionMatrix(), shader);

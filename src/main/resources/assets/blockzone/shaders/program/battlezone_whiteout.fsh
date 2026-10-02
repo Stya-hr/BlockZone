@@ -9,17 +9,27 @@ out vec4 fragColor;
 uniform vec3 DomeCenter;
 uniform float DomeRadius;
 uniform float DomeHeight;
-uniform float GameTime;
 uniform mat4 InverseProjection;
-uniform mat4 InverseViewRotation;
+uniform mat4 WorldFromView;
 
 const float OUTSIDE_GRAY_LEVEL = 0.78;
 const float OUTSIDE_GRAY_MIX = 0.62;
 
-bool intersectDome(vec3 rayDirection, out float hitDistance, out vec3 hitPosition) {
-    vec3 radii = vec3(max(DomeRadius, 0.001), max(DomeHeight, 0.001), max(DomeRadius, 0.001));
-    vec3 origin = -DomeCenter / radii;
-    vec3 direction = rayDirection / radii;
+vec3 viewToWorldDirection(vec3 viewDirection) {
+    return (WorldFromView * vec4(viewDirection, 0.0)).xyz;
+}
+
+bool isOnDomeCap(vec3 positionFromCameraView) {
+    vec3 worldRelative = viewToWorldDirection(positionFromCameraView - DomeCenter);
+    return worldRelative.y >= 0.0;
+}
+
+bool intersectDome(vec3 rayDirectionView, out float hitDistance, out vec3 hitPositionView) {
+    // The dome currently uses equal horizontal and vertical radii, so its
+    // intersection is a sphere in either view or world space.
+    float radius = max(DomeRadius, 0.001);
+    vec3 origin = -DomeCenter / radius;
+    vec3 direction = rayDirectionView / radius;
     float a = dot(direction, direction);
     float b = dot(origin, direction);
     float c = dot(origin, origin) - 1.0;
@@ -32,32 +42,34 @@ bool intersectDome(vec3 rayDirection, out float hitDistance, out vec3 hitPositio
     float nearDistance = (-b - root) / a;
     float farDistance = (-b + root) / a;
     hitDistance = nearDistance;
-    if (hitDistance <= 0.0 || rayDirection.y * hitDistance < DomeCenter.y) {
+    hitPositionView = rayDirectionView * hitDistance;
+    if (hitDistance <= 0.0 || !isOnDomeCap(hitPositionView)) {
         hitDistance = farDistance;
+        hitPositionView = rayDirectionView * hitDistance;
     }
-    if (hitDistance <= 0.0 || rayDirection.y * hitDistance < DomeCenter.y) {
+    if (hitDistance <= 0.0 || !isOnDomeCap(hitPositionView)) {
         return false;
     }
 
-    hitPosition = rayDirection * hitDistance;
     return true;
 }
 
-vec3 applyDomeSurface(vec3 sceneColor, vec3 rayDirection, vec3 hitPosition) {
+vec3 applyDomeSurface(vec3 sceneColor, vec3 rayDirectionView, vec3 hitPositionView) {
     vec3 radii = vec3(max(DomeRadius, 0.001), max(DomeHeight, 0.001), max(DomeRadius, 0.001));
-    vec3 surface = (hitPosition - DomeCenter) / radii;
-    vec3 normal = normalize(vec3(surface.x / radii.x, surface.y / radii.y, surface.z / radii.z));
-    float time = mod(GameTime, 4096.0);
-    // Wrapped azimuth waves create a slowly orbiting vortex; their integer
-    // frequencies keep the texture continuous at the longitude seam.
-    float azimuth = atan(surface.z, surface.x) + surface.y * 2.6 - time * 0.16;
-    float orbit = sin(azimuth * 5.0 + (1.0 - surface.y) * 17.0 - time * 1.25
-            + sin(azimuth * 2.0 - time * 0.42) * 1.4);
-    float crossFlow = sin(surface.x * 9.0 - surface.z * 6.0 + time * 0.58
-            + sin(surface.y * 10.0 - time * 0.31) * 1.2);
+    vec3 worldRelative = viewToWorldDirection(hitPositionView - DomeCenter);
+    vec3 surface = worldRelative / radii;
+    vec3 normalWorld = normalize(worldRelative / (radii * radii));
+    vec3 rayDirectionWorld = normalize(viewToWorldDirection(rayDirectionView));
+    // Keep the vortex field attached to the synchronized circle center. Its
+    // coordinates are world aligned and do not rotate with the camera or time.
+    float azimuth = atan(surface.z, surface.x) + surface.y * 2.6;
+    float orbit = sin(azimuth * 5.0 + (1.0 - surface.y) * 17.0
+            + sin(azimuth * 2.0) * 1.4);
+    float crossFlow = sin(surface.x * 9.0 - surface.z * 6.0
+            + sin(surface.y * 10.0) * 1.2);
     float flow = 0.5 + 0.5 * (orbit * 0.68 + crossFlow * 0.32);
     float filament = smoothstep(0.48, 0.88, flow);
-    float rim = pow(1.0 - abs(dot(normal, rayDirection)), 2.5);
+    float rim = pow(1.0 - abs(dot(normalWorld, rayDirectionWorld)), 2.5);
 
     vec3 deepColor = mix(vec3(0.34, 0.40, 0.58), vec3(0.48, 0.56, 0.70), flow * 0.60);
     vec3 hotColor = mix(vec3(0.22, 0.82, 0.96), vec3(0.92, 0.48, 0.82), filament);
@@ -81,8 +93,8 @@ void main() {
         return;
     }
     viewRay /= viewRay.w;
-    vec3 rayDirection = normalize((InverseViewRotation * vec4(viewRay.xyz, 0.0)).xyz);
-    if (any(isnan(rayDirection)) || any(isinf(rayDirection))) {
+    vec3 rayDirectionView = normalize(viewRay.xyz);
+    if (any(isnan(rayDirectionView)) || any(isinf(rayDirectionView))) {
         fragColor = sceneColor;
         return;
     }
@@ -95,11 +107,11 @@ void main() {
         vec4 viewPosition = InverseProjection * clipPosition;
         if (abs(viewPosition.w) >= 1.0e-7 && !any(isnan(viewPosition)) && !any(isinf(viewPosition))) {
             viewPosition /= viewPosition.w;
-            scenePosition = (InverseViewRotation * vec4(viewPosition.xyz, 0.0)).xyz;
+            scenePosition = viewPosition.xyz;
             validScenePosition = !any(isnan(scenePosition)) && !any(isinf(scenePosition));
             if (validScenePosition) {
                 sceneDistance = length(scenePosition);
-                vec3 relative = scenePosition - DomeCenter;
+                vec3 relative = viewToWorldDirection(scenePosition - DomeCenter);
                 float radialDistanceSquared = dot(relative.xz, relative.xz) / max(DomeRadius * DomeRadius, 1.0e-6);
                 float roofHeight = DomeHeight * sqrt(max(0.0, 1.0 - radialDistanceSquared));
                 bool insideDome = radialDistanceSquared <= 1.0
@@ -114,10 +126,10 @@ void main() {
     }
 
     float domeDistance;
-    vec3 domeHit;
-    if (intersectDome(rayDirection, domeDistance, domeHit)
+    vec3 domeHitView;
+    if (intersectDome(rayDirectionView, domeDistance, domeHitView)
             && (isSky || !validScenePosition || domeDistance < sceneDistance - 0.03)) {
-        sceneColor.rgb = applyDomeSurface(sceneColor.rgb, rayDirection, domeHit);
+        sceneColor.rgb = applyDomeSurface(sceneColor.rgb, rayDirectionView, domeHitView);
     }
 
     fragColor = sceneColor;

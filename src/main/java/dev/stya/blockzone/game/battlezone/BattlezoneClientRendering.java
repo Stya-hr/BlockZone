@@ -20,6 +20,7 @@ import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +39,7 @@ public final class BattlezoneClientRendering {
     private static int targetWidth = -1;
     private static int targetHeight = -1;
     private static Matrix4f inverseProjection;
-    private static Matrix4f inverseViewRotation;
+    private static Matrix4f worldFromView;
     private static Vec3 cameraPosition;
 
     private BattlezoneClientRendering() {
@@ -81,9 +82,8 @@ public final class BattlezoneClientRendering {
 
         cameraPosition = event.getCamera().getPosition();
         inverseProjection = new Matrix4f(event.getProjectionMatrix()).invert();
-        // Pair the world-space ray basis with the camera position captured above.
-        // This keeps dome intersection and material coordinates in one camera snapshot.
-        inverseViewRotation = new Matrix4f().rotation(event.getCamera().rotation());
+        // Capture the current view-to-world rotation for the dome's world-anchored field.
+        worldFromView = new Matrix4f().rotation(event.getCamera().rotation());
         renderWhiteout(event.getPartialTick());
     }
 
@@ -92,7 +92,7 @@ public final class BattlezoneClientRendering {
         BattlezoneClientState.Snapshot state = BattlezoneClientState.current(partialTick);
         if (state == null || !state.whiteoutActive() || minecraft.level == null
                 || !minecraft.level.dimension().location().equals(state.dimension())
-                || inverseProjection == null || inverseViewRotation == null || cameraPosition == null) {
+                || inverseProjection == null || worldFromView == null || cameraPosition == null) {
             return;
         }
 
@@ -106,16 +106,16 @@ public final class BattlezoneClientRendering {
             double cameraY = cameraPosition.y;
             double cameraZ = cameraPosition.z;
             whiteoutPass.getEffect().safeGetUniform("InverseProjection").set(inverseProjection);
-            whiteoutPass.getEffect().safeGetUniform("InverseViewRotation").set(inverseViewRotation);
-            whiteoutPass.getEffect().safeGetUniform("DomeCenter").set(
+            whiteoutPass.getEffect().safeGetUniform("WorldFromView").set(worldFromView);
+            Vector3f domeCenterFromCamera = new Vector3f(
                     (float) (state.centerX() - cameraX),
                     (float) (Math.min(state.y1(), state.y2()) - cameraY),
                     (float) (state.centerZ() - cameraZ));
+            new Matrix4f(worldFromView).invert().transformDirection(domeCenterFromCamera);
+            whiteoutPass.getEffect().safeGetUniform("DomeCenter").set(
+                    domeCenterFromCamera.x, domeCenterFromCamera.y, domeCenterFromCamera.z);
             whiteoutPass.getEffect().safeGetUniform("DomeRadius").set(state.radius());
             whiteoutPass.getEffect().safeGetUniform("DomeHeight").set(state.radius());
-            whiteoutPass.getEffect().safeGetUniform("GameTime").set(
-                    (minecraft.level.getGameTime() + partialTick) / 20.0F);
-
             whiteoutPass.process(partialTick);
             blitPass.process(partialTick);
             mainTarget.bindWrite(false);

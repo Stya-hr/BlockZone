@@ -77,5 +77,5 @@ cp run/client/mods/minecraft-mcp-1.20.1-forge-v0.4.1.jar run/client2/mods/
 
 - 每个功能的开发工作从 `main` 创建功能或修复分支，不直接在 `main` 上实现。
 - 按功能范围提交，提交标题遵循 [CONTRIBUTING.md](CONTRIBUTING.md) 的 Conventional Commits 规范。
-- 完成实现与必要验证后，将分支合并回 `main`；有远端协作流程时使用 Pull Request 和评审，没有远端时使用本地合并。
+- 在收到验收完成许可后才能合并到 `main`。
 - 不把工作区中与当前任务无关的改动加入提交，也不覆盖他人的未提交工作。

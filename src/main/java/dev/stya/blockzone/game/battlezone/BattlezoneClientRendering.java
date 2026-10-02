@@ -2,7 +2,6 @@ package dev.stya.blockzone.game.battlezone;
 
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.player.LocalPlayer;
@@ -82,7 +81,9 @@ public final class BattlezoneClientRendering {
 
         cameraPosition = event.getCamera().getPosition();
         inverseProjection = new Matrix4f(event.getProjectionMatrix()).invert();
-        inverseViewRotation = new Matrix4f().set(RenderSystem.getInverseViewRotationMatrix());
+        // Pair the world-space ray basis with the camera position captured above.
+        // This keeps dome intersection and material coordinates in one camera snapshot.
+        inverseViewRotation = new Matrix4f().rotation(event.getCamera().rotation());
         renderWhiteout(event.getPartialTick());
     }
 

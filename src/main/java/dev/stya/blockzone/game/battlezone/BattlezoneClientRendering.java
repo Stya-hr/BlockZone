@@ -30,6 +30,10 @@ import java.io.IOException;
 public final class BattlezoneClientRendering {
     private static final Logger LOGGER = LoggerFactory.getLogger(BattlezoneClientRendering.class);
     private static final float WARNING_FENCE_TEXTURE_BLOCKS = 3.0F;
+    private static final int DOME_LONGITUDE_STEPS = 96;
+    private static final int DOME_LATITUDE_STEPS = 32;
+    private static final ResourceLocation DOME_TEXTURE =
+            ResourceLocation.fromNamespaceAndPath("minecraft", "textures/block/white_concrete.png");
     private static final ResourceLocation WARNING_FENCE_TEXTURE =
             ResourceLocation.fromNamespaceAndPath("blockzone", "textures/effect/battlezone_warning_fence.png");
 
@@ -73,6 +77,9 @@ public final class BattlezoneClientRendering {
             LocalPlayer player = minecraft.player;
             if (player != null) {
                 renderWarningFence(state, event.getPoseStack(), event.getCamera().getPosition(), player);
+            }
+            if (state.whiteoutActive()) {
+                renderDome(state, event.getPoseStack(), event.getCamera().getPosition());
             }
             return;
         }
@@ -172,6 +179,91 @@ public final class BattlezoneClientRendering {
         } finally {
             poseStack.popPose();
         }
+    }
+
+    private static void renderDome(BattlezoneClientState.Snapshot state, PoseStack poseStack, Vec3 camera) {
+        float radius = state.radius();
+        if (radius <= 0.0F) {
+            return;
+        }
+
+        double centerX = state.centerX();
+        double centerY = Math.min(state.y1(), state.y2());
+        double centerZ = state.centerZ();
+        poseStack.pushPose();
+        poseStack.translate(-camera.x, -camera.y, -camera.z);
+        try {
+            MultiBufferSource.BufferSource buffers = Minecraft.getInstance().renderBuffers().bufferSource();
+            RenderType renderType = RenderType.entityTranslucent(DOME_TEXTURE);
+            VertexConsumer consumer = buffers.getBuffer(renderType);
+            PoseStack.Pose pose = poseStack.last();
+
+            // Build an upper hemisphere directly around the server-synchronized circle.
+            // Vertices and procedural colors stay in zone coordinates as the camera moves.
+            for (int latitude = 0; latitude < DOME_LATITUDE_STEPS; latitude++) {
+                double theta0 = (Math.PI * 0.5) * latitude / DOME_LATITUDE_STEPS;
+                double theta1 = (Math.PI * 0.5) * (latitude + 1) / DOME_LATITUDE_STEPS;
+                for (int longitude = 0; longitude < DOME_LONGITUDE_STEPS; longitude++) {
+                    double phi0 = (Math.PI * 2.0) * longitude / DOME_LONGITUDE_STEPS;
+                    double phi1 = (Math.PI * 2.0) * (longitude + 1) / DOME_LONGITUDE_STEPS;
+                    addDomeVertex(consumer, pose, centerX, centerY, centerZ, radius, theta0, phi0);
+                    addDomeVertex(consumer, pose, centerX, centerY, centerZ, radius, theta0, phi1);
+                    addDomeVertex(consumer, pose, centerX, centerY, centerZ, radius, theta1, phi1);
+                    addDomeVertex(consumer, pose, centerX, centerY, centerZ, radius, theta1, phi0);
+                }
+            }
+            buffers.endBatch(renderType);
+        } finally {
+            poseStack.popPose();
+        }
+    }
+
+    private static void addDomeVertex(VertexConsumer consumer, PoseStack.Pose pose,
+                                      double centerX, double centerY, double centerZ, float radius,
+                                      double theta, double phi) {
+        float nx = (float) (Math.sin(theta) * Math.cos(phi));
+        float ny = (float) Math.cos(theta);
+        float nz = (float) (Math.sin(theta) * Math.sin(phi));
+        int color = domeColor(nx, ny, nz);
+        consumer.vertex(pose.pose(), (float) (centerX + nx * radius), (float) (centerY + ny * radius),
+                        (float) (centerZ + nz * radius))
+                .color((color >>> 24) & 0xFF, (color >>> 16) & 0xFF,
+                        (color >>> 8) & 0xFF, color & 0xFF)
+                .uv((float) (phi / (Math.PI * 2.0)), (float) (theta / (Math.PI * 0.5)))
+                .overlayCoords(OverlayTexture.NO_OVERLAY)
+                .uv2(LightTexture.FULL_BRIGHT)
+                .normal(pose.normal(), nx, ny, nz)
+                .endVertex();
+    }
+
+    private static int domeColor(float x, float y, float z) {
+        // Static coordinates give the field a stable world-space appearance.
+        double azimuth = Math.atan2(z, x) + y * 2.6;
+        double orbit = Math.sin(azimuth * 5.0 + (1.0 - y) * 17.0 + Math.sin(azimuth * 2.0) * 1.4);
+        double crossFlow = Math.sin(x * 9.0 - z * 6.0 + Math.sin(y * 10.0) * 1.2);
+        double flow = 0.5 + 0.5 * (orbit * 0.68 + crossFlow * 0.32);
+        double filament = smoothstep(0.48, 0.88, flow);
+        double red = lerp(lerp(0.34, 0.48, flow * 0.60), lerp(0.22, 0.92, filament), filament * 0.66);
+        double green = lerp(lerp(0.40, 0.56, flow * 0.60), lerp(0.82, 0.48, filament), filament * 0.66);
+        double blue = lerp(lerp(0.58, 0.70, flow * 0.60), lerp(0.96, 0.82, filament), filament * 0.66);
+        double rim = Math.pow(1.0 - Math.abs(y), 2.5);
+        red = Math.min(1.0, red + rim * 0.34);
+        green = Math.min(1.0, green + rim * 0.42);
+        blue = Math.min(1.0, blue + rim * 0.56);
+        int alpha = (int) (255.0 * Math.min(0.4, 0.09 + flow * 0.07 + filament * 0.08 + rim * 0.18));
+        int redByte = (int) (red * 255.0);
+        int greenByte = (int) (green * 255.0);
+        int blueByte = (int) (blue * 255.0);
+        return (redByte << 24) | (greenByte << 16) | (blueByte << 8) | alpha;
+    }
+
+    private static double smoothstep(double edge0, double edge1, double value) {
+        double t = Math.max(0.0, Math.min(1.0, (value - edge0) / (edge1 - edge0)));
+        return t * t * (3.0 - 2.0 * t);
+    }
+
+    private static double lerp(double start, double end, double amount) {
+        return start + (end - start) * amount;
     }
 
     private static void renderFenceSide(VertexConsumer consumer, PoseStack.Pose pose, boolean xPlane, double plane,

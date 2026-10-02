@@ -7,6 +7,7 @@
 /out/
 /run/
 /src/generated/
+/bin/
 
 # Editor and local machine files.
 /.idea/

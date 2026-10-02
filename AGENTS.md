@@ -29,19 +29,49 @@
 
 ## 每次测试
 
-1. 从仓库根目录启动 Forge 开发客户端：
+### 启动专用测试服和客户端
 
-   ```sh
-   ./gradlew runClient
-   ```
+需要服务端逻辑或真实多人画面时，在两个终端分别启动服务端和客户端。专用目录通过 `blockzoneServerRunDir` 设置，避免开发测试读写默认 `run/server`：
 
-2. 保持客户端运行；通过游戏里的 MCP overlay 或暂停菜单入口启用/释放鼠标后，可以切换焦点到 Codex。游戏仍需真实显示环境来渲染，但无需让窗口保持前台。
+```sh
+# 终端 1：专用 Forge 测试服
+./gradlew runServer -PblockzoneServerRunDir=run/server-visual-test
 
-3. 使用 `minecraft-mod-mcp` 工具确认连接并测试：先调用 `ping` 或 `get_minecraft_status`，再按需用 `screenshot`、`get_player_info`、`get_world_info`、`press_key`、`click`、`type_text` 等工具。需要控制模式时遵循模组工具提示，先在游戏 overlay/暂停界面启用；结束时用 `exit_control_mode`，完成后关闭客户端。
+# 终端 2：开发客户端启动后直接连接测试服
+./gradlew runClient -PblockzoneQuickPlayMultiplayer=127.0.0.1:25565
+```
 
-4. 如果工具显示没有检测到模组，确认 `runClient` 已完成启动、jar 放在 `run/client/mods/` 且版本匹配。可在终端运行 `npx -y minecraft-mod-mcp status` 查看连接状态。
+如果端口 `25565` 已占用，在 `run/server-visual-test/server.properties` 将 `server-port` 改为可用端口（例如 `25566`），客户端参数也使用相同端口。测试离线开发账号时，仅让测试服监听本机地址（`server-ip=127.0.0.1`），并在该测试服的 `server.properties` 设置 `online-mode=false`。首次启动按服务端提示接受 `eula.txt` 后再启动。
 
-禁止用桌面焦点/坐标自动化、`xdotool` 或 `Xvfb` 来驱动测试。MCP 是对实际客户端的控制通道；需要服务端逻辑时，另行启动本地 Forge 服务端并让开发客户端连接。
+需要沿用已有地图和 FPSMatch/Battlezone 设置时，先停止源服务端，再将 `run/server` 复制到独立测试目录；不要让两个服务端同时打开同一世界：
+
+```sh
+mkdir -p run/server-visual-test
+cp -a run/server/. run/server-visual-test/
+```
+
+检查复制目录里的 `server.properties`，确认端口和 `server-ip` 不会与其他本机服务冲突。已有 `run/server-visual-test` 时直接复用，不要反复覆盖其中的测试世界。
+
+若要测其他玩家、队伍或实体交互，可再开一个终端启动第二个独立客户端：
+
+```sh
+./gradlew runClient2 -PblockzoneQuickPlayMultiplayer=127.0.0.1:25565
+```
+
+`runClient2` 使用独立目录 `run/client2` 和测试用户名 `BlockzoneTester2`。需要通过 MCP 控制这个客户端时，也把 `minecraft-mod-mcp` jar 放进 `run/client2/mods/`。
+
+```sh
+mkdir -p run/client2/mods
+cp run/client/mods/minecraft-mcp-1.20.1-forge-v0.4.1.jar run/client2/mods/
+```
+
+### 操作与结束
+
+等待服务端日志出现 `Done`，并等待客户端完成加载。通过 `minecraft-mod-mcp` 先调用 `ping` 或 `get_minecraft_status` 确认连接，再按需使用 `screenshot`、`get_player_info`、`get_world_info`、`press_key`、`click`、`type_text` 等工具。启用控制模式时遵循模组提示，通过游戏里的 MCP overlay 或暂停菜单启用；结束控制时调用 `exit_control_mode`。
+
+结束测试时先在服务端控制台输入 `stop` 等待保存完成，再关闭客户端。若 MCP 没有检测到模组，确认相应客户端已启动完成，jar 位于该客户端目录的 `mods/` 下且版本匹配；可运行 `npx -y minecraft-mod-mcp status` 查看桥接状态。
+
+禁止用桌面焦点/坐标自动化、`xdotool` 或 `Xvfb` 驱动测试。真实客户端需要显示环境渲染，但可以保持未聚焦并通过 MCP 操作。
 
 # 仓库协作习惯
 

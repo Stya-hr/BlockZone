@@ -1,14 +1,12 @@
 package dev.stya.blockzone.game.battlezone;
 
-import com.mojang.blaze3d.pipeline.RenderTarget;
-import com.mojang.blaze3d.pipeline.TextureTarget;
+import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.PostPass;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
@@ -19,8 +17,6 @@ import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import org.joml.Matrix4f;
-import org.joml.Vector3f;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,22 +25,12 @@ import java.io.IOException;
 @Mod.EventBusSubscriber(modid = "blockzone", value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class BattlezoneClientRendering {
     private static final Logger LOGGER = LoggerFactory.getLogger(BattlezoneClientRendering.class);
-    private static final float WARNING_FENCE_TEXTURE_BLOCKS = 3.0F;
-    private static final int DOME_LONGITUDE_STEPS = 96;
-    private static final int DOME_LATITUDE_STEPS = 32;
-    private static final ResourceLocation DOME_TEXTURE =
-            ResourceLocation.fromNamespaceAndPath("minecraft", "textures/block/white_concrete.png");
     private static final ResourceLocation WARNING_FENCE_TEXTURE =
             ResourceLocation.fromNamespaceAndPath("blockzone", "textures/effect/battlezone_warning_fence.png");
 
-    private static PostPass whiteoutPass;
-    private static PostPass blitPass;
-    private static TextureTarget scratchTarget;
-    private static int targetWidth = -1;
-    private static int targetHeight = -1;
-    private static Matrix4f inverseProjection;
-    private static Matrix4f worldFromView;
-    private static Vec3 cameraPosition;
+    private static ResourceLocation cachedFenceTexture;
+    private static ResourceLocation resolvedFenceTexture;
+    private static float cachedFenceAspect = 1.0F;
 
     private BattlezoneClientRendering() {
     }
@@ -60,7 +46,8 @@ public final class BattlezoneClientRendering {
             @Override
             protected void apply(Void ignored, ResourceManager resourceManager,
                                  net.minecraft.util.profiling.ProfilerFiller profiler) {
-                releasePasses();
+                BattlezoneSphereRendering.release();
+                cachedFenceTexture = null;
             }
         });
     }
@@ -68,216 +55,113 @@ public final class BattlezoneClientRendering {
     static void renderWorld(RenderLevelStageEvent event) {
         Minecraft minecraft = Minecraft.getInstance();
         BattlezoneClientState.Snapshot state = BattlezoneClientState.current(event.getPartialTick());
-        if (minecraft.level == null || state == null
-                || !minecraft.level.dimension().location().equals(state.dimension())) {
+        if (minecraft.level == null) {
             return;
         }
 
-        if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_PARTICLES) {
-            LocalPlayer player = minecraft.player;
-            if (player != null) {
-                renderWarningFence(state, event.getPoseStack(), event.getCamera().getPosition(), player);
+        if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_SOLID_BLOCKS) {
+            BattlezoneBoundaryPreviewS2CPacket preview = BattlezoneClientState.preview();
+            if (preview != null && minecraft.level.dimension().location().equals(preview.dimension())) {
+                renderPreview(preview, event.getPoseStack(), event.getCamera().getPosition());
             }
+            return;
+        }
+        if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_SKY) {
+            BattlezoneMaterialRendering.begin(event, state);
+        }
+        if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_LEVEL) {
+            BattlezoneMaterialRendering.end();
+        }
+        if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_PARTICLES && state != null
+                && minecraft.level.dimension().location().equals(state.dimension())) {
             if (state.whiteoutActive()) {
-                renderDome(state, event.getPoseStack(), event.getCamera().getPosition());
+                BattlezoneSphereRendering.render(event, state);
             }
-            return;
-        }
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_LEVEL) {
-            return;
-        }
-
-        cameraPosition = event.getCamera().getPosition();
-        inverseProjection = new Matrix4f(event.getProjectionMatrix()).invert();
-        // Capture the current view-to-world rotation for the dome's world-anchored field.
-        worldFromView = new Matrix4f().rotation(event.getCamera().rotation());
-        renderWhiteout(event.getPartialTick());
-    }
-
-    private static void renderWhiteout(float partialTick) {
-        Minecraft minecraft = Minecraft.getInstance();
-        BattlezoneClientState.Snapshot state = BattlezoneClientState.current(partialTick);
-        if (state == null || !state.whiteoutActive() || minecraft.level == null
-                || !minecraft.level.dimension().location().equals(state.dimension())
-                || inverseProjection == null || worldFromView == null || cameraPosition == null) {
-            return;
-        }
-
-        try {
-            ensurePasses(minecraft);
-            if (whiteoutPass == null || blitPass == null || scratchTarget == null) {
-                return;
+            if (minecraft.player != null) {
+                renderWarningFence(state, event.getPoseStack(), event.getCamera().getPosition(),
+                        minecraft.player, event.getPartialTick());
             }
-            RenderTarget mainTarget = minecraft.getMainRenderTarget();
-            double cameraX = cameraPosition.x;
-            double cameraY = cameraPosition.y;
-            double cameraZ = cameraPosition.z;
-            whiteoutPass.getEffect().safeGetUniform("InverseProjection").set(inverseProjection);
-            whiteoutPass.getEffect().safeGetUniform("WorldFromView").set(worldFromView);
-            Vector3f domeCenterFromCamera = new Vector3f(
-                    (float) (state.centerX() - cameraX),
-                    (float) (Math.min(state.y1(), state.y2()) - cameraY),
-                    (float) (state.centerZ() - cameraZ));
-            new Matrix4f(worldFromView).invert().transformDirection(domeCenterFromCamera);
-            whiteoutPass.getEffect().safeGetUniform("DomeCenter").set(
-                    domeCenterFromCamera.x, domeCenterFromCamera.y, domeCenterFromCamera.z);
-            whiteoutPass.getEffect().safeGetUniform("DomeRadius").set(state.radius());
-            whiteoutPass.getEffect().safeGetUniform("DomeHeight").set(state.radius());
-            whiteoutPass.process(partialTick);
-            blitPass.process(partialTick);
-            mainTarget.bindWrite(false);
-        } catch (IOException | RuntimeException exception) {
-            LOGGER.error("Could not apply the Battlezone outside-zone shader", exception);
-            releasePasses();
         }
-    }
-
-    private static void ensurePasses(Minecraft minecraft) throws IOException {
-        RenderTarget mainTarget = minecraft.getMainRenderTarget();
-        if (whiteoutPass != null && targetWidth == mainTarget.width && targetHeight == mainTarget.height) {
-            return;
-        }
-
-        releasePasses();
-        targetWidth = mainTarget.width;
-        targetHeight = mainTarget.height;
-        scratchTarget = new TextureTarget(targetWidth, targetHeight, true, Minecraft.ON_OSX);
-        scratchTarget.setClearColor(0.0F, 0.0F, 0.0F, 0.0F);
-
-        ResourceManager resources = minecraft.getResourceManager();
-        whiteoutPass = new PostPass(resources, ResourceLocation.fromNamespaceAndPath("blockzone", "battlezone_whiteout").toString(),
-                mainTarget, scratchTarget);
-        whiteoutPass.addAuxAsset("DepthSampler", mainTarget::getDepthTextureId, targetWidth, targetHeight);
-        blitPass = new PostPass(resources, "blit", scratchTarget, mainTarget);
-        Matrix4f ortho = new Matrix4f().setOrtho(0.0F, targetWidth, 0.0F, targetHeight, 0.1F, 1000.0F);
-        whiteoutPass.setOrthoMatrix(ortho);
-        blitPass.setOrthoMatrix(ortho);
     }
 
     private static void renderWarningFence(BattlezoneClientState.Snapshot state, PoseStack poseStack,
-                                           Vec3 camera, LocalPlayer player) {
-        double minX = Math.min(state.x1(), state.x2());
-        double maxX = Math.max(state.x1(), state.x2()) + 1.0;
-        double minZ = Math.min(state.z1(), state.z2());
-        double maxZ = Math.max(state.z1(), state.z2()) + 1.0;
-
-        // Keep the full perimeter visible at the local player's height.
-        double fenceMinY = player.getY();
-        double fenceMaxY = fenceMinY + player.getBbHeight();
-
-        MultiBufferSource.BufferSource buffers = Minecraft.getInstance().renderBuffers().bufferSource();
-        RenderType renderType = RenderType.entityTranslucent(WARNING_FENCE_TEXTURE);
-        VertexConsumer consumer = buffers.getBuffer(renderType);
-        renderFenceSide(consumer, poseStack.last(), camera, true, minX, minZ, maxZ, fenceMinY, fenceMaxY);
-        renderFenceSide(consumer, poseStack.last(), camera, true, maxX, minZ, maxZ, fenceMinY, fenceMaxY);
-        renderFenceSide(consumer, poseStack.last(), camera, false, minZ, minX, maxX, fenceMinY, fenceMaxY);
-        renderFenceSide(consumer, poseStack.last(), camera, false, maxZ, minX, maxX, fenceMinY, fenceMaxY);
-        buffers.endBatch(renderType);
-    }
-
-    private static void renderDome(BattlezoneClientState.Snapshot state, PoseStack poseStack, Vec3 camera) {
-        float radius = state.radius();
-        if (radius <= 0.0F) {
+                                           Vec3 camera, LocalPlayer player, float partialTick) {
+        if (player.isSpectator()) {
+            return;
+        }
+        BattlezoneBoundaryGeometry bounds = BattlezoneBoundaryGeometry.of(
+                state.x1(), state.z1(), state.x2(), state.z2());
+        double minX = bounds.minX();
+        double maxX = bounds.maxX();
+        double minZ = bounds.minZ();
+        double maxZ = bounds.maxZ();
+        var box = player.getBoundingBox();
+        boolean west = bounds.touchesX(minX, box.minX, box.maxX, box.minZ, box.maxZ);
+        boolean east = bounds.touchesX(maxX, box.minX, box.maxX, box.minZ, box.maxZ);
+        boolean north = bounds.touchesZ(minZ, box.minX, box.maxX, box.minZ, box.maxZ);
+        boolean south = bounds.touchesZ(maxZ, box.minX, box.maxX, box.minZ, box.maxZ);
+        if (!west && !east && !north && !south) {
             return;
         }
 
-        double centerX = state.centerX();
-        double centerY = Math.min(state.y1(), state.y2());
-        double centerZ = state.centerZ();
-        MultiBufferSource.BufferSource buffers = Minecraft.getInstance().renderBuffers().bufferSource();
-        RenderType renderType = RenderType.entityTranslucent(DOME_TEXTURE);
-        VertexConsumer consumer = buffers.getBuffer(renderType);
-        PoseStack.Pose pose = poseStack.last();
+        Vec3 position = player.getPosition(partialTick);
+        double playerX = Math.max(minX, Math.min(maxX, position.x));
+        double playerZ = Math.max(minZ, Math.min(maxZ, position.z));
+        double fenceMinY = position.y - 0.1;
+        double fenceMaxY = position.y + player.getBbHeight() + 0.1;
+        ResourceLocation texture = fenceTexture(state.boundaryTexture());
+        float aspect = cachedFenceAspect;
+        double panelWidth = (fenceMaxY - fenceMinY) * aspect;
 
-        // Build an upper hemisphere directly around the server-synchronized circle.
-        // Subtract the camera in double precision before sending vertices to the GPU.
-        for (int latitude = 0; latitude < DOME_LATITUDE_STEPS; latitude++) {
-            double theta0 = (Math.PI * 0.5) * latitude / DOME_LATITUDE_STEPS;
-            double theta1 = (Math.PI * 0.5) * (latitude + 1) / DOME_LATITUDE_STEPS;
-            for (int longitude = 0; longitude < DOME_LONGITUDE_STEPS; longitude++) {
-                double phi0 = (Math.PI * 2.0) * longitude / DOME_LONGITUDE_STEPS;
-                double phi1 = (Math.PI * 2.0) * (longitude + 1) / DOME_LONGITUDE_STEPS;
-                addDomeVertex(consumer, pose, camera, centerX, centerY, centerZ, radius, theta0, phi0);
-                addDomeVertex(consumer, pose, camera, centerX, centerY, centerZ, radius, theta0, phi1);
-                addDomeVertex(consumer, pose, camera, centerX, centerY, centerZ, radius, theta1, phi1);
-                addDomeVertex(consumer, pose, camera, centerX, centerY, centerZ, radius, theta1, phi0);
+        poseStack.pushPose();
+        poseStack.translate(-camera.x, -camera.y, -camera.z);
+        try {
+            MultiBufferSource.BufferSource buffers = Minecraft.getInstance().renderBuffers().bufferSource();
+            RenderType renderType = BattlezoneRenderTypes.boundary(texture);
+            VertexConsumer consumer = buffers.getBuffer(renderType);
+            if (west) {
+                renderFenceSide(consumer, poseStack.last(), true, minX + 0.002, Math.max(minZ, playerZ - panelWidth / 2),
+                        Math.min(maxZ, playerZ + panelWidth / 2), fenceMinY, fenceMaxY, playerZ, panelWidth);
             }
+            if (east) {
+                renderFenceSide(consumer, poseStack.last(), true, maxX - 0.002, Math.max(minZ, playerZ - panelWidth / 2),
+                        Math.min(maxZ, playerZ + panelWidth / 2), fenceMinY, fenceMaxY, playerZ, panelWidth);
+            }
+            if (north) {
+                renderFenceSide(consumer, poseStack.last(), false, minZ + 0.002, Math.max(minX, playerX - panelWidth / 2),
+                        Math.min(maxX, playerX + panelWidth / 2), fenceMinY, fenceMaxY, playerX, panelWidth);
+            }
+            if (south) {
+                renderFenceSide(consumer, poseStack.last(), false, maxZ - 0.002, Math.max(minX, playerX - panelWidth / 2),
+                        Math.min(maxX, playerX + panelWidth / 2), fenceMinY, fenceMaxY, playerX, panelWidth);
+            }
+            buffers.endBatch(renderType);
+        } finally {
+            poseStack.popPose();
         }
-        buffers.endBatch(renderType);
     }
 
-    private static void addDomeVertex(VertexConsumer consumer, PoseStack.Pose pose,
-                                      Vec3 camera, double centerX, double centerY, double centerZ, float radius,
-                                      double theta, double phi) {
-        float nx = (float) (Math.sin(theta) * Math.cos(phi));
-        float ny = (float) Math.cos(theta);
-        float nz = (float) (Math.sin(theta) * Math.sin(phi));
-        int color = domeColor(nx, ny, nz);
-        consumer.vertex(pose.pose(), (float) (centerX + nx * radius - camera.x),
-                        (float) (centerY + ny * radius - camera.y),
-                        (float) (centerZ + nz * radius - camera.z))
-                .color((color >>> 24) & 0xFF, (color >>> 16) & 0xFF,
-                        (color >>> 8) & 0xFF, color & 0xFF)
-                .uv((float) (phi / (Math.PI * 2.0)), (float) (theta / (Math.PI * 0.5)))
-                .overlayCoords(OverlayTexture.NO_OVERLAY)
-                .uv2(LightTexture.FULL_BRIGHT)
-                .normal(pose.normal(), nx, ny, nz)
-                .endVertex();
+    private static void renderFenceSide(VertexConsumer consumer, PoseStack.Pose pose, boolean xPlane, double plane,
+                                        double alongMin, double alongMax, double minY, double maxY,
+                                        double centerAlong, double fullWidth) {
+        if (alongMax <= alongMin) {
+            return;
+        }
+        double uMin = (alongMin - centerAlong) / fullWidth + 0.5;
+        double uMax = (alongMax - centerAlong) / fullWidth + 0.5;
+        addTexturedFenceVertex(consumer, pose, xPlane, plane, alongMin, minY, uMin, 1);
+        addTexturedFenceVertex(consumer, pose, xPlane, plane, alongMax, minY, uMax, 1);
+        addTexturedFenceVertex(consumer, pose, xPlane, plane, alongMax, maxY, uMax, 0);
+        addTexturedFenceVertex(consumer, pose, xPlane, plane, alongMin, maxY, uMin, 0);
     }
 
-    private static int domeColor(float x, float y, float z) {
-        // Static coordinates give the field a stable world-space appearance.
-        double azimuth = Math.atan2(z, x) + y * 2.6;
-        double orbit = Math.sin(azimuth * 5.0 + (1.0 - y) * 17.0 + Math.sin(azimuth * 2.0) * 1.4);
-        double crossFlow = Math.sin(x * 9.0 - z * 6.0 + Math.sin(y * 10.0) * 1.2);
-        double flow = 0.5 + 0.5 * (orbit * 0.68 + crossFlow * 0.32);
-        double filament = smoothstep(0.48, 0.88, flow);
-        double red = lerp(lerp(0.34, 0.48, flow * 0.60), lerp(0.22, 0.92, filament), filament * 0.66);
-        double green = lerp(lerp(0.40, 0.56, flow * 0.60), lerp(0.82, 0.48, filament), filament * 0.66);
-        double blue = lerp(lerp(0.58, 0.70, flow * 0.60), lerp(0.96, 0.82, filament), filament * 0.66);
-        double rim = Math.pow(1.0 - Math.abs(y), 2.5);
-        red = Math.min(1.0, red + rim * 0.34);
-        green = Math.min(1.0, green + rim * 0.42);
-        blue = Math.min(1.0, blue + rim * 0.56);
-        int alpha = (int) (255.0 * Math.min(0.4, 0.09 + flow * 0.07 + filament * 0.08 + rim * 0.18));
-        int redByte = (int) (red * 255.0);
-        int greenByte = (int) (green * 255.0);
-        int blueByte = (int) (blue * 255.0);
-        return (redByte << 24) | (greenByte << 16) | (blueByte << 8) | alpha;
-    }
-
-    private static double smoothstep(double edge0, double edge1, double value) {
-        double t = Math.max(0.0, Math.min(1.0, (value - edge0) / (edge1 - edge0)));
-        return t * t * (3.0 - 2.0 * t);
-    }
-
-    private static double lerp(double start, double end, double amount) {
-        return start + (end - start) * amount;
-    }
-
-    private static void renderFenceSide(VertexConsumer consumer, PoseStack.Pose pose, Vec3 camera,
-                                        boolean xPlane, double plane,
-                                        double alongMin, double alongMax, double minY, double maxY) {
-        // Keep every side in fixed map coordinates so the fence stays anchored to the zone.
-        double uMin = alongMin / WARNING_FENCE_TEXTURE_BLOCKS;
-        double uMax = alongMax / WARNING_FENCE_TEXTURE_BLOCKS;
-        double vMin = minY / WARNING_FENCE_TEXTURE_BLOCKS;
-        double vMax = maxY / WARNING_FENCE_TEXTURE_BLOCKS;
-        addTexturedFenceVertex(consumer, pose, camera, xPlane, plane, alongMin, minY, uMin, vMin);
-        addTexturedFenceVertex(consumer, pose, camera, xPlane, plane, alongMax, minY, uMax, vMin);
-        addTexturedFenceVertex(consumer, pose, camera, xPlane, plane, alongMax, maxY, uMax, vMax);
-        addTexturedFenceVertex(consumer, pose, camera, xPlane, plane, alongMin, maxY, uMin, vMax);
-    }
-
-    private static void addTexturedFenceVertex(VertexConsumer consumer, PoseStack.Pose pose, Vec3 camera,
-                                               boolean xPlane,
+    private static void addTexturedFenceVertex(VertexConsumer consumer, PoseStack.Pose pose, boolean xPlane,
                                                double plane, double along, double y,
                                                double u, double v) {
         float normalX = xPlane ? 1.0F : 0.0F;
         float normalZ = xPlane ? 0.0F : 1.0F;
-        consumer.vertex(pose.pose(), (float) ((xPlane ? plane : along) - camera.x),
-                        (float) (y - camera.y),
-                        (float) ((xPlane ? along : plane) - camera.z))
+        consumer.vertex(pose.pose(), (float) (xPlane ? plane : along), (float) y,
+                        (float) (xPlane ? along : plane))
                 .color(255, 255, 255, 255)
                 .uv((float) u, (float) v)
                 .overlayCoords(OverlayTexture.NO_OVERLAY)
@@ -286,21 +170,114 @@ public final class BattlezoneClientRendering {
                 .endVertex();
     }
 
-    private static void releasePasses() {
-        if (whiteoutPass != null) {
-            whiteoutPass.close();
-            whiteoutPass = null;
+    private static ResourceLocation fenceTexture(String configuredTexture) {
+        ResourceLocation requested = ResourceLocation.tryParse(configuredTexture);
+        if (requested == null) {
+            requested = WARNING_FENCE_TEXTURE;
         }
-        if (blitPass != null) {
-            blitPass.close();
-            blitPass = null;
+        if (requested.equals(cachedFenceTexture)) {
+            return resolvedFenceTexture;
         }
-        if (scratchTarget != null) {
-            scratchTarget.destroyBuffers();
-            scratchTarget = null;
+        cachedFenceTexture = requested;
+        resolvedFenceTexture = requested;
+        cachedFenceAspect = readFenceAspect(requested);
+        if (cachedFenceAspect <= 0.0F) {
+            LOGGER.warn("Invalid or missing Battlezone boundary texture {}; using {}", requested, WARNING_FENCE_TEXTURE);
+            resolvedFenceTexture = WARNING_FENCE_TEXTURE;
+            cachedFenceAspect = readFenceAspect(WARNING_FENCE_TEXTURE);
+            if (cachedFenceAspect <= 0.0F) {
+                cachedFenceAspect = 1.0F;
+            }
         }
-        targetWidth = -1;
-        targetHeight = -1;
+        return resolvedFenceTexture;
+    }
+
+    private static float readFenceAspect(ResourceLocation texture) {
+        var resource = Minecraft.getInstance().getResourceManager().getResource(texture);
+        if (resource.isEmpty()) {
+            return 0.0F;
+        }
+        try (var input = resource.get().open(); NativeImage image = NativeImage.read(input)) {
+            return (float) image.getWidth() / image.getHeight();
+        } catch (IOException | RuntimeException exception) {
+            LOGGER.warn("Could not read Battlezone boundary texture {}", texture, exception);
+            return 0.0F;
+        }
+    }
+
+    private static void renderPreview(BattlezoneBoundaryPreviewS2CPacket preview, PoseStack stack, Vec3 camera) {
+        double minX = Math.min(preview.pos1().getX(), preview.pos2().getX());
+        double maxX = Math.max(preview.pos1().getX(), preview.pos2().getX()) + 1.0;
+        double minY = Math.min(preview.pos1().getY(), preview.pos2().getY());
+        double maxY = Math.max(preview.pos1().getY(), preview.pos2().getY()) + 1.0;
+        double minZ = Math.min(preview.pos1().getZ(), preview.pos2().getZ());
+        double maxZ = Math.max(preview.pos1().getZ(), preview.pos2().getZ()) + 1.0;
+        stack.pushPose();
+        try {
+            MultiBufferSource.BufferSource buffers = Minecraft.getInstance().renderBuffers().bufferSource();
+            RenderType type = RenderType.lines();
+            VertexConsumer consumer = buffers.getBuffer(type);
+            previewFace(consumer, stack.last(), camera, true, minX, minZ, maxZ, minY, maxY);
+            previewFace(consumer, stack.last(), camera, true, maxX, minZ, maxZ, minY, maxY);
+            previewFace(consumer, stack.last(), camera, false, minZ, minX, maxX, minY, maxY);
+            previewFace(consumer, stack.last(), camera, false, maxZ, minX, maxX, minY, maxY);
+            buffers.endBatch(type);
+        } finally {
+            stack.popPose();
+        }
+    }
+
+    private static void previewFace(VertexConsumer consumer, PoseStack.Pose pose, Vec3 camera,
+                                    boolean xPlane, double plane, double min, double max,
+                                    double minY, double maxY) {
+        double cameraAlong = xPlane ? camera.z : camera.x;
+        double cameraPlane = xPlane ? camera.x : camera.z;
+        if (Math.abs(cameraPlane - plane) > 96.0 || cameraAlong < min - 96.0 || cameraAlong > max + 96.0) {
+            return;
+        }
+        double start = Math.max(min, cameraAlong - 96.0);
+        double end = Math.min(max, cameraAlong + 96.0);
+        double lowY = Math.max(minY, camera.y - 96.0);
+        double highY = Math.min(maxY, camera.y + 96.0);
+        if (highY < lowY) {
+            return;
+        }
+        for (double along = Math.ceil(start / 2.0) * 2.0; along <= end; along += 2.0) {
+            previewLine(consumer, pose, camera, xPlane, plane, along, lowY, along, highY);
+        }
+        previewLine(consumer, pose, camera, xPlane, plane, min, minY, min, maxY);
+        previewLine(consumer, pose, camera, xPlane, plane, max, minY, max, maxY);
+        for (double y = Math.ceil(lowY / 2.0) * 2.0; y <= highY; y += 2.0) {
+            previewLine(consumer, pose, camera, xPlane, plane, start, y, end, y);
+        }
+        previewLine(consumer, pose, camera, xPlane, plane, start, minY, end, minY);
+        previewLine(consumer, pose, camera, xPlane, plane, start, maxY, end, maxY);
+    }
+
+    private static void previewLine(VertexConsumer consumer, PoseStack.Pose pose, Vec3 camera,
+                                    boolean xPlane, double plane, double a, double ay, double b, double by) {
+        double dx = xPlane ? 0.0 : b - a;
+        double dy = by - ay;
+        double dz = xPlane ? b - a : 0.0;
+        double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (length < 1.0e-6) {
+            return;
+        }
+        previewVertex(consumer, pose, camera, xPlane, plane, a, ay,
+                (float) (dx / length), (float) (dy / length), (float) (dz / length));
+        previewVertex(consumer, pose, camera, xPlane, plane, b, by,
+                (float) (dx / length), (float) (dy / length), (float) (dz / length));
+    }
+
+    private static void previewVertex(VertexConsumer consumer, PoseStack.Pose pose, Vec3 camera,
+                                      boolean xPlane, double plane, double along, double y,
+                                      float dx, float dy, float dz) {
+        float x = (float) ((xPlane ? plane : along) - camera.x);
+        float z = (float) ((xPlane ? along : plane) - camera.z);
+        consumer.vertex(pose.pose(), x, (float) (y - camera.y), z)
+                .color(100, 225, 255, 210)
+                .normal(pose.normal(), dx, dy, dz)
+                .endVertex();
     }
 
 }

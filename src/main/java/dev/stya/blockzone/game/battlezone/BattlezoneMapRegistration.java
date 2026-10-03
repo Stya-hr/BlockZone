@@ -53,7 +53,7 @@ public final class BattlezoneMapRegistration {
             context.getSource().sendFailure(Component.literal("No loaded Battlezone map named " + mapName + "."));
             return 0;
         }
-        if (map.isStart()) {
+        if (map.isStart() && !map.isDebug()) {
             context.getSource().sendFailure(Component.literal("Stop the Battlezone match before saving its scene snapshot."));
             return 0;
         }

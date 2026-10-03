@@ -56,6 +56,7 @@ public final class BattlezoneMap extends BaseMap {
     private final Setting<Integer> poisonDamage;
     private final Setting<List<PoisonPhase>> poisonPhases;
 
+    private final java.util.Map<java.util.UUID, BattlezonePlayerState> playerStates = new java.util.HashMap<>();
     private final BattlezoneSceneSnapshot sceneSnapshot;
     private MatchPhase phase = MatchPhase.WAITING;
     private int phaseTicks;
@@ -105,10 +106,14 @@ public final class BattlezoneMap extends BaseMap {
         this.readyStartEnabled.set(false);
         this.autoStart.set(true);
         this.autoStartTime.set(Math.max(0, countdownSeconds.get()) * 20);
+        ensureConfiguredTeams();
     }
 
     @Override
     public void tick() {
+        if (!isStart) {
+            ensureConfiguredTeams();
+        }
         sceneSnapshot.tick();
         if (snapshotSavePending && !sceneSnapshot.isBusy()) {
             snapshotSavePending = false;
@@ -134,7 +139,7 @@ public final class BattlezoneMap extends BaseMap {
         readyStartEnabled.set(false);
         // Restoration and snapshot capture both run across multiple ticks.
         // Keep the lobby waiting until the scene is ready for a match.
-        if (sceneSnapshot.isBusy() || !hasMinimumTeams()) {
+        if (isDebug() || sceneSnapshot.isBusy() || !hasMinimumTeams()) {
             return;
         }
         if (!hasValidSnapshot()) {
@@ -375,7 +380,7 @@ public final class BattlezoneMap extends BaseMap {
 
     @Override
     protected boolean canAutoStart() {
-        return hasMinimumTeams() && hasValidSnapshot() && !sceneSnapshot.isBusy();
+        return !isDebug() && (phase == MatchPhase.WAITING || phase == MatchPhase.COUNTDOWN) && hasMinimumTeams() && hasValidSnapshot() && !sceneSnapshot.isBusy();
     }
 
     @Override
@@ -385,7 +390,7 @@ public final class BattlezoneMap extends BaseMap {
 
     @Override
     public boolean start() {
-        if (isStart || !hasMinimumTeams()) {
+        if (isStart || (!isDebug() && !hasMinimumTeams())) {
             return false;
         }
         if (phase != MatchPhase.WAITING && phase != MatchPhase.COUNTDOWN) {
@@ -414,12 +419,13 @@ public final class BattlezoneMap extends BaseMap {
 
     @Override
     public boolean allowJoinInProgress() {
-        return phase == MatchPhase.DEPLOYMENT || phase == MatchPhase.MATCH;
+        return isDebug() || phase == MatchPhase.DEPLOYMENT || phase == MatchPhase.MATCH;
     }
 
     @Override
     public MapTeams.JoinTeamResult join(ServerPlayer player) {
         ensureConfiguredTeams();
+        BattlezonePlayerState beforeJoin = captureBeforeJoin(player);
         if (isStart && !allowJoinInProgress()) {
             return MapTeams.JoinTeamResult.of(MapTeams.JoinTeamResult.Status.MID_MATCH_JOIN_DISABLED);
         }
@@ -428,37 +434,72 @@ public final class BattlezoneMap extends BaseMap {
         }
         if (!checkGameHasPlayer(player)) {
             return getMapTeams().getNormalTeams().stream()
-                    .filter(team -> phase != MatchPhase.MATCH || !team.getLivingPlayers().isEmpty())
+                    .filter(team -> isDebug() || phase != MatchPhase.MATCH || !team.getLivingPlayers().isEmpty())
                     .filter(team -> team.getPlayerCount() < Math.max(1, teamPlayerLimit.get()))
                     .min(java.util.Comparator.comparingInt(ServerTeam::getPlayerCount))
-                    .map(team -> syncAfterJoin(super.join(team.getName(), player), player))
+                    .map(team -> joinConfiguredTeam(team.getName(), player, beforeJoin))
                     .orElseGet(() -> MapTeams.JoinTeamResult.of(MapTeams.JoinTeamResult.Status.NO_AVAILABLE_TEAM));
         }
-        return syncAfterJoin(super.join(player), player);
+        return getMapTeams().getTeamByPlayer(player)
+                .map(team -> joinConfiguredTeam(team.getName(), player, beforeJoin))
+                .orElseGet(() -> MapTeams.JoinTeamResult.of(MapTeams.JoinTeamResult.Status.NO_AVAILABLE_TEAM));
     }
 
     @Override
     public MapTeams.JoinTeamResult join(String teamName, ServerPlayer player) {
         ensureConfiguredTeams();
+        BattlezonePlayerState beforeJoin = captureBeforeJoin(player);
         if (isStart && !allowJoinInProgress()) {
             return MapTeams.JoinTeamResult.of(MapTeams.JoinTeamResult.Status.MID_MATCH_JOIN_DISABLED);
         }
-        if (!checkGameHasPlayer(player) && getJoinedPlayerCount() >= Math.max(1, totalPlayerLimit.get())) {
+        Optional<ServerTeam> team = getMapTeams().getTeamByName(teamName);
+        boolean spectator = team.map(ServerTeam::isSpectator).orElse(false);
+        if (!spectator && !checkGameHasPlayer(player) && getJoinedPlayerCount() >= Math.max(1, totalPlayerLimit.get())) {
             return MapTeams.JoinTeamResult.of(MapTeams.JoinTeamResult.Status.NO_AVAILABLE_TEAM);
         }
-        Optional<ServerTeam> team = getMapTeams().getTeamByName(teamName);
-        if (phase == MatchPhase.MATCH && !checkGameHasPlayer(player)
+        if (!spectator && !isDebug() && phase == MatchPhase.MATCH && !checkGameHasPlayer(player)
                 && team.map(value -> value.getLivingPlayers().isEmpty()).orElse(false)) {
             return MapTeams.JoinTeamResult.of(MapTeams.JoinTeamResult.Status.NO_AVAILABLE_TEAM);
         }
         boolean alreadyInTeam = team.map(value -> value.hasPlayer(player.getUUID())).orElse(false);
-        if (!alreadyInTeam && team.isPresent() && team.get().getPlayerCount() >= Math.max(1, teamPlayerLimit.get())) {
+        if (!alreadyInTeam && team.isPresent() && !team.get().isSpectator() && team.get().getPlayerCount() >= Math.max(1, teamPlayerLimit.get())) {
             return MapTeams.JoinTeamResult.of(MapTeams.JoinTeamResult.Status.TEAM_FULL);
         }
-        return syncAfterJoin(super.join(teamName, player), player);
+        return joinConfiguredTeam(teamName, player, beforeJoin);
     }
 
-    private MapTeams.JoinTeamResult syncAfterJoin(MapTeams.JoinTeamResult result, ServerPlayer player) {
+    private BattlezonePlayerState captureBeforeJoin(ServerPlayer player) {
+        return com.ptcrys.fpsmatch.core.FPSMCore.getInstance().getMapByPlayerWithSpec(player)
+                .filter(BattlezoneMap.class::isInstance)
+                .map(BattlezoneMap.class::cast)
+                .map(map -> map.playerStates.get(player.getUUID()))
+                .orElseGet(() -> BattlezonePlayerState.capture(player));
+    }
+
+    private MapTeams.JoinTeamResult joinConfiguredTeam(String teamName, ServerPlayer player, BattlezonePlayerState beforeJoin) {
+        // FPSMatch's join reads the setting directly instead of calling allowJoinInProgress().
+        boolean previous = this.allowJoinInProgress.get();
+        BattlezonePlayerState original = playerStates.remove(player.getUUID());
+        this.allowJoinInProgress.set(allowJoinInProgress());
+        try {
+            MapTeams.JoinTeamResult result = super.join(teamName, player);
+            if (original != null) {
+                if (result.isSuccess() || getMapTeams().getTeamByPlayer(player).isPresent()) {
+                    playerStates.put(player.getUUID(), original);
+                } else {
+                    original.restore(player);
+                }
+            }
+            return syncAfterJoin(result, player, original == null ? beforeJoin : original);
+        } finally {
+            this.allowJoinInProgress.set(previous);
+        }
+    }
+
+    private MapTeams.JoinTeamResult syncAfterJoin(MapTeams.JoinTeamResult result, ServerPlayer player, BattlezonePlayerState beforeJoin) {
+        if (result.isSuccess()) {
+            playerStates.putIfAbsent(player.getUUID(), beforeJoin);
+        }
         if (result.isSuccess() && isStart) {
             BattlezoneNetwork.send(player, createVisualStatePacket());
         }
@@ -472,12 +513,32 @@ public final class BattlezoneMap extends BaseMap {
     }
 
     private void ensureConfiguredTeams() {
-        // Create the roster on the first join so saved map settings have already been loaded.
+        // Keep the roster available before room selection and reconcile loaded settings.
         int maxPlayers = Math.max(1, totalPlayerLimit.get());
         int playersPerTeam = Math.max(1, teamPlayerLimit.get());
         int capacityTeamCount = (int) (((long) maxPlayers + playersPerTeam - 1) / playersPerTeam);
         int requiredTeams = Math.max(Math.max(1, minimumTeamsToStart.get()), capacityTeamCount);
         List<ServerTeam> teams = getMapTeams().getNormalTeams();
+        for (ServerTeam team : List.copyOf(teams)) {
+            if (!isStart && team.isEmpty() && team.getPlayerLimit() != playersPerTeam) {
+                var capabilities = getMapTeams().getData();
+                getMapTeams().delTeam(team.getPlayerTeam());
+                addTeam(new TeamData(team.getName(), playersPerTeam));
+                getMapTeams().writeData(capabilities);
+            }
+        }
+        teams = getMapTeams().getNormalTeams();
+        if (!isStart) {
+            for (ServerTeam team : List.copyOf(teams)) {
+                if (teams.size() <= requiredTeams) {
+                    break;
+                }
+                if (team.isEmpty() && team.getName().startsWith("squad_")) {
+                    getMapTeams().delTeam(team.getPlayerTeam());
+                    teams = getMapTeams().getNormalTeams();
+                }
+            }
+        }
         if (teams.size() >= requiredTeams) {
             return;
         }
@@ -520,7 +581,7 @@ public final class BattlezoneMap extends BaseMap {
 
     @Override
     public boolean victoryGoal() {
-        if (phase != MatchPhase.MATCH) {
+        if (isDebug() || phase != MatchPhase.MATCH) {
             return false;
         }
         long teamsAlive = getMapTeams().getNormalTeams().stream()
@@ -541,6 +602,27 @@ public final class BattlezoneMap extends BaseMap {
     public void reset() {
         super.reset();
         isStart = false;
+        syncVisualState(true);
+        for (ServerPlayer player : List.copyOf(getMapTeams().getOnlineWithSpec())) {
+            leave(player);
+            // A cancelled leave event must not keep a finished match populated.
+            if (getMapTeams().getTeamByPlayer(player).isPresent()) {
+                getMapTeams().leaveTeam(player);
+                BattlezonePlayerState state = playerStates.remove(player.getUUID());
+                if (state != null) {
+                    state.restore(player);
+                }
+            }
+        }
+        for (java.util.UUID uuid : List.copyOf(getMapTeams().getJoinedPlayersWithSpec())) {
+            getMapTeams().leaveTeam(uuid);
+            BattlezonePlayerState state = playerStates.remove(uuid);
+            if (state != null) {
+                BattlezonePlayerState.restoreOnLogin(uuid, state);
+            }
+        }
+        playerStates.forEach(BattlezonePlayerState::restoreOnLogin);
+        playerStates.clear();
         phase = MatchPhase.WAITING;
         phaseTicks = 0;
         poisonPhaseIndex = 0;
@@ -559,6 +641,49 @@ public final class BattlezoneMap extends BaseMap {
         }
         phase = MatchPhase.RESETTING;
         syncVisualState(true);
+    }
+
+    @Override
+    public void handlePlayerDisconnect(ServerPlayer player) {
+        super.handlePlayerDisconnect(player);
+        if (getMapTeams().getTeamByPlayer(player).isEmpty()) {
+            BattlezonePlayerState state = playerStates.remove(player.getUUID());
+            if (state != null) {
+                BattlezonePlayerState.restoreOnLogin(player.getUUID(), state);
+            }
+        }
+    }
+
+    @Override
+    public void startNewRound() {
+        if (isDebug() && isStart && (phase == MatchPhase.DEPLOYMENT || phase == MatchPhase.MATCH)) {
+            phase = MatchPhase.MATCH;
+            phaseTicks = 0;
+            poisonPhaseIndex = 0;
+            poisonPhaseTicks = 0;
+            initializePoisonZone();
+            syncVisualState(true);
+        }
+    }
+
+    @Override
+    public void leave(ServerPlayer player) {
+        super.leave(player);
+        if (getMapTeams().getTeamByPlayer(player).isEmpty()) {
+            BattlezoneNetwork.send(player, createVisualStatePacket(false));
+            BattlezonePlayerState state = playerStates.remove(player.getUUID());
+            if (state != null) {
+                state.restore(player);
+            }
+        }
+    }
+
+    @Override
+    public void configFromJson(com.google.gson.JsonElement json) {
+        super.configFromJson(json);
+        if (!isStart) {
+            ensureConfiguredTeams();
+        }
     }
 
     @Override
@@ -606,8 +731,11 @@ public final class BattlezoneMap extends BaseMap {
     }
 
     private BattlezoneZoneStateS2CPacket createVisualStatePacket() {
+        return createVisualStatePacket(isStart && phase != MatchPhase.RESETTING);
+    }
+
+    private BattlezoneZoneStateS2CPacket createVisualStatePacket(boolean boundaryVisible) {
         AreaData area = getMapArea();
-        boolean boundaryVisible = isStart && phase != MatchPhase.RESETTING;
         return new BattlezoneZoneStateS2CPacket(
                 getMapName(),
                 getServerLevel().dimension().location(),

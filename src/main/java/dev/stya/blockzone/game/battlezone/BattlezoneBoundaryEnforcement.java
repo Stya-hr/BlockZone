@@ -27,6 +27,7 @@ public final class BattlezoneBoundaryEnforcement {
                 .filter(BattlezoneMap.class::isInstance)
                 .map(BattlezoneMap.class::cast)
                 .filter(BattlezoneMap::isMatchActive)
+                .filter(map -> !map.isDebug())
                 .ifPresent(map -> clampToMap(player, map.getMapArea()));
     }
 

@@ -3,7 +3,7 @@
   "vertex": "blockzone:battlezone_boundary",
   "fragment": "blockzone:battlezone_boundary",
   "attributes": [ "Position", "Color", "UV0", "UV1", "UV2", "Normal" ],
-  "samplers": [ { "name": "Sampler0" } ],
+  "samplers": [ { "name": "Sampler0" }, { "name": "Sampler2" } ],
   "uniforms": [
     { "name": "ModelViewMat", "type": "matrix4x4", "count": 16, "values": [ 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 ] },
     { "name": "ProjMat", "type": "matrix4x4", "count": 16, "values": [ 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 ] },

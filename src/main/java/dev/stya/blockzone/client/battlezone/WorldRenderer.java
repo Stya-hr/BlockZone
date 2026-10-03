@@ -8,7 +8,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.core.BlockPos;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
@@ -164,7 +164,8 @@ public final class WorldRenderer {
                 .color(255, 255, 255, alpha)
                 .uv((float)u, (float)v)
                 .overlayCoords(OverlayTexture.NO_OVERLAY)
-                .uv2(LightTexture.FULL_BRIGHT)
+                .uv2(net.minecraft.client.renderer.LevelRenderer.getLightColor(Minecraft.getInstance().level,
+                        BlockPos.containing(xPlane ? plane : along, y, xPlane ? along : plane)))
                 .normal(pose.normal(), xPlane ? 1.0F : 0.0F, 0.0F, xPlane ? 0.0F : 1.0F)
                 .endVertex();
     }

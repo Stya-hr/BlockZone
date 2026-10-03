@@ -36,11 +36,14 @@ void main() {
     float detail = noise(flow * 19.0 + vec3(broad * 1.7) + drift);
     float ridge = 1.0 - abs(detail * 2.0 - 1.0);
     float aa = max(fwidth(ridge), 0.015);
-    float filament = smoothstep(0.91 - aa, 0.97 + aa, ridge);
+    float filament = smoothstep(0.86 - aa, 0.95 + aa, ridge);
     float facing = abs(dot(normal, normalize(toCamera)));
-    float rim = pow(1.0 - facing, 3.0);
-    vec3 color = mix(vec3(0.40, 0.82, 0.94), vec3(0.70, 0.86, 1.0), broad);
-    color = mix(color, vec3(0.82, 0.96, 1.0), filament * 0.5);
-    float alpha = 0.025 + filament * 0.065 + rim * 0.075;
-    fragColor = vec4(color, alpha * (outside ? 0.72 : 1.0));
+    float rim = pow(1.0 - facing, 2.0);
+    // Saturated blue retains contrast against both daylight sky and pale poisoned terrain.
+    vec3 color = mix(vec3(0.08, 0.32, 0.65), vec3(0.16, 0.56, 0.82), broad);
+    color = mix(color, vec3(0.05, 0.28, 0.62), filament * 0.75);
+    color = mix(color, vec3(0.06, 0.40, 0.78), rim);
+    // Concentrate opacity on filaments and the silhouette, keeping the shell transparent.
+    float alpha = 0.04 + filament * 0.22 + rim * 0.30;
+    fragColor = vec4(color, alpha * (outside ? 0.90 : 1.0));
 }

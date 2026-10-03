@@ -5,6 +5,7 @@ import dev.stya.blockzone.net.battlezone.FlightStateS2CPacket;
 import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.stya.blockzone.BlockZone;
+import net.minecraft.client.CameraType;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -29,6 +30,7 @@ public final class DeploymentClientController {
     private static net.minecraft.client.player.LocalPlayer trackedPlayer;
     private static Pose previousPose;
     private static boolean previousNoGravity;
+    private static CameraType previousCameraType;
 
     private DeploymentClientController() { }
 
@@ -43,6 +45,9 @@ public final class DeploymentClientController {
             trackedPlayer = player;
             previousPose = player.getForcedPose();
             previousNoGravity = player.isNoGravity();
+            Minecraft minecraft = Minecraft.getInstance();
+            previousCameraType = minecraft.options.getCameraType();
+            minecraft.options.setCameraType(CameraType.THIRD_PERSON_BACK);
         }
         int previous = state;
         state = packet.state();
@@ -59,9 +64,15 @@ public final class DeploymentClientController {
         if (trackedPlayer != null) {
             trackedPlayer.setForcedPose(previousPose);
             trackedPlayer.setNoGravity(previousNoGravity);
+            Minecraft minecraft = Minecraft.getInstance();
+            if (previousCameraType != null
+                    && minecraft.options.getCameraType() == CameraType.THIRD_PERSON_BACK) {
+                minecraft.options.setCameraType(previousCameraType);
+            }
         }
         trackedPlayer = null;
         previousPose = null;
+        previousCameraType = null;
         state = 0;
     }
 

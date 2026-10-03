@@ -5,10 +5,12 @@ import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.RelativeMovement;
 import net.minecraft.world.phys.Vec3;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /** Server-owned transport and first-landing protection, scoped to one match. */
@@ -45,7 +47,7 @@ final class DeploymentController {
         player.setYRot(routeYaw);
         player.setYHeadRot(routeYaw);
         player.setXRot(0);
-        moveAlongRoute(player);
+        moveAlongRoute(player, false);
         BattlezoneNetwork.send(player, new FlightStateS2CPacket(1));
         player.sendSystemMessage(Component.translatable("blockzone.deployment.boarded"));
     }
@@ -75,7 +77,7 @@ final class DeploymentController {
             return;
         }
         player.fallDistance = 0;
-        moveAlongRoute(player);
+        moveAlongRoute(player, true);
         if (routeFinished()) {
             release(player);
         }
@@ -91,15 +93,20 @@ final class DeploymentController {
         return true;
     }
 
-    private void moveAlongRoute(ServerPlayer player) {
+    private void moveAlongRoute(ServerPlayer player, boolean keepClientLook) {
         player.getAbilities().flying = true;
         player.setNoGravity(true);
         player.fallDistance = 0;
         player.setOnGround(false);
         player.setDeltaMovement(Vec3.ZERO);
-        // Keep the latest player look angles. Resetting them on every teleport made the route lock the camera.
-        player.teleportTo(map.getServerLevel(), route.x(ticks), route.startY(), route.z(ticks),
-                player.getYRot(), player.getXRot());
+        if (keepClientLook) {
+            // Zero relative rotation keeps the client's newest mouse look, even before it reaches the server.
+            player.connection.teleport(route.x(ticks), route.startY(), route.z(ticks),
+                    player.getYRot(), player.getXRot(), Set.of(RelativeMovement.Y_ROT, RelativeMovement.X_ROT));
+        } else {
+            player.teleportTo(map.getServerLevel(), route.x(ticks), route.startY(), route.z(ticks),
+                    player.getYRot(), player.getXRot());
+        }
     }
 
     private float routeYaw() {

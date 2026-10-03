@@ -24,6 +24,8 @@ final class BattlezonePlayerState {
     private static final Map<UUID, BattlezonePlayerState> PENDING = new HashMap<>();
     private final ServerLevel level;
     private final Vec3 position;
+    private final boolean noGravity;
+    private final net.minecraft.world.entity.Pose forcedPose;
     private final float yaw;
     private final float pitch;
     private final GameType gameMode;
@@ -44,6 +46,8 @@ final class BattlezonePlayerState {
     private BattlezonePlayerState(ServerPlayer player) {
         level = player.serverLevel();
         position = player.position();
+        noGravity = player.isNoGravity();
+        forcedPose = player.getForcedPose();
         yaw = player.getYRot();
         pitch = player.getXRot();
         gameMode = player.gameMode.getGameModeForPlayer();
@@ -87,6 +91,8 @@ final class BattlezonePlayerState {
 
     void restore(ServerPlayer player) {
         player.stopRiding();
+        player.setNoGravity(noGravity);
+        player.setForcedPose(forcedPose);
         player.setGameMode(gameMode);
         player.getAbilities().loadSaveData(abilities);
         player.onUpdateAbilities();

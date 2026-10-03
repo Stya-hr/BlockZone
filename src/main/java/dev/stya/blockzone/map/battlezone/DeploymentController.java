@@ -41,6 +41,10 @@ final class DeploymentController {
         player.onUpdateAbilities();
         player.setNoGravity(true);
         player.setForcedPose(Pose.SWIMMING);
+        float routeYaw = routeYaw();
+        player.setYRot(routeYaw);
+        player.setYHeadRot(routeYaw);
+        player.setXRot(0);
         moveAlongRoute(player);
         BattlezoneNetwork.send(player, new FlightStateS2CPacket(1));
         player.sendSystemMessage(Component.translatable("blockzone.deployment.boarded"));
@@ -93,8 +97,13 @@ final class DeploymentController {
         player.fallDistance = 0;
         player.setOnGround(false);
         player.setDeltaMovement(Vec3.ZERO);
-        float yaw = (float) Math.toDegrees(Math.atan2(-(route.endX() - route.startX()), route.endZ() - route.startZ()));
-        player.teleportTo(map.getServerLevel(), route.x(ticks), route.startY(), route.z(ticks), yaw, 0);
+        // Keep the latest player look angles. Resetting them on every teleport made the route lock the camera.
+        player.teleportTo(map.getServerLevel(), route.x(ticks), route.startY(), route.z(ticks),
+                player.getYRot(), player.getXRot());
+    }
+
+    private float routeYaw() {
+        return (float) Math.toDegrees(Math.atan2(-(route.endX() - route.startX()), route.endZ() - route.startZ()));
     }
 
     private boolean isParticipant(ServerPlayer player) {

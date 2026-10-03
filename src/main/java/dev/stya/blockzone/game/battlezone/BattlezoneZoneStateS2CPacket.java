@@ -16,7 +16,8 @@ public record BattlezoneZoneStateS2CPacket(
         BlockPos areaPos2,
         double centerX,
         double centerZ,
-        float radius
+        float radius,
+        String boundaryTexture
 ) {
     public static void encode(BattlezoneZoneStateS2CPacket packet, FriendlyByteBuf buffer) {
         buffer.writeUtf(packet.mapName, 128);
@@ -28,6 +29,7 @@ public record BattlezoneZoneStateS2CPacket(
         buffer.writeDouble(packet.centerX);
         buffer.writeDouble(packet.centerZ);
         buffer.writeFloat(packet.radius);
+        buffer.writeUtf(packet.boundaryTexture, 256);
     }
 
     public static BattlezoneZoneStateS2CPacket decode(FriendlyByteBuf buffer) {
@@ -40,7 +42,8 @@ public record BattlezoneZoneStateS2CPacket(
                 buffer.readBlockPos(),
                 buffer.readDouble(),
                 buffer.readDouble(),
-                buffer.readFloat());
+                buffer.readFloat(),
+                buffer.readUtf(256));
     }
 
     public void handle(Supplier<NetworkEvent.Context> contextSupplier) {

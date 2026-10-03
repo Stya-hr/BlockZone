@@ -36,10 +36,12 @@ public final class BattlezoneBoundaryEnforcement {
             return;
         }
 
-        double minX = Math.min(area.pos1().getX(), area.pos2().getX());
-        double maxX = Math.max(area.pos1().getX(), area.pos2().getX()) + 1.0;
-        double minZ = Math.min(area.pos1().getZ(), area.pos2().getZ());
-        double maxZ = Math.max(area.pos1().getZ(), area.pos2().getZ()) + 1.0;
+        BattlezoneBoundaryGeometry bounds = BattlezoneBoundaryGeometry.of(area.pos1().getX(), area.pos1().getZ(),
+                area.pos2().getX(), area.pos2().getZ());
+        double minX = bounds.minX();
+        double maxX = bounds.maxX();
+        double minZ = bounds.minZ();
+        double maxZ = bounds.maxZ();
         double halfWidth = player.getBbWidth() * 0.5;
         double insetX = Math.min(halfWidth, (maxX - minX) * 0.5);
         double insetZ = Math.min(halfWidth, (maxZ - minZ) * 0.5);

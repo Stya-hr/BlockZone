@@ -29,7 +29,11 @@ public final class BattlezoneMapRegistration {
         var snapshot = Commands.literal("snapshot")
                 .then(saveSnapshot);
         var mapName = Commands.argument("map_name", StringArgumentType.string())
-                .then(snapshot);
+                .then(snapshot)
+                .then(Commands.literal("boundary")
+                        .requires(source -> source.hasPermission(2))
+                        .then(Commands.literal("show").executes(context -> showBoundary(context, true)))
+                        .then(Commands.literal("hide").executes(context -> showBoundary(context, false))));
         var gameType = Commands.argument("game_type", StringArgumentType.string())
                 .then(mapName);
 
@@ -40,15 +44,42 @@ public final class BattlezoneMapRegistration {
         event.registerHelp("fpsm map modify snapshot save",
                 Component.literal("Save the scene snapshot for a Battlezone map."));
         event.registerParameters("fpsm map modify snapshot save", "*game_type", "*map_name");
+        event.registerHelp("fpsm map modify boundary",
+                Component.literal("Show or hide the Battlezone map boundary grid for this operator."));
+        event.registerParameters("fpsm map modify boundary", "*game_type", "*map_name", "show|hide");
     }
 
-    private static int saveSnapshot(CommandContext<CommandSourceStack> context) {
+    private static int showBoundary(CommandContext<CommandSourceStack> context, boolean visible) {
         String mapName = StringArgumentType.getString(context, "map_name");
-        BattlezoneMap map = FPSMCore.getInstance()
+        BattlezoneMap map = findMap(mapName);
+        if (map == null) {
+            context.getSource().sendFailure(Component.literal("No loaded Battlezone map named " + mapName + "."));
+            return 0;
+        }
+        var player = context.getSource().getPlayer();
+        if (player == null) {
+            context.getSource().sendFailure(Component.literal("Run this command as a player."));
+            return 0;
+        }
+        var area = map.getMapArea();
+        BattlezoneNetwork.send(player, new BattlezoneBoundaryPreviewS2CPacket(
+                map.getServerLevel().dimension().location(), visible, area.pos1(), area.pos2()));
+        context.getSource().sendSuccess(() -> Component.literal(
+                visible ? "Battlezone boundary preview enabled." : "Battlezone boundary preview disabled."), false);
+        return 1;
+    }
+
+    private static BattlezoneMap findMap(String mapName) {
+        return FPSMCore.getInstance()
                 .getMapByTypeWithName(BattlezoneMap.GAME_TYPE, mapName)
                 .filter(BattlezoneMap.class::isInstance)
                 .map(BattlezoneMap.class::cast)
                 .orElse(null);
+    }
+
+    private static int saveSnapshot(CommandContext<CommandSourceStack> context) {
+        String mapName = StringArgumentType.getString(context, "map_name");
+        BattlezoneMap map = findMap(mapName);
         if (map == null) {
             context.getSource().sendFailure(Component.literal("No loaded Battlezone map named " + mapName + "."));
             return 0;

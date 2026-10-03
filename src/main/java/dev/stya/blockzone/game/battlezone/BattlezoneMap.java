@@ -55,6 +55,7 @@ public final class BattlezoneMap extends BaseMap {
     private final Setting<List<ZoneCenter>> poisonFinalCenters;
     private final Setting<Integer> poisonDamage;
     private final Setting<List<PoisonPhase>> poisonPhases;
+    private final Setting<String> boundaryTexture;
 
     private final java.util.Map<java.util.UUID, BattlezonePlayerState> playerStates = new java.util.HashMap<>();
     private final BattlezoneSceneSnapshot sceneSnapshot;
@@ -95,6 +96,8 @@ public final class BattlezoneMap extends BaseMap {
         this.poisonFinalCenters = addSetting(new Setting<>("battlezone", "poison_final_centers", ZONE_CENTER_CODEC.listOf(), List.of()));
         this.poisonDamage = addSetting("battlezone", "poison_damage_per_second", 1);
         this.poisonPhases = addSetting(new Setting<>("battlezone", "poison_phases", POISON_PHASE_CODEC.listOf(), DEFAULT_POISON_PHASES));
+        this.boundaryTexture = addSetting("battlezone", "boundary_texture",
+                "blockzone:textures/effect/battlezone_warning_fence.png");
         this.sceneSnapshot = new BattlezoneSceneSnapshot(this);
         this.snapshotValid = sceneSnapshot.load();
         if (!snapshotValid && !sceneSnapshot.exists()) {
@@ -326,18 +329,17 @@ public final class BattlezoneMap extends BaseMap {
         if (poisonDamage.get() <= 0 || getServerLevel().getGameTime() % 20 != 0) {
             return;
         }
-        double centerX = poisonCurrentCenterX;
-        double centerZ = poisonCurrentCenterZ;
-        double radiusSquared = (double) poisonCurrentRadius * poisonCurrentRadius;
+        AreaData area = getMapArea();
+        BattlezoneZoneGeometry zone = new BattlezoneZoneGeometry(poisonCurrentCenterX,
+                BattlezoneZoneGeometry.centerY(area.pos1().getY(), area.pos2().getY()),
+                poisonCurrentCenterZ, poisonCurrentRadius);
         DamageSource damageSource = getServerLevel().damageSources().magic();
         for (ServerTeam team : getMapTeams().getNormalTeams()) {
             for (ServerPlayer player : team.getOnline()) {
                 if (team.getPlayerData(player.getUUID()).map(data -> !data.isLiving()).orElse(true)) {
                     continue;
                 }
-                double dx = player.getX() - centerX;
-                double dz = player.getZ() - centerZ;
-                if (dx * dx + dz * dz > radiusSquared) {
+                if (!zone.contains(player.getX(), player.getY(), player.getZ())) {
                     player.hurt(damageSource, poisonDamage.get());
                 }
             }
@@ -745,7 +747,8 @@ public final class BattlezoneMap extends BaseMap {
                 area.pos2(),
                 poisonCurrentCenterX,
                 poisonCurrentCenterZ,
-                poisonCurrentRadius);
+                poisonCurrentRadius,
+                boundaryTexture.get());
     }
 
     @Override

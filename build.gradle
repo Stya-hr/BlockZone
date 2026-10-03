@@ -9,15 +9,6 @@ base.archivesName = mod_id
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
-def quickPlayMultiplayerAddress = providers.gradleProperty('blockzoneQuickPlayMultiplayer').orNull
-
-def configureQuickPlayMultiplayer = { runConfig ->
-    if (quickPlayMultiplayerAddress) {
-        runConfig.programArgument '--quickPlayMultiplayer'
-        runConfig.programArgument quickPlayMultiplayerAddress
-    }
-}
-
 legacyForge {
     version = "${minecraft_version}-${forge_version}"
     parchment {
@@ -28,18 +19,10 @@ legacyForge {
         client {
             client()
             gameDirectory = file('run/client')
-            configureQuickPlayMultiplayer(delegate)
-        }
-        client2 {
-            client()
-            gameDirectory = file('run/client2')
-            programArgument '--username'
-            programArgument 'BlockzoneTester2'
-            configureQuickPlayMultiplayer(delegate)
         }
         server {
             server()
-            gameDirectory = file(providers.gradleProperty('blockzoneServerRunDir').orElse('run/server').get())
+            gameDirectory = file('run/server')
             programArgument '--nogui'
         }
         data {

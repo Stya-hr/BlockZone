@@ -1,7 +1,7 @@
 package dev.stya.blockzone;
 
 import net.minecraftforge.fml.common.Mod;
-import dev.stya.blockzone.game.battlezone.BattlezoneNetwork;
+import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
 
 @Mod(BlockZone.MOD_ID)
 public final class BlockZone {

@@ -6,15 +6,15 @@
 
 - 真实客户端测试使用 `minecraft-mod-mcp`，可保持游戏未聚焦；禁止用桌面自动化、`xdotool` 或 `Xvfb` 驱动测试。
 - MCP 在用户级配置注册，测试模组放入 `run/client/mods/`；本机配置和测试文件不提交到仓库。
-- 使用独立测试服目录 `run/server-visual-test`，复用已有测试世界；不要覆盖它，也不要让两个服务端同时打开同一世界。
+- 服务端目录为 `run/server`，复用已有测试世界；不要覆盖它，也不要让两个服务端同时打开同一世界。
 - 测试服仅监听 `127.0.0.1`，离线测试使用 `online-mode=false`；客户端连接端口与服务端配置一致。
 
 ```sh
-./gradlew runServer -PblockzoneServerRunDir=run/server-visual-test
-./gradlew runClient -PblockzoneQuickPlayMultiplayer=127.0.0.1:25566
+./gradlew runServer
+./gradlew runClient
 ```
 
-等待服务端 `Done` 和客户端加载完成，通过 MCP `ping` 确认连接后操作。结束时退出控制模式，输入 `stop` 等待服务端保存，再关闭客户端。需要第二名玩家时使用 `runClient2`，目录为 `run/client2`。
+等待服务端 `Done` 和客户端加载完成，在多人游戏中连接测试服，通过 MCP `ping` 确认连接后操作。结束时退出控制模式，输入 `stop` 等待服务端保存，再关闭客户端。
 
 # 仓库协作习惯
 

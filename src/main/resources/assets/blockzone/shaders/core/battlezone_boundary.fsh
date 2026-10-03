@@ -7,5 +7,5 @@ in vec2 texCoord0;
 out vec4 fragColor;
 
 void main() {
-    fragColor = texture(Sampler0, texCoord0) * vertexColor * ColorModulator;
+    fragColor = texture(Sampler0, vec2(fract(texCoord0.x), texCoord0.y)) * vertexColor * ColorModulator;
 }

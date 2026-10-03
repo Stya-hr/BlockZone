@@ -38,15 +38,15 @@ public final class BattlezoneRouteCommands {
                         Commands.argument("speed", DoubleArgumentType.doubleArg(0.1, 100))
                                 .executes(context -> edit(context, "speed")))))
                 .then(Commands.literal("remove").then(index().executes(context -> edit(context, "remove"))));
-        // Singular spelling is the route editor; retain the existing plural settings commands.
+        // Merge the route editor into the existing FPSMatch settings command tree.
         event.addChild(Commands.literal("map").then(Commands.literal("modify")
                 .then(Commands.argument("game_type", StringArgumentType.string())
                         .then(Commands.argument("map_name", StringArgumentType.string())
-                                .then(Commands.literal("setting").requires(source -> source.hasPermission(2))
+                                .then(Commands.literal("settings").requires(source -> source.hasPermission(2))
                                         .then(route))))));
-        event.registerHelp("fpsm map modify setting route",
+        event.registerHelp("fpsm map modify settings route",
                 Component.literal("Edit deployment routes. Indexes start at 1; coordinates support ~ and ^. Edits are saved automatically."));
-        event.registerParameters("fpsm map modify setting route", "*game_type", "*map_name",
+        event.registerParameters("fpsm map modify settings route", "*game_type", "*map_name",
                 "add|list|remove <index>|startpoint <index> <x> <y> <z>|endpoint <index> <x> <y> <z>|speed <index> <blocks_per_second>");
     }
 
@@ -98,7 +98,7 @@ public final class BattlezoneRouteCommands {
         }
         var routes = map.getDeploymentRoutes();
         if (routes.isEmpty()) {
-            context.getSource().sendSuccess(() -> Component.literal("No configured routes; matches use an automatic route. Use setting route add."), false);
+            context.getSource().sendSuccess(() -> Component.literal("No configured routes; matches use an automatic route. Use settings route add."), false);
         }
         for (int i = 0; i < routes.size(); i++) {
             String message = describe(i + 1, routes.get(i))
@@ -129,7 +129,7 @@ public final class BattlezoneRouteCommands {
         int index = IntegerArgumentType.getInteger(context, "index");
         var routes = new ArrayList<>(map.getDeploymentRoutes());
         if (index > routes.size()) {
-            context.getSource().sendFailure(Component.literal("Route index out of range. Use setting route list; indexes start at 1."));
+            context.getSource().sendFailure(Component.literal("Route index out of range. Use settings route list; indexes start at 1."));
             return 0;
         }
         FlightRoute old = routes.get(index - 1);

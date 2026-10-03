@@ -9,6 +9,10 @@ final class ClientPacketHandler {
     private ClientPacketHandler() {
     }
 
+    static void handle(ZonePreviewS2CPacket packet) {
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ZoneClientState.applyZonePreview(packet));
+    }
+
     static void handle(FlightStateS2CPacket packet) {
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> DeploymentClientController.apply(packet));
     }

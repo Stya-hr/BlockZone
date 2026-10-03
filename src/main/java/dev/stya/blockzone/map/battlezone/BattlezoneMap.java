@@ -3,6 +3,8 @@ package dev.stya.blockzone.map.battlezone;
 import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
 import dev.stya.blockzone.net.battlezone.ZoneStateS2CPacket;
 import dev.stya.blockzone.util.battlezone.ZoneGeometry;
+import dev.stya.blockzone.util.battlezone.PoisonPath;
+import dev.stya.blockzone.util.battlezone.BoundaryGeometry;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.ptcrys.fpsmatch.core.data.AreaData;
@@ -15,7 +17,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.player.Player;
 import org.slf4j.Logger;
@@ -61,6 +62,9 @@ public final class BattlezoneMap extends BaseMap {
     private final Setting<List<ZoneCenter>> poisonFinalCenters;
     private final Setting<Integer> poisonDamage;
     private final Setting<List<PoisonPhase>> poisonPhases;
+    private final Setting<List<PoisonPath>> poisonSequences;
+    private List<PoisonPhase> activePoisonPhases = List.of();
+    private int activeSequenceNumber;
     private final Setting<String> boundaryTexture;
 
     private final java.util.Map<java.util.UUID, PlayerStateSnapshot> playerStates = new java.util.HashMap<>();
@@ -72,8 +76,6 @@ public final class BattlezoneMap extends BaseMap {
     private float poisonCurrentRadius;
     private double poisonCurrentCenterX;
     private double poisonCurrentCenterZ;
-    private double poisonFinalCenterX;
-    private double poisonFinalCenterZ;
     private double poisonStageStartCenterX;
     private double poisonStageStartCenterZ;
     private double poisonStageTargetCenterX;
@@ -107,6 +109,7 @@ public final class BattlezoneMap extends BaseMap {
         this.poisonFinalCenters = addSetting(new Setting<>("battlezone", "poison_final_centers", ZONE_CENTER_CODEC.listOf(), List.of()));
         this.poisonDamage = addSetting("battlezone", "poison_damage_per_second", 1);
         this.poisonPhases = addSetting(new Setting<>("battlezone", "poison_phases", POISON_PHASE_CODEC.listOf(), DEFAULT_POISON_PHASES));
+        this.poisonSequences = addSetting(new Setting<>("battlezone", "poison_sequences", PoisonPath.CODEC.listOf(), List.of()));
         this.boundaryTexture = addSetting("battlezone", "boundary_texture",
                 "blockzone:textures/effect/battlezone_warning_fence.png");
         this.sceneSnapshot = new SceneSnapshot(this);
@@ -210,7 +213,7 @@ public final class BattlezoneMap extends BaseMap {
     }
 
     private void tickPoisonZone() {
-        List<PoisonPhase> phases = poisonPhases.get();
+        List<PoisonPhase> phases = activePoisonPhases;
         if (poisonPhaseIndex >= phases.size()) {
             damagePlayersOutsideZone();
             return;
@@ -245,66 +248,133 @@ public final class BattlezoneMap extends BaseMap {
         damagePlayersOutsideZone();
     }
 
-    private void initializePoisonZone() {
-        float initialRadius = getInitialPoisonRadius();
-        poisonCurrentRadius = initialRadius;
-        poisonCurrentCenterX = getMapCenterX();
-        poisonCurrentCenterZ = getMapCenterZ();
-        poisonStageInitialized = false;
+    private List<ZoneGeometry> poisonSequence = List.of();
+    private String previewConfiguration = "";
+    private List<ZoneGeometry> legacyPreview = List.of();
+    private ZoneCenter boundedCenter(ZoneCenter center, double radius) {
+        var area = getMapArea();
+        var bounds = dev.stya.blockzone.util.battlezone.BoundaryGeometry.of(
+                area.pos1().getX(), area.pos1().getZ(), area.pos2().getX(), area.pos2().getZ());
+        var zone = new ZoneGeometry(center.x(), ZoneGeometry.centerY(getMapArea().pos1().getY(), getMapArea().pos2().getY()), center.z(), radius).fitInside(bounds);
+        return new ZoneCenter(zone.centerX(), zone.centerZ());
+    }
 
-        List<PoisonPhase> phases = poisonPhases.get();
-        List<Float> targetRadii = getNormalizedTargetRadii(phases);
-        float finalRadius = targetRadii.isEmpty() ? initialRadius : targetRadii.get(targetRadii.size() - 1);
-        List<ZoneCenter> candidates = poisonFinalCenters.get();
-        if (candidates.isEmpty()) {
-            // Backward compatibility for maps that only configured poison_center_x/z.
-            candidates = List.of(new ZoneCenter(poisonCenterX.get(), poisonCenterZ.get()));
+    private List<ZoneGeometry> generatePoisonSequence() {
+        var radii = getNormalizedTargetRadii(poisonPhases.get());
+        double finalRadius = radii.isEmpty() ? getInitialPoisonRadius() : radii.get(radii.size() - 1);
+        var configured = poisonFinalCenters.get();
+        if (configured.isEmpty()) configured = List.of(new ZoneCenter(poisonCenterX.get(), poisonCenterZ.get()));
+        var corrected = new java.util.ArrayList<ZoneCenter>();
+        for (var center : configured) {
+            var bounded = boundedCenter(center, finalRadius);
+            if (!bounded.equals(center)) {
+                String warning = "Battlezone " + getMapName() + ": poison center " + center + " exceeds map bounds; runtime center " + bounded + ". Radius and saved configuration unchanged.";
+                LOGGER.warn(warning);
+                getServerLevel().players().stream().filter(player -> player.hasPermissions(2))
+                        .forEach(player -> player.sendSystemMessage(Component.literal(warning)));
+            }
+            corrected.add(bounded);
         }
+        var random = getServerLevel().getRandom();
+        var chosen = corrected.get(random.nextInt(corrected.size()));
+        var result = new java.util.ArrayList<ZoneGeometry>();
+        result.add(new ZoneGeometry(getMapCenterX(), ZoneGeometry.centerY(getMapArea().pos1().getY(), getMapArea().pos2().getY()), getMapCenterZ(), getInitialPoisonRadius()));
+        for (int i = 0; i < radii.size(); i++) {
+            double radius = radii.get(i);
+            double angle = random.nextDouble() * Math.PI * 2;
+            double offset = i == radii.size() - 1 ? 0 : Math.sqrt(random.nextDouble()) * Math.max(0, radius - finalRadius);
+            var center = boundedCenter(new ZoneCenter(chosen.x() + Math.cos(angle) * offset,
+                    chosen.z() + Math.sin(angle) * offset), radius);
+            result.add(new ZoneGeometry(center.x(), ZoneGeometry.centerY(getMapArea().pos1().getY(), getMapArea().pos2().getY()), center.z(), radius));
+        }
+        return List.copyOf(result);
+    }
 
-        float maximumOffset = Math.max(0.0F, initialRadius - finalRadius);
-        List<ZoneCenter> validCenters = candidates.stream()
-                .filter(center -> distanceSquared(center.x(), center.z(), poisonCurrentCenterX, poisonCurrentCenterZ)
-                        <= (double) maximumOffset * maximumOffset)
-                .toList();
-        if (validCenters.size() < candidates.size()) {
-            LOGGER.warn("Ignored {} invalid final poison center candidate(s) for Battlezone map {} because the final circle would not fit inside the starting zone",
-                    candidates.size() - validCenters.size(), getMapName());
+    private List<ZoneGeometry> resolvePath(PoisonPath path, int number) {
+        var area = getMapArea();
+        var bounds = BoundaryGeometry.of(area.pos1().getX(), area.pos1().getZ(), area.pos2().getX(), area.pos2().getZ());
+        var result = path.resolve(bounds, ZoneGeometry.centerY(area.pos1().getY(), area.pos2().getY()));
+        for (int i = 0; i < result.size(); i++) {
+            var configured = path.circles().get(i);
+            var actual = result.get(i);
+            if (configured.x() != actual.centerX() || configured.z() != actual.centerZ()) {
+                var warning = "Battlezone " + getMapName() + " sequence " + number + " circle " + i
+                        + " exceeds map bounds; runtime center=(" + actual.centerX() + ", " + actual.centerZ()
+                        + "). Radius and saved configuration unchanged.";
+                LOGGER.warn(warning);
+                getServerLevel().players().stream().filter(player -> player.hasPermissions(2))
+                        .forEach(player -> player.sendSystemMessage(Component.literal(warning)));
+            }
         }
-        if (validCenters.isEmpty()) {
-            // The map center is always a valid fallback, so every generated circle can contain the final circle.
-            LOGGER.warn("No configured final poison center fits Battlezone map {}; using the map center", getMapName());
-            poisonFinalCenterX = poisonCurrentCenterX;
-            poisonFinalCenterZ = poisonCurrentCenterZ;
+        return result;
+    }
+
+    public boolean previewPoisonSequence(ServerPlayer player, int number) {
+        List<ZoneGeometry> circles;
+        if (poisonSequences.get().isEmpty()) {
+            if (number != 1) return false;
+            if (isMatchActive()) circles = poisonSequence;
+            else {
+                String configuration = getMapArea().pos1() + ":" + getMapArea().pos2() + ":"
+                        + poisonPhases.get() + ":" + poisonFinalCenters.get() + ":" + poisonCenterX.get() + ":" + poisonCenterZ.get();
+                if (!configuration.equals(previewConfiguration) || legacyPreview.isEmpty()) {
+                    legacyPreview = generatePoisonSequence();
+                    previewConfiguration = configuration;
+                }
+                circles = legacyPreview;
+            }
         } else {
-            ZoneCenter chosen = validCenters.get(getServerLevel().getRandom().nextInt(validCenters.size()));
-            poisonFinalCenterX = chosen.x();
-            poisonFinalCenterZ = chosen.z();
+            if (number < 1 || number > poisonSequences.get().size()) return false;
+            circles = isMatchActive() && number == activeSequenceNumber ? poisonSequence
+                    : resolvePath(poisonSequences.get().get(number - 1), number);
         }
+        BattlezoneNetwork.send(player, new dev.stya.blockzone.net.battlezone.ZonePreviewS2CPacket(
+                getServerLevel().dimension().location(), true, circles));
+        player.sendSystemMessage(Component.literal("Sequence " + number + ": " + circles.size() + " circles (sphere grid preview)"));
+        for (int i = 0; i < circles.size(); i++) {
+            var circle = circles.get(i);
+            player.sendSystemMessage(Component.literal("Circle " + i + ": X=" + circle.centerX() + ", Z="
+                    + circle.centerZ() + ", radius=" + circle.radius()));
+        }
+        return true;
+    }
+
+    public void hidePoisonPreview(ServerPlayer player) {
+        BattlezoneNetwork.send(player, new dev.stya.blockzone.net.battlezone.ZonePreviewS2CPacket(
+                getServerLevel().dimension().location(), false, List.of()));
+    }
+
+    private void initializePoisonZone() {
+        if (poisonSequences.get().isEmpty()) {
+            poisonSequence = generatePoisonSequence();
+            activePoisonPhases = List.copyOf(poisonPhases.get());
+            activeSequenceNumber = 1;
+        } else {
+            // Validate every candidate before selecting: invalid configured paths are retained for correction.
+            var resolved = new java.util.ArrayList<List<ZoneGeometry>>();
+            for (int i = 0; i < poisonSequences.get().size(); i++) resolved.add(resolvePath(poisonSequences.get().get(i), i + 1));
+            activeSequenceNumber = getServerLevel().getRandom().nextInt(resolved.size()) + 1;
+            poisonSequence = resolved.get(activeSequenceNumber - 1);
+            activePoisonPhases = poisonSequences.get().get(activeSequenceNumber - 1).circles().stream().skip(1)
+                    .map(circle -> new PoisonPhase(circle.waitSeconds(), circle.shrinkSeconds(), 0)).toList();
+        }
+        var initial = poisonSequence.get(0);
+        poisonCurrentRadius = (float) initial.radius();
+        poisonCurrentCenterX = initial.centerX();
+        poisonCurrentCenterZ = initial.centerZ();
+        poisonStageInitialized = false;
+        previewConfiguration = "";
     }
 
     private void initializePoisonStage(List<PoisonPhase> phases) {
-        List<Float> targetRadii = getNormalizedTargetRadii(phases);
-        if (poisonPhaseIndex >= targetRadii.size()) {
-            return;
-        }
-
+        if (poisonPhaseIndex + 1 >= poisonSequence.size()) return;
+        var target = poisonSequence.get(poisonPhaseIndex + 1);
         poisonStageStartRadius = poisonCurrentRadius;
         poisonStageStartCenterX = poisonCurrentCenterX;
         poisonStageStartCenterZ = poisonCurrentCenterZ;
-        poisonStageTargetRadius = targetRadii.get(poisonPhaseIndex);
-
-        float finalRadius = targetRadii.isEmpty() ? poisonCurrentRadius : targetRadii.get(targetRadii.size() - 1);
-        if (poisonPhaseIndex == phases.size() - 1) {
-            poisonStageTargetCenterX = poisonFinalCenterX;
-            poisonStageTargetCenterZ = poisonFinalCenterZ;
-        } else {
-            double maximumOffset = Math.max(0.0, poisonStageTargetRadius - finalRadius);
-            RandomSource random = getServerLevel().getRandom();
-            double angle = random.nextDouble() * Math.PI * 2.0;
-            double distance = Math.sqrt(random.nextDouble()) * maximumOffset;
-            poisonStageTargetCenterX = poisonFinalCenterX + Math.cos(angle) * distance;
-            poisonStageTargetCenterZ = poisonFinalCenterZ + Math.sin(angle) * distance;
-        }
+        poisonStageTargetRadius = (float) target.radius();
+        poisonStageTargetCenterX = target.centerX();
+        poisonStageTargetCenterZ = target.centerZ();
         poisonStageInitialized = true;
     }
 
@@ -318,12 +388,6 @@ public final class BattlezoneMap extends BaseMap {
             targetRadii.add(previousRadius);
         }
         return targetRadii;
-    }
-
-    private static double distanceSquared(double x1, double z1, double x2, double z2) {
-        double dx = x1 - x2;
-        double dz = z1 - z2;
-        return dx * dx + dz * dz;
     }
 
     private double getMapCenterX() {
@@ -417,6 +481,12 @@ public final class BattlezoneMap extends BaseMap {
             broadcast(Component.literal("Battlezone cannot start: save a valid scene snapshot first."));
             return false;
         }
+        try {
+            initializePoisonZone();
+        } catch (IllegalArgumentException exception) {
+            broadcast(Component.literal("Battlezone cannot start: invalid poison_sequences: " + exception.getMessage()));
+            return false;
+        }
         var route = generateDeploymentRoute();
         if (route.isEmpty()) {
             broadcast(Component.literal("Battlezone cannot start: deployment_height must be at least 16 blocks above the map and below Y=2000, and the initial horizontal circle must have room for a route."));
@@ -432,9 +502,8 @@ public final class BattlezoneMap extends BaseMap {
         resetMatchClock();
         poisonPhaseIndex = 0;
         poisonPhaseTicks = 0;
-        initializePoisonZone();
         deployment.start(route.get());
-        broadcast(Component.literal("Battlezone match started."));
+        broadcast(Component.literal("Battlezone match started; poison sequence " + activeSequenceNumber + "."));
         syncVisualState(true);
         return true;
     }
@@ -692,7 +761,11 @@ public final class BattlezoneMap extends BaseMap {
             if (!wasDeploying) {
                 poisonPhaseIndex = 0;
                 poisonPhaseTicks = 0;
-                initializePoisonZone();
+                var initial = poisonSequence.get(0);
+                poisonCurrentRadius = (float) initial.radius();
+                poisonCurrentCenterX = initial.centerX();
+                poisonCurrentCenterZ = initial.centerZ();
+                poisonStageInitialized = false;
             }
             syncVisualState(true);
         }
@@ -743,9 +816,7 @@ public final class BattlezoneMap extends BaseMap {
 
     private java.util.Optional<FlightRoute> generateDeploymentRoute() {
         AreaData area = getMapArea();
-        var zone = new ZoneGeometry(getMapCenterX(),
-                ZoneGeometry.centerY(area.pos1().getY(), area.pos2().getY()),
-                getMapCenterZ(), getInitialPoisonRadius());
+        var zone = poisonSequence.get(0);
         double highestY = Math.max(area.pos1().getY(), area.pos2().getY());
         var random = getServerLevel().getRandom();
         return FlightRoute.generateAcrossCircle(zone,

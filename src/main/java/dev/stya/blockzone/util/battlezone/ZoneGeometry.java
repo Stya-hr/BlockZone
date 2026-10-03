@@ -2,6 +2,17 @@ package dev.stya.blockzone.util.battlezone;
 
 /** Shared full sphere, centred at the map's lowest Y. */
 public record ZoneGeometry(double centerX, double centerY, double centerZ, double radius) {
+    /** Translate the horizontal footprint into the map, preserving its radius. */
+    public ZoneGeometry fitInside(BoundaryGeometry bounds) {
+        if (!Double.isFinite(radius) || radius < 0 || radius * 2 > Math.min(bounds.maxX() - bounds.minX(), bounds.maxZ() - bounds.minZ())) {
+            throw new IllegalArgumentException("Circle radius cannot fit inside map bounds");
+        }
+        double x = Double.isFinite(centerX) ? centerX : (bounds.minX() + bounds.maxX()) / 2;
+        double z = Double.isFinite(centerZ) ? centerZ : (bounds.minZ() + bounds.maxZ()) / 2;
+        return new ZoneGeometry(Math.max(bounds.minX() + radius, Math.min(bounds.maxX() - radius, x)),
+                centerY, Math.max(bounds.minZ() + radius, Math.min(bounds.maxZ() - radius, z)), radius);
+    }
+
     public static double centerY(int y1, int y2) {
         return Math.min(y1, y2);
     }

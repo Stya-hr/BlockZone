@@ -5,6 +5,7 @@ import dev.stya.blockzone.net.battlezone.BoundaryPreviewS2CPacket;
 import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
 import dev.stya.blockzone.BlockZone;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.ptcrys.fpsmatch.common.event.register.RegisterFPSMCommandEvent;
 import com.ptcrys.fpsmatch.core.FPSMCore;
@@ -27,6 +28,13 @@ public final class BattlezoneMapCommands {
                 .then(saveSnapshot);
         var mapName = Commands.argument("map_name", StringArgumentType.string())
                 .then(snapshot)
+                .then(Commands.literal("debug")
+                        .requires(source -> source.hasPermission(2))
+                        .then(Commands.literal("zone")
+                                .then(Commands.literal("show")
+                                        .then(Commands.argument("sequence", IntegerArgumentType.integer(1))
+                                                .executes(context -> previewZone(context, true))))
+                                .then(Commands.literal("hide").executes(context -> previewZone(context, false)))))
                 .then(Commands.literal("boundary")
                         .requires(source -> source.hasPermission(2))
                         .then(Commands.literal("show").executes(context -> showBoundary(context, true)))
@@ -38,12 +46,44 @@ public final class BattlezoneMapCommands {
                 .then(Commands.literal("modify")
                         .then(gameType)));
 
+        event.registerHelp("fpsm map modify debug zone",
+                Component.literal("Preview a complete configured path by sequence number (1..N) with colored sphere grids; hide clears preview."));
+        event.registerParameters("fpsm map modify debug zone", "*game_type", "*map_name", "show <sequence>|hide");
         event.registerHelp("fpsm map modify snapshot save",
                 Component.literal("Save the scene snapshot for a Battlezone map."));
         event.registerParameters("fpsm map modify snapshot save", "*game_type", "*map_name");
         event.registerHelp("fpsm map modify boundary",
                 Component.literal("Show or hide the Battlezone map boundary grid for this operator."));
         event.registerParameters("fpsm map modify boundary", "*game_type", "*map_name", "show|hide");
+    }
+
+    private static int previewZone(CommandContext<CommandSourceStack> context, boolean visible) {
+        var source = context.getSource();
+        var player = source.getPlayer();
+        var map = findMap(StringArgumentType.getString(context, "map_name"));
+        if (!BattlezoneMap.GAME_TYPE.equals(StringArgumentType.getString(context, "game_type")) || map == null || player == null) {
+            source.sendFailure(Component.literal("Run as a player and specify a loaded Battlezone map."));
+            return 0;
+        }
+        if (player.serverLevel() != map.getServerLevel()) {
+            source.sendFailure(Component.literal("Enter the map's dimension before previewing its circles."));
+            return 0;
+        }
+        if (!visible) {
+            map.hidePoisonPreview(player);
+            source.sendSuccess(() -> Component.literal("Circle preview disabled."), false);
+            return 1;
+        }
+        try {
+            if (!map.previewPoisonSequence(player, IntegerArgumentType.getInteger(context, "sequence"))) {
+                source.sendFailure(Component.literal("Invalid sequence number: use 1..N from poison_sequences (legacy configuration uses 1)."));
+                return 0;
+            }
+        } catch (IllegalArgumentException exception) {
+            source.sendFailure(Component.literal("Invalid poison sequence: " + exception.getMessage()));
+            return 0;
+        }
+        return 1;
     }
 
     private static int showBoundary(CommandContext<CommandSourceStack> context, boolean visible) {

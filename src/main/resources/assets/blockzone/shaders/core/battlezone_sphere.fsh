@@ -1,7 +1,9 @@
 #version 150
 uniform float ZoneTime;
+uniform float ZoneDaylight;
 uniform vec3 CameraLocalPosition;
 in vec3 spherePosition;
+in float flareStrength;
 out vec4 fragColor;
 
 // Smooth 3D value noise: continuous across the sphere's longitude seam and poles.
@@ -32,15 +34,23 @@ void main() {
     vec3 flow = vec3(c * normal.x - s * normal.z, normal.y,
                      s * normal.x + c * normal.z);
     vec3 drift = vec3(time * 0.8, -time * 0.5, time * 0.6);
-    float broad = noise(flow * 5.0 + drift);
-    float detail = noise(flow * 19.0 + vec3(broad * 1.7) + drift);
-    float ridge = 1.0 - abs(detail * 2.0 - 1.0);
-    float aa = max(fwidth(ridge), 0.015);
-    float filament = smoothstep(0.91 - aa, 0.97 + aa, ridge);
+    // Two noise samples, as before: broad smoke warped into soft swirling billows.
+    float broad = noise(flow * 4.0 + drift);
+    float detail = noise(flow * 9.0 + vec3(broad * 2.4, -broad * 1.6, broad) + drift);
+    float smoke = smoothstep(0.22, 0.78, broad * 0.60 + detail * 0.40);
+    float wisps = smoothstep(0.35, 0.80, detail) * (1.0 - smoothstep(0.55, 0.90, broad));
     float facing = abs(dot(normal, normalize(toCamera)));
-    float rim = pow(1.0 - facing, 3.0);
-    vec3 color = mix(vec3(0.40, 0.82, 0.94), vec3(0.70, 0.86, 1.0), broad);
-    color = mix(color, vec3(0.82, 0.96, 1.0), filament * 0.5);
-    float alpha = 0.025 + filament * 0.065 + rim * 0.075;
-    fragColor = vec4(color, alpha * (outside ? 0.72 : 1.0));
+    float rim = pow(1.0 - facing, 2.0);
+    // Invert ambient brightness: dark violet by day, luminous lavender by night.
+    float daylight = smoothstep(0.0, 1.0, ZoneDaylight);
+    vec3 darkBody = mix(vec3(0.075, 0.035, 0.20), vec3(0.16, 0.08, 0.34), smoke);
+    vec3 lightBody = mix(vec3(0.48, 0.36, 0.76), vec3(0.68, 0.56, 0.94), smoke);
+    vec3 color = mix(lightBody, darkBody, daylight);
+    color = mix(color, mix(vec3(0.76, 0.65, 1.0), vec3(0.13, 0.055, 0.32), daylight), wisps * 0.55);
+    color = mix(color, mix(vec3(0.84, 0.76, 1.0), vec3(0.20, 0.10, 0.43), daylight), rim);
+    vec3 flareColor = mix(vec3(0.92, 0.72, 1.0), vec3(0.34, 0.12, 0.49), daylight);
+    color = mix(color, flareColor, flareStrength * 0.70);
+    // A stronger daytime body actually darkens the background through alpha blending.
+    float alpha = mix(0.07, 0.14, daylight) + smoke * 0.13 + wisps * 0.08 + rim * 0.24 + flareStrength * 0.12;
+    fragColor = vec4(color, alpha * (outside ? 0.90 : 1.0));
 }

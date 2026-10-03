@@ -49,6 +49,7 @@ public abstract class ZoneRenderTypes extends RenderType {
                 CompositeState.builder()
                         .setShaderState(new ShaderStateShard(() -> boundaryShader))
                         .setTextureState(new TextureStateShard(location, false, false))
+                        .setLightmapState(LIGHTMAP)
                         .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
                         .setCullState(NO_CULL)
                         .setOutputState(PARTICLES_TARGET)

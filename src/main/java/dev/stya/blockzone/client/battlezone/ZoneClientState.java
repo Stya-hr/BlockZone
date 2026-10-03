@@ -8,6 +8,11 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 
 public final class ZoneClientState {
+    private static volatile dev.stya.blockzone.net.battlezone.ZonePreviewS2CPacket zonePreview;
+    public static void applyZonePreview(dev.stya.blockzone.net.battlezone.ZonePreviewS2CPacket packet) {
+        zonePreview = packet.visible() ? packet : null;
+    }
+    static dev.stya.blockzone.net.battlezone.ZonePreviewS2CPacket zonePreview() { return zonePreview; }
     private static volatile BoundaryPreviewS2CPacket preview;
     private static volatile Snapshot snapshot;
     private static volatile Snapshot previousSnapshot;
@@ -42,6 +47,7 @@ public final class ZoneClientState {
         snapshot = null;
         previousSnapshot = null;
         preview = null;
+        zonePreview = null;
     }
 
     public static void applyPreview(BoundaryPreviewS2CPacket packet) {

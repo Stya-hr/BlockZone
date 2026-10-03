@@ -178,10 +178,7 @@ public final class BattlezoneMap extends BaseMap {
         if (deployment.routeFinished() && phaseTicks >= Math.max(0, deploymentSeconds.get()) * 20) {
             phase = MatchPhase.MATCH;
             phaseTicks = 0;
-            poisonPhaseIndex = 0;
-            poisonPhaseTicks = 0;
-            initializePoisonZone();
-            broadcast(Component.literal("Battlezone match started."));
+            broadcast(Component.literal("Battlezone deployment completed."));
             syncVisualState(true);
         }
     }
@@ -424,8 +421,11 @@ public final class BattlezoneMap extends BaseMap {
         phaseTicks = 0;
         victoryAnnounced = false;
         resetMatchClock();
+        poisonPhaseIndex = 0;
+        poisonPhaseTicks = 0;
         initializePoisonZone();
         deployment.start(selectDeploymentRoute());
+        broadcast(Component.literal("Battlezone match started."));
         syncVisualState(true);
         return true;
     }
@@ -677,11 +677,14 @@ public final class BattlezoneMap extends BaseMap {
     @Override
     public void startNewRound() {
         if (isDebug() && isStart && (phase == MatchPhase.DEPLOYMENT || phase == MatchPhase.MATCH)) {
+            boolean wasDeploying = phase == MatchPhase.DEPLOYMENT;
             phase = MatchPhase.MATCH;
             phaseTicks = 0;
-            poisonPhaseIndex = 0;
-            poisonPhaseTicks = 0;
-            initializePoisonZone();
+            if (!wasDeploying) {
+                poisonPhaseIndex = 0;
+                poisonPhaseTicks = 0;
+                initializePoisonZone();
+            }
             syncVisualState(true);
         }
     }
@@ -776,6 +779,18 @@ public final class BattlezoneMap extends BaseMap {
     }
 
     public boolean releaseDeployment(ServerPlayer player) {
+        if (!deployment.protects(player)) {
+            return false;
+        }
+        AreaData area = getMapArea();
+        ZoneGeometry zone = new ZoneGeometry(poisonCurrentCenterX,
+                ZoneGeometry.centerY(area.pos1().getY(), area.pos2().getY()),
+                poisonCurrentCenterZ, poisonCurrentRadius);
+        if (player.serverLevel() != getServerLevel()
+                || !zone.contains(player.getX(), player.getY(), player.getZ())) {
+            player.displayClientMessage(Component.translatable("blockzone.deployment.outside_zone"), true);
+            return false;
+        }
         return deployment.release(player);
     }
 
@@ -845,7 +860,7 @@ public final class BattlezoneMap extends BaseMap {
                 getMapName(),
                 getServerLevel().dimension().location(),
                 boundaryVisible,
-                boundaryVisible && phase == MatchPhase.MATCH,
+                boundaryVisible && (phase == MatchPhase.DEPLOYMENT || phase == MatchPhase.MATCH),
                 area.pos1(),
                 area.pos2(),
                 poisonCurrentCenterX,

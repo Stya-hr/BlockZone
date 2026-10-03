@@ -6,5 +6,6 @@
   "blockzone.deployment.diving_hint": "Diving · First landing protected",
   "blockzone.deployment.open_hint": "Freefall · Press %s to open parachute",
   "blockzone.deployment.close_hint": "Parachute open · Press %s to cut parachute",
-  "key.blockzone.toggle_parachute": "Toggle parachute"
+  "key.blockzone.toggle_parachute": "Toggle parachute",
+  "blockzone.deployment.outside_zone": "You can only jump inside the poison zone. Stay on the route until you enter it."
 }

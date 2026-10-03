@@ -11,7 +11,7 @@ import java.util.WeakHashMap;
 
 public final class BattlezoneNetwork {
     private static final NetworkPacketRegister PACKETS = new NetworkPacketRegister(
-            ResourceLocation.fromNamespaceAndPath(BlockZone.MOD_ID, "main"), "5");
+            ResourceLocation.fromNamespaceAndPath(BlockZone.MOD_ID, "main"), "6");
 
     private static final Map<ServerPlayer, Integer> FLIGHT_STATES = new WeakHashMap<>();
 
@@ -19,6 +19,7 @@ public final class BattlezoneNetwork {
     }
 
     public static void register() {
+        PACKETS.registerPacket(ZonePreviewS2CPacket.class, NetworkDirection.PLAY_TO_CLIENT);
         PACKETS.registerPacket(ZoneStateS2CPacket.class, NetworkDirection.PLAY_TO_CLIENT);
         PACKETS.registerPacket(BoundaryPreviewS2CPacket.class, NetworkDirection.PLAY_TO_CLIENT);
         PACKETS.registerPacket(FlightStateS2CPacket.class, NetworkDirection.PLAY_TO_CLIENT);
@@ -49,6 +50,10 @@ public final class BattlezoneNetwork {
     }
 
     public static void send(ServerPlayer player, ZoneStateS2CPacket packet) {
+        PACKETS.getChannel().send(PacketDistributor.PLAYER.with(() -> player), packet);
+    }
+
+    public static void send(ServerPlayer player, ZonePreviewS2CPacket packet) {
         PACKETS.getChannel().send(PacketDistributor.PLAYER.with(() -> player), packet);
     }
 

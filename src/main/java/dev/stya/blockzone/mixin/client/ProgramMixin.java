@@ -2,7 +2,7 @@ package dev.stya.blockzone.mixin.client;
 
 import com.mojang.blaze3d.shaders.Program;
 import com.mojang.blaze3d.preprocessor.GlslPreprocessor;
-import dev.stya.blockzone.game.battlezone.BattlezoneMaterialShaderSource;
+import dev.stya.blockzone.client.battlezone.BattlezoneMaterialShaderSource;
 import org.apache.commons.io.IOUtils;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

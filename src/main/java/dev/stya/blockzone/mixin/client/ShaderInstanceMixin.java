@@ -1,6 +1,6 @@
 package dev.stya.blockzone.mixin.client;
 
-import dev.stya.blockzone.game.battlezone.BattlezoneMaterialRendering;
+import dev.stya.blockzone.client.battlezone.BattlezoneMaterialRendering;
 import net.minecraft.client.renderer.ShaderInstance;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;

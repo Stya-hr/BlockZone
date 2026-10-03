@@ -32,7 +32,7 @@ public final class BattlezoneMapCommands {
                         .requires(source -> source.hasPermission(2))
                         .then(Commands.literal("zone")
                                 .then(Commands.literal("show")
-                                        .then(Commands.argument("index", IntegerArgumentType.integer(0))
+                                        .then(Commands.argument("sequence", IntegerArgumentType.integer(1))
                                                 .executes(context -> previewZone(context, true))))
                                 .then(Commands.literal("hide").executes(context -> previewZone(context, false)))))
                 .then(Commands.literal("boundary")
@@ -47,8 +47,8 @@ public final class BattlezoneMapCommands {
                         .then(gameType)));
 
         event.registerHelp("fpsm map modify debug zone",
-                Component.literal("Preview circle index (0 = initial, 1..N = shrink targets) as a sphere grid; hide clears preview."));
-        event.registerParameters("fpsm map modify debug zone", "*game_type", "*map_name", "show <index>|hide");
+                Component.literal("Preview a complete configured path by sequence number (1..N) with colored sphere grids; hide clears preview."));
+        event.registerParameters("fpsm map modify debug zone", "*game_type", "*map_name", "show <sequence>|hide");
         event.registerHelp("fpsm map modify snapshot save",
                 Component.literal("Save the scene snapshot for a Battlezone map."));
         event.registerParameters("fpsm map modify snapshot save", "*game_type", "*map_name");
@@ -74,8 +74,13 @@ public final class BattlezoneMapCommands {
             source.sendSuccess(() -> Component.literal("Circle preview disabled."), false);
             return 1;
         }
-        if (!map.previewPoisonCircle(player, IntegerArgumentType.getInteger(context, "index"))) {
-            source.sendFailure(Component.literal("Invalid circle index: use 0 for initial circle, 1..N for configured phases."));
+        try {
+            if (!map.previewPoisonSequence(player, IntegerArgumentType.getInteger(context, "sequence"))) {
+                source.sendFailure(Component.literal("Invalid sequence number: use 1..N from poison_sequences (legacy configuration uses 1)."));
+                return 0;
+            }
+        } catch (IllegalArgumentException exception) {
+            source.sendFailure(Component.literal("Invalid poison sequence: " + exception.getMessage()));
             return 0;
         }
         return 1;

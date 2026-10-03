@@ -5,19 +5,23 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.network.NetworkEvent;
 import java.util.function.Supplier;
+import java.util.List;
 
-public record ZonePreviewS2CPacket(ResourceLocation dimension, boolean visible, ZoneGeometry zone) {
+public record ZonePreviewS2CPacket(ResourceLocation dimension, boolean visible, List<ZoneGeometry> zones) {
+    public ZonePreviewS2CPacket { zones = List.copyOf(zones); }
     public static void encode(ZonePreviewS2CPacket packet, FriendlyByteBuf buffer) {
         buffer.writeResourceLocation(packet.dimension());
         buffer.writeBoolean(packet.visible());
-        buffer.writeDouble(packet.zone().centerX());
-        buffer.writeDouble(packet.zone().centerY());
-        buffer.writeDouble(packet.zone().centerZ());
-        buffer.writeDouble(packet.zone().radius());
+        buffer.writeCollection(packet.zones(), (out, zone) -> {
+            out.writeDouble(zone.centerX());
+            out.writeDouble(zone.centerY());
+            out.writeDouble(zone.centerZ());
+            out.writeDouble(zone.radius());
+        });
     }
     public static ZonePreviewS2CPacket decode(FriendlyByteBuf buffer) {
         return new ZonePreviewS2CPacket(buffer.readResourceLocation(), buffer.readBoolean(),
-                new ZoneGeometry(buffer.readDouble(), buffer.readDouble(), buffer.readDouble(), buffer.readDouble()));
+                buffer.readList(in -> new ZoneGeometry(in.readDouble(), in.readDouble(), in.readDouble(), in.readDouble())));
     }
     public void handle(Supplier<NetworkEvent.Context> supplier) {
         var context = supplier.get();

@@ -64,7 +64,10 @@ public final class WorldRenderer {
         if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_SOLID_BLOCKS) {
             var zonePreview = ZoneClientState.zonePreview();
             if (zonePreview != null && minecraft.level.dimension().location().equals(zonePreview.dimension())) {
-                renderZoneGrid(zonePreview.zone(), event.getPoseStack(), event.getCamera().getPosition());
+                for (int i = 0; i < zonePreview.zones().size(); i++) {
+                    int color = net.minecraft.util.Mth.hsvToRgb((float) i / Math.max(1, zonePreview.zones().size()), 0.7F, 1.0F);
+                    renderZoneGrid(zonePreview.zones().get(i), event.getPoseStack(), event.getCamera().getPosition(), color);
+                }
             }
             BoundaryPreviewS2CPacket preview = ZoneClientState.preview();
             if (preview != null && minecraft.level.dimension().location().equals(preview.dimension())) {
@@ -201,28 +204,28 @@ public final class WorldRenderer {
         }
     }
 
-    private static void renderZoneGrid(dev.stya.blockzone.util.battlezone.ZoneGeometry zone, PoseStack stack, Vec3 camera) {
+    private static void renderZoneGrid(dev.stya.blockzone.util.battlezone.ZoneGeometry zone, PoseStack stack, Vec3 camera, int color) {
         var buffers = Minecraft.getInstance().renderBuffers().bufferSource();
         var type = RenderType.lines();
         var consumer = buffers.getBuffer(type);
         for (int latitude = -7; latitude <= 7; latitude++) {
             double phi = latitude * Math.PI / 16;
             for (int segment = 0; segment < 128; segment++) {
-                gridLine(consumer, stack.last(), camera, zone,
+                gridLine(consumer, stack.last(), camera, zone, color,
                         gridPoint(phi, segment * Math.PI / 64), gridPoint(phi, (segment + 1) * Math.PI / 64));
             }
         }
         for (int longitude = 0; longitude < 32; longitude++) {
             double theta = longitude * Math.PI / 16;
             for (int segment = 0; segment < 64; segment++) {
-                gridLine(consumer, stack.last(), camera, zone,
+                gridLine(consumer, stack.last(), camera, zone, color,
                         gridPoint(-Math.PI / 2 + segment * Math.PI / 64, theta),
                         gridPoint(-Math.PI / 2 + (segment + 1) * Math.PI / 64, theta));
             }
         }
         if (zone.radius() == 0) {
             gridLine(consumer, stack.last(), camera, new dev.stya.blockzone.util.battlezone.ZoneGeometry(
-                    zone.centerX(), zone.centerY(), zone.centerZ(), 1), new Vec3(-1, 0, 0), new Vec3(1, 0, 0));
+                    zone.centerX(), zone.centerY(), zone.centerZ(), 1), color, new Vec3(-1, 0, 0), new Vec3(1, 0, 0));
         }
         buffers.endBatch(type);
     }
@@ -232,13 +235,13 @@ public final class WorldRenderer {
     }
 
     private static void gridLine(VertexConsumer consumer, PoseStack.Pose pose, Vec3 camera,
-                                 dev.stya.blockzone.util.battlezone.ZoneGeometry zone, Vec3 a, Vec3 b) {
+                                 dev.stya.blockzone.util.battlezone.ZoneGeometry zone, int color, Vec3 a, Vec3 b) {
         Vec3 direction = b.subtract(a).normalize();
         for (Vec3 point : new Vec3[]{a, b}) {
             consumer.vertex(pose.pose(), (float)(zone.centerX() + point.x * zone.radius() - camera.x),
                             (float)(zone.centerY() + point.y * zone.radius() - camera.y),
                             (float)(zone.centerZ() + point.z * zone.radius() - camera.z))
-                    .color(100, 225, 255, 230)
+                    .color((color >> 16) & 255, (color >> 8) & 255, color & 255, 230)
                     .normal(pose.normal(), (float)direction.x, (float)direction.y, (float)direction.z).endVertex();
         }
     }

@@ -1,6 +1,7 @@
 package dev.stya.blockzone.client.battlezone;
 
 import dev.stya.blockzone.map.battlezone.ParachuteMotion;
+import dev.stya.blockzone.mixin.client.OptionsCameraTypeAccessor;
 import dev.stya.blockzone.net.battlezone.FlightStateS2CPacket;
 import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -11,6 +12,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Pose;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.client.event.RenderGuiOverlayEvent;
 import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
@@ -34,6 +36,17 @@ public final class DeploymentClientController {
 
     private DeploymentClientController() { }
 
+    @SubscribeEvent
+    public static void onKeyInput(InputEvent.Key event) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (state == 0 || minecraft.screen != null || event.getAction() != GLFW.GLFW_PRESS
+                || !minecraft.options.keyTogglePerspective.matches(event.getKey(), event.getScanCode())) {
+            return;
+        }
+        minecraft.options.keyTogglePerspective.consumeClick();
+        setCameraType(minecraft, minecraft.options.getCameraType().cycle());
+    }
+
     public static void apply(FlightStateS2CPacket packet) {
         var player = Minecraft.getInstance().player;
         if (player == null) {
@@ -47,7 +60,7 @@ public final class DeploymentClientController {
             previousNoGravity = player.isNoGravity();
             Minecraft minecraft = Minecraft.getInstance();
             previousCameraType = minecraft.options.getCameraType();
-            minecraft.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+            setCameraType(minecraft, CameraType.THIRD_PERSON_BACK);
         }
         int previous = state;
         state = packet.state();
@@ -67,13 +80,18 @@ public final class DeploymentClientController {
             Minecraft minecraft = Minecraft.getInstance();
             if (previousCameraType != null
                     && minecraft.options.getCameraType() == CameraType.THIRD_PERSON_BACK) {
-                minecraft.options.setCameraType(previousCameraType);
+                setCameraType(minecraft, previousCameraType);
             }
         }
         trackedPlayer = null;
         previousPose = null;
         previousCameraType = null;
         state = 0;
+    }
+
+    private static void setCameraType(Minecraft minecraft, CameraType cameraType) {
+        ((OptionsCameraTypeAccessor) (Object) minecraft.options).blockzone$setCameraType(cameraType);
+        minecraft.options.save();
     }
 
     @SubscribeEvent

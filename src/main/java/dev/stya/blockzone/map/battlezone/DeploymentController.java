@@ -5,10 +5,12 @@ import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.RelativeMovement;
 import net.minecraft.world.phys.Vec3;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /** Server-owned transport and first-landing protection, scoped to one match. */
@@ -41,8 +43,12 @@ final class DeploymentController {
         player.onUpdateAbilities();
         player.setNoGravity(true);
         player.setForcedPose(Pose.SWIMMING);
-        moveAlongRoute(player);
-        BattlezoneNetwork.send(player, new FlightStateS2CPacket(1));
+        float routeYaw = routeYaw();
+        player.setYRot(routeYaw);
+        player.setYHeadRot(routeYaw);
+        player.setXRot(0);
+        moveAlongRoute(player, false);
+        BattlezoneNetwork.send(player, new FlightStateS2CPacket(player.getUUID(), 1));
         player.sendSystemMessage(Component.translatable("blockzone.deployment.boarded"));
     }
 
@@ -71,7 +77,7 @@ final class DeploymentController {
             return;
         }
         player.fallDistance = 0;
-        moveAlongRoute(player);
+        moveAlongRoute(player, true);
         if (routeFinished()) {
             release(player);
         }
@@ -82,19 +88,29 @@ final class DeploymentController {
         if (flight == null || !map.isMatchActive() || !isParticipant(player)) {
             return false;
         }
-        remove(player);
+        remove(player, false);
         map.beginLanding(player);
         return true;
     }
 
-    private void moveAlongRoute(ServerPlayer player) {
+    private void moveAlongRoute(ServerPlayer player, boolean keepClientLook) {
         player.getAbilities().flying = true;
         player.setNoGravity(true);
         player.fallDistance = 0;
         player.setOnGround(false);
         player.setDeltaMovement(Vec3.ZERO);
-        float yaw = (float) Math.toDegrees(Math.atan2(-(route.endX() - route.startX()), route.endZ() - route.startZ()));
-        player.teleportTo(map.getServerLevel(), route.x(ticks), route.startY(), route.z(ticks), yaw, 0);
+        if (keepClientLook) {
+            // Zero relative rotation keeps the client's newest mouse look, even before it reaches the server.
+            player.connection.teleport(route.x(ticks), route.startY(), route.z(ticks),
+                    player.getYRot(), player.getXRot(), Set.of(RelativeMovement.Y_ROT, RelativeMovement.X_ROT));
+        } else {
+            player.teleportTo(map.getServerLevel(), route.x(ticks), route.startY(), route.z(ticks),
+                    player.getYRot(), player.getXRot());
+        }
+    }
+
+    private float routeYaw() {
+        return (float) Math.toDegrees(Math.atan2(-(route.endX() - route.startX()), route.endZ() - route.startZ()));
     }
 
     private boolean isParticipant(ServerPlayer player) {
@@ -106,6 +122,10 @@ final class DeploymentController {
     }
 
     void remove(ServerPlayer player) {
+        remove(player, true);
+    }
+
+    private void remove(ServerPlayer player, boolean notifyClient) {
         Flight flight = flights.remove(player.getUUID());
         if (flight == null) {
             return;
@@ -114,7 +134,9 @@ final class DeploymentController {
         player.setForcedPose(flight.pose);
         player.fallDistance = 0;
         player.setDeltaMovement(Vec3.ZERO);
-        BattlezoneNetwork.send(player, new FlightStateS2CPacket(0));
+        if (notifyClient) {
+            BattlezoneNetwork.send(player, new FlightStateS2CPacket(player.getUUID(), 0));
+        }
     }
 
     private static void restoreFlightAbilities(ServerPlayer player, Flight flight) {

@@ -1,15 +1,18 @@
 package dev.stya.blockzone.client.battlezone;
 
 import dev.stya.blockzone.map.battlezone.ParachuteMotion;
+import dev.stya.blockzone.mixin.client.OptionsCameraTypeAccessor;
 import dev.stya.blockzone.net.battlezone.FlightStateS2CPacket;
 import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.stya.blockzone.BlockZone;
+import net.minecraft.client.CameraType;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Pose;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.client.event.RenderGuiOverlayEvent;
 import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
@@ -29,13 +32,32 @@ public final class DeploymentClientController {
     private static net.minecraft.client.player.LocalPlayer trackedPlayer;
     private static Pose previousPose;
     private static boolean previousNoGravity;
+    private static CameraType previousCameraType;
 
     private DeploymentClientController() { }
 
+    @SubscribeEvent
+    public static void onKeyInput(InputEvent.Key event) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (state == 0 || minecraft.screen != null || event.getAction() != GLFW.GLFW_PRESS
+                || !minecraft.options.keyTogglePerspective.matches(event.getKey(), event.getScanCode())) {
+            return;
+        }
+        minecraft.options.keyTogglePerspective.consumeClick();
+        setCameraType(minecraft, minecraft.options.getCameraType().cycle());
+    }
+
     public static void apply(FlightStateS2CPacket packet) {
+        FlightVisualPose.apply(packet);
         var player = Minecraft.getInstance().player;
         if (player == null) {
             clear();
+            return;
+        }
+        if (!packet.playerId().equals(player.getUUID())) {
+            return;
+        }
+        if (packet.state() == 0 && trackedPlayer != player) {
             return;
         }
         if (trackedPlayer != player) {
@@ -43,11 +65,13 @@ public final class DeploymentClientController {
             trackedPlayer = player;
             previousPose = player.getForcedPose();
             previousNoGravity = player.isNoGravity();
+            Minecraft minecraft = Minecraft.getInstance();
+            previousCameraType = minecraft.options.getCameraType();
+            setCameraType(minecraft, CameraType.THIRD_PERSON_BACK);
         }
         int previous = state;
         state = packet.state();
         if (state == 3 && previous < 2) {
-            player.setXRot(30);
             player.setDeltaMovement(0, -0.8, 0);
         }
         if (state == 0) {
@@ -59,10 +83,20 @@ public final class DeploymentClientController {
         if (trackedPlayer != null) {
             trackedPlayer.setForcedPose(previousPose);
             trackedPlayer.setNoGravity(previousNoGravity);
+            Minecraft minecraft = Minecraft.getInstance();
+            if (previousCameraType != null) {
+                setCameraType(minecraft, previousCameraType);
+            }
         }
         trackedPlayer = null;
         previousPose = null;
+        previousCameraType = null;
         state = 0;
+    }
+
+    private static void setCameraType(Minecraft minecraft, CameraType cameraType) {
+        ((OptionsCameraTypeAccessor) (Object) minecraft.options).blockzone$setCameraType(cameraType);
+        minecraft.options.save();
     }
 
     @SubscribeEvent

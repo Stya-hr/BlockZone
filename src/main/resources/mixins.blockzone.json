@@ -1,0 +1,1 @@
+{"required":true,"minVersion":"0.8","package":"dev.stya.blockzone.mixin.client","compatibilityLevel":"JAVA_17","refmap":"mixins.blockzone.refmap.json","client":["ProgramMixin","ShaderInstanceMixin"],"injectors":{"defaultRequire":1}}

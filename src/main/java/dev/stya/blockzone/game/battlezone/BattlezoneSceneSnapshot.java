@@ -1,6 +1,7 @@
 package dev.stya.blockzone.game.battlezone;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.nbt.CompoundTag;
@@ -40,6 +41,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 /** Persistent baseline of a Battlezone arena, captured only by an explicit admin action. */
 final class BattlezoneSceneSnapshot {
@@ -204,6 +206,13 @@ final class BattlezoneSceneSnapshot {
         }
 
         if (!current.lightUpdatesSettled) {
+            // hasLightWork() alone misses tasks waiting on the lighting mailbox.
+            for (CompletableFuture<?> completion : current.lightCompletions) {
+                if (!completion.isDone()) {
+                    return;
+                }
+                completion.join();
+            }
             if (current.level.getLightEngine().hasLightWork()) {
                 return;
             }
@@ -363,6 +372,7 @@ final class BattlezoneSceneSnapshot {
 
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         BitSet changedPositions = new BitSet(PIECE_SIZE * PIECE_SIZE * PIECE_SIZE);
+        BitSet lightChangedPositions = new BitSet(PIECE_SIZE * PIECE_SIZE * PIECE_SIZE);
         for (int y = 0; y < PIECE_SIZE; y++) {
             for (int z = 0; z < PIECE_SIZE; z++) {
                 for (int x = 0; x < PIECE_SIZE; x++) {
@@ -372,7 +382,7 @@ final class BattlezoneSceneSnapshot {
                         changedPositions.set((y << 8) | (z << 4) | x);
                         if (LightEngine.hasDifferentLightProperties(level,
                                 pos.set(piece.minX + x, piece.minY + y, piece.minZ + z), oldState, newState)) {
-                            level.getLightEngine().checkBlock(pos);
+                            lightChangedPositions.set((y << 8) | (z << 4) | x);
                         }
                     }
                 }
@@ -380,7 +390,9 @@ final class BattlezoneSceneSnapshot {
         }
 
         cursor.touchedChunks.put(chunk.getPos().toLong(), chunk);
+        // Also reconcile empty sections when repairing a world restored by an older version.
         if (changedPositions.isEmpty()) {
+            level.getLightEngine().updateSectionStatus(SectionPos.of(chunk.getPos(), sectionY), previous.hasOnlyAir());
             return;
         }
         for (BlockPos blockEntityPos : new ArrayList<>(chunk.getBlockEntitiesPos())) {
@@ -398,6 +410,16 @@ final class BattlezoneSceneSnapshot {
                 heightmap.getValue().update(x, piece.minY + y, z, state);
             }
         }
+        // Follow LevelChunk.setBlockState: update sky occlusion before queuing checks.
+        level.getLightEngine().updateSectionStatus(SectionPos.of(chunk.getPos(), sectionY), restored.hasOnlyAir());
+        for (int packed = lightChangedPositions.nextSetBit(0); packed >= 0;
+             packed = lightChangedPositions.nextSetBit(packed + 1)) {
+            int x = packed & 15;
+            int z = packed >> 4 & 15;
+            int y = piece.minY + (packed >> 8);
+            chunk.getSkyLightSources().update(chunk, x, y, z);
+            level.getLightEngine().checkBlock(pos.set(piece.minX + x, y, piece.minZ + z));
+        }
         chunk.setUnsaved(true);
     }
 
@@ -405,6 +427,20 @@ final class BattlezoneSceneSnapshot {
         for (LevelChunk chunk : cursor.touchedChunks.values()) {
             long chunkKey = chunk.getPos().toLong();
             if (current.lastPieceByChunk.getOrDefault(chunkKey, -1) == current.index) {
+                // Rebuild once per chunk, including unchanged sections, to heal old sky-light ghosts.
+                chunk.initializeLightSources();
+                var lightEngine = current.level.getChunkSource().getLightEngine();
+                if (current.level.dimensionType().hasSkyLight()) {
+                    BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+                    for (int z = 0; z < PIECE_SIZE; z++) {
+                        for (int x = 0; x < PIECE_SIZE; x++) {
+                            lightEngine.checkBlock(pos.set(chunk.getPos().getMinBlockX() + x,
+                                    current.bounds.minY, chunk.getPos().getMinBlockZ() + z));
+                        }
+                    }
+                }
+                // initializeLight supplies a POST_UPDATE completion without releasing chunk light tickets.
+                current.lightCompletions.add(lightEngine.initializeLight(chunk, true));
                 chunk.setUnsaved(true);
                 current.chunksToRefresh.put(chunkKey, chunk);
             }
@@ -640,6 +676,7 @@ final class BattlezoneSceneSnapshot {
         private final ListTag pieces;
         private final Map<Long, Integer> lastPieceByChunk;
         private final Map<Long, LevelChunk> chunksToRefresh = new LinkedHashMap<>();
+        private final List<CompletableFuture<?>> lightCompletions = new ArrayList<>();
         private RestoreCursor restoreCursor;
         private boolean restoreEntitiesRemoved;
         private boolean lightUpdatesSettled;

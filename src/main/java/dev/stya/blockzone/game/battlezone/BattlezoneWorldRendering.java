@@ -21,5 +21,7 @@ public final class BattlezoneWorldRendering {
     @SubscribeEvent
     public static void onLogout(ClientPlayerNetworkEvent.LoggingOut event) {
         BattlezoneClientState.clear();
+        BattlezoneMaterialRendering.end();
+        BattlezoneSphereRendering.release();
     }
 }

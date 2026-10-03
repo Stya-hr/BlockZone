@@ -15,30 +15,30 @@ public final class BattlezoneNetwork {
     }
 
     public static void register() {
-        PACKETS.registerPacket(BattlezoneZoneStateS2CPacket.class, NetworkDirection.PLAY_TO_CLIENT);
-        PACKETS.registerPacket(BattlezoneBoundaryPreviewS2CPacket.class, NetworkDirection.PLAY_TO_CLIENT);
-        PACKETS.registerPacket(BattlezoneFlightStateS2CPacket.class, NetworkDirection.PLAY_TO_CLIENT);
-        PACKETS.registerPacket(BattlezoneReleaseC2SPacket.class, NetworkDirection.PLAY_TO_SERVER);
-        PACKETS.registerPacket(BattlezoneToggleParachuteC2SPacket.class, NetworkDirection.PLAY_TO_SERVER);
+        PACKETS.registerPacket(ZoneStateS2CPacket.class, NetworkDirection.PLAY_TO_CLIENT);
+        PACKETS.registerPacket(BoundaryPreviewS2CPacket.class, NetworkDirection.PLAY_TO_CLIENT);
+        PACKETS.registerPacket(FlightStateS2CPacket.class, NetworkDirection.PLAY_TO_CLIENT);
+        PACKETS.registerPacket(ReleaseDeploymentC2SPacket.class, NetworkDirection.PLAY_TO_SERVER);
+        PACKETS.registerPacket(ToggleParachuteC2SPacket.class, NetworkDirection.PLAY_TO_SERVER);
     }
 
     public static void toggleParachute() {
-        PACKETS.getChannel().sendToServer(new BattlezoneToggleParachuteC2SPacket());
+        PACKETS.getChannel().sendToServer(new ToggleParachuteC2SPacket());
     }
 
     public static void releaseDeployment() {
-        PACKETS.getChannel().sendToServer(new BattlezoneReleaseC2SPacket());
+        PACKETS.getChannel().sendToServer(new ReleaseDeploymentC2SPacket());
     }
 
-    public static void send(ServerPlayer player, BattlezoneFlightStateS2CPacket packet) {
+    public static void send(ServerPlayer player, FlightStateS2CPacket packet) {
         PACKETS.getChannel().send(PacketDistributor.PLAYER.with(() -> player), packet);
     }
 
-    public static void send(ServerPlayer player, BattlezoneZoneStateS2CPacket packet) {
+    public static void send(ServerPlayer player, ZoneStateS2CPacket packet) {
         PACKETS.getChannel().send(PacketDistributor.PLAYER.with(() -> player), packet);
     }
 
-    public static void send(ServerPlayer player, BattlezoneBoundaryPreviewS2CPacket packet) {
+    public static void send(ServerPlayer player, BoundaryPreviewS2CPacket packet) {
         PACKETS.getChannel().send(PacketDistributor.PLAYER.with(() -> player), packet);
     }
 }

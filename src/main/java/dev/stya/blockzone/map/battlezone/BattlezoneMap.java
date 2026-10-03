@@ -1,8 +1,8 @@
 package dev.stya.blockzone.map.battlezone;
 
 import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
-import dev.stya.blockzone.net.battlezone.BattlezoneZoneStateS2CPacket;
-import dev.stya.blockzone.util.battlezone.BattlezoneZoneGeometry;
+import dev.stya.blockzone.net.battlezone.ZoneStateS2CPacket;
+import dev.stya.blockzone.util.battlezone.ZoneGeometry;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.ptcrys.fpsmatch.core.data.AreaData;
@@ -51,9 +51,9 @@ public final class BattlezoneMap extends BaseMap {
     private final Setting<Integer> countdownSeconds;
     private final Setting<Integer> deploymentSeconds;
     private final Setting<Integer> settlementSeconds;
-    private final Setting<List<BattlezoneFlightRoute>> deploymentRoutes;
-    private final BattlezoneDeployment deployment = new BattlezoneDeployment(this);
-    private final BattlezoneLanding landing = new BattlezoneLanding();
+    private final Setting<List<FlightRoute>> deploymentRoutes;
+    private final DeploymentController deployment = new DeploymentController(this);
+    private final LandingController landing = new LandingController();
     // Kept as settings so maps saved before configurable final centers can still use their old center.
     private final Setting<Double> poisonCenterX;
     private final Setting<Double> poisonCenterZ;
@@ -62,8 +62,8 @@ public final class BattlezoneMap extends BaseMap {
     private final Setting<List<PoisonPhase>> poisonPhases;
     private final Setting<String> boundaryTexture;
 
-    private final java.util.Map<java.util.UUID, BattlezonePlayerState> playerStates = new java.util.HashMap<>();
-    private final BattlezoneSceneSnapshot sceneSnapshot;
+    private final java.util.Map<java.util.UUID, PlayerStateSnapshot> playerStates = new java.util.HashMap<>();
+    private final SceneSnapshot sceneSnapshot;
     private MatchPhase phase = MatchPhase.WAITING;
     private int phaseTicks;
     private int poisonPhaseIndex;
@@ -94,7 +94,7 @@ public final class BattlezoneMap extends BaseMap {
         this.deploymentSeconds = addSetting("battlezone", "deployment_seconds", 15);
         this.settlementSeconds = addSetting("battlezone", "settlement_seconds", 10);
         this.deploymentRoutes = addSetting(new Setting<>("battlezone", "deployment_routes",
-                BattlezoneFlightRoute.CODEC.listOf(), List.of()));
+                FlightRoute.CODEC.listOf(), List.of()));
 
         double defaultCenterX = (areaData.pos1().getX() + areaData.pos2().getX() + 1.0) / 2.0;
         double defaultCenterZ = (areaData.pos1().getZ() + areaData.pos2().getZ() + 1.0) / 2.0;
@@ -105,7 +105,7 @@ public final class BattlezoneMap extends BaseMap {
         this.poisonPhases = addSetting(new Setting<>("battlezone", "poison_phases", POISON_PHASE_CODEC.listOf(), DEFAULT_POISON_PHASES));
         this.boundaryTexture = addSetting("battlezone", "boundary_texture",
                 "blockzone:textures/effect/battlezone_warning_fence.png");
-        this.sceneSnapshot = new BattlezoneSceneSnapshot(this);
+        this.sceneSnapshot = new SceneSnapshot(this);
         this.snapshotValid = sceneSnapshot.load();
         if (!snapshotValid && !sceneSnapshot.exists()) {
             // New maps capture their initial baseline over several map ticks.
@@ -340,8 +340,8 @@ public final class BattlezoneMap extends BaseMap {
             return;
         }
         AreaData area = getMapArea();
-        BattlezoneZoneGeometry zone = new BattlezoneZoneGeometry(poisonCurrentCenterX,
-                BattlezoneZoneGeometry.centerY(area.pos1().getY(), area.pos2().getY()),
+        ZoneGeometry zone = new ZoneGeometry(poisonCurrentCenterX,
+                ZoneGeometry.centerY(area.pos1().getY(), area.pos2().getY()),
                 poisonCurrentCenterZ, poisonCurrentRadius);
         DamageSource damageSource = getServerLevel().damageSources().magic();
         for (ServerTeam team : getMapTeams().getNormalTeams()) {
@@ -438,7 +438,7 @@ public final class BattlezoneMap extends BaseMap {
     @Override
     public MapTeams.JoinTeamResult join(ServerPlayer player) {
         ensureConfiguredTeams();
-        BattlezonePlayerState beforeJoin = captureBeforeJoin(player);
+        PlayerStateSnapshot beforeJoin = captureBeforeJoin(player);
         if (isStart && !allowJoinInProgress()) {
             return MapTeams.JoinTeamResult.of(MapTeams.JoinTeamResult.Status.MID_MATCH_JOIN_DISABLED);
         }
@@ -461,7 +461,7 @@ public final class BattlezoneMap extends BaseMap {
     @Override
     public MapTeams.JoinTeamResult join(String teamName, ServerPlayer player) {
         ensureConfiguredTeams();
-        BattlezonePlayerState beforeJoin = captureBeforeJoin(player);
+        PlayerStateSnapshot beforeJoin = captureBeforeJoin(player);
         if (isStart && !allowJoinInProgress()) {
             return MapTeams.JoinTeamResult.of(MapTeams.JoinTeamResult.Status.MID_MATCH_JOIN_DISABLED);
         }
@@ -481,18 +481,18 @@ public final class BattlezoneMap extends BaseMap {
         return joinConfiguredTeam(teamName, player, beforeJoin);
     }
 
-    private BattlezonePlayerState captureBeforeJoin(ServerPlayer player) {
+    private PlayerStateSnapshot captureBeforeJoin(ServerPlayer player) {
         return com.ptcrys.fpsmatch.core.FPSMCore.getInstance().getMapByPlayerWithSpec(player)
                 .filter(BattlezoneMap.class::isInstance)
                 .map(BattlezoneMap.class::cast)
                 .map(map -> map.playerStates.get(player.getUUID()))
-                .orElseGet(() -> BattlezonePlayerState.capture(player));
+                .orElseGet(() -> PlayerStateSnapshot.capture(player));
     }
 
-    private MapTeams.JoinTeamResult joinConfiguredTeam(String teamName, ServerPlayer player, BattlezonePlayerState beforeJoin) {
+    private MapTeams.JoinTeamResult joinConfiguredTeam(String teamName, ServerPlayer player, PlayerStateSnapshot beforeJoin) {
         // FPSMatch's join reads the setting directly instead of calling allowJoinInProgress().
         boolean previous = this.allowJoinInProgress.get();
-        BattlezonePlayerState original = playerStates.remove(player.getUUID());
+        PlayerStateSnapshot original = playerStates.remove(player.getUUID());
         this.allowJoinInProgress.set(allowJoinInProgress());
         try {
             MapTeams.JoinTeamResult result = super.join(teamName, player);
@@ -509,7 +509,7 @@ public final class BattlezoneMap extends BaseMap {
         }
     }
 
-    private MapTeams.JoinTeamResult syncAfterJoin(MapTeams.JoinTeamResult result, ServerPlayer player, BattlezonePlayerState beforeJoin) {
+    private MapTeams.JoinTeamResult syncAfterJoin(MapTeams.JoinTeamResult result, ServerPlayer player, PlayerStateSnapshot beforeJoin) {
         if (result.isSuccess()) {
             playerStates.putIfAbsent(player.getUUID(), beforeJoin);
         }
@@ -626,7 +626,7 @@ public final class BattlezoneMap extends BaseMap {
             // A cancelled leave event must not keep a finished match populated.
             if (getMapTeams().getTeamByPlayer(player).isPresent()) {
                 getMapTeams().leaveTeam(player);
-                BattlezonePlayerState state = playerStates.remove(player.getUUID());
+                PlayerStateSnapshot state = playerStates.remove(player.getUUID());
                 if (state != null) {
                     state.restore(player);
                 }
@@ -634,12 +634,12 @@ public final class BattlezoneMap extends BaseMap {
         }
         for (java.util.UUID uuid : List.copyOf(getMapTeams().getJoinedPlayersWithSpec())) {
             getMapTeams().leaveTeam(uuid);
-            BattlezonePlayerState state = playerStates.remove(uuid);
+            PlayerStateSnapshot state = playerStates.remove(uuid);
             if (state != null) {
-                BattlezonePlayerState.restoreOnLogin(uuid, state);
+                PlayerStateSnapshot.restoreOnLogin(uuid, state);
             }
         }
-        playerStates.forEach(BattlezonePlayerState::restoreOnLogin);
+        playerStates.forEach(PlayerStateSnapshot::restoreOnLogin);
         playerStates.clear();
         phase = MatchPhase.WAITING;
         phaseTicks = 0;
@@ -667,9 +667,9 @@ public final class BattlezoneMap extends BaseMap {
         landing.finish(player);
         super.handlePlayerDisconnect(player);
         if (getMapTeams().getTeamByPlayer(player).isEmpty()) {
-            BattlezonePlayerState state = playerStates.remove(player.getUUID());
+            PlayerStateSnapshot state = playerStates.remove(player.getUUID());
             if (state != null) {
-                BattlezonePlayerState.restoreOnLogin(player.getUUID(), state);
+                PlayerStateSnapshot.restoreOnLogin(player.getUUID(), state);
             }
         }
     }
@@ -693,7 +693,7 @@ public final class BattlezoneMap extends BaseMap {
             deployment.remove(player);
             landing.finish(player);
             BattlezoneNetwork.send(player, createVisualStatePacket(false));
-            BattlezonePlayerState state = playerStates.remove(player.getUUID());
+            PlayerStateSnapshot state = playerStates.remove(player.getUUID());
             if (state != null) {
                 state.restore(player);
             }
@@ -729,11 +729,11 @@ public final class BattlezoneMap extends BaseMap {
         return started;
     }
 
-    public List<BattlezoneFlightRoute> getDeploymentRoutes() {
+    public List<FlightRoute> getDeploymentRoutes() {
         return List.copyOf(deploymentRoutes.get());
     }
 
-    public void setDeploymentRoutes(List<BattlezoneFlightRoute> routes) {
+    public void setDeploymentRoutes(List<FlightRoute> routes) {
         if (isStart) {
             throw new IllegalStateException("Stop the match before editing deployment routes.");
         }
@@ -741,7 +741,7 @@ public final class BattlezoneMap extends BaseMap {
         saveConfig();
     }
 
-    public boolean isValidDeploymentRoute(BattlezoneFlightRoute route) {
+    public boolean isValidDeploymentRoute(FlightRoute route) {
         AreaData area = getMapArea();
         return route.isValid(Math.min(area.pos1().getX(), area.pos2().getX()) + 0.31,
                 Math.max(area.pos1().getX(), area.pos2().getX()) + 0.69,
@@ -750,7 +750,7 @@ public final class BattlezoneMap extends BaseMap {
                 Math.max(area.pos1().getY(), area.pos2().getY()) + 16.0);
     }
 
-    public BattlezoneFlightRoute defaultDeploymentRoute() {
+    public FlightRoute defaultDeploymentRoute() {
         AreaData area = getMapArea();
         double minX = Math.min(area.pos1().getX(), area.pos2().getX()) + 0.31;
         double maxX = Math.max(area.pos1().getX(), area.pos2().getX()) + 0.69;
@@ -758,12 +758,12 @@ public final class BattlezoneMap extends BaseMap {
         double maxZ = Math.max(area.pos1().getZ(), area.pos2().getZ()) + 0.69;
         double altitude = Math.min(1999, Math.max(area.pos1().getY(), area.pos2().getY()) + 64.0);
         return maxX - minX >= maxZ - minZ
-                ? new BattlezoneFlightRoute(minX, altitude, getMapCenterZ(), maxX, altitude, getMapCenterZ(), 20)
-                : new BattlezoneFlightRoute(getMapCenterX(), altitude, minZ, getMapCenterX(), altitude, maxZ, 20);
+                ? new FlightRoute(minX, altitude, getMapCenterZ(), maxX, altitude, getMapCenterZ(), 20)
+                : new FlightRoute(getMapCenterX(), altitude, minZ, getMapCenterX(), altitude, maxZ, 20);
     }
 
-    private BattlezoneFlightRoute selectDeploymentRoute() {
-        List<BattlezoneFlightRoute> valid = deploymentRoutes.get().stream()
+    private FlightRoute selectDeploymentRoute() {
+        List<FlightRoute> valid = deploymentRoutes.get().stream()
                 .filter(this::isValidDeploymentRoute).toList();
         if (valid.size() != deploymentRoutes.get().size()) {
             LOGGER.warn("Ignored invalid deployment routes for Battlezone map {}", getMapName());
@@ -829,19 +829,19 @@ public final class BattlezoneMap extends BaseMap {
             return;
         }
         lastVisualStateSync = gameTime;
-        BattlezoneZoneStateS2CPacket packet = createVisualStatePacket();
+        ZoneStateS2CPacket packet = createVisualStatePacket();
         for (ServerPlayer player : getMapTeams().getOnlineWithSpec()) {
             BattlezoneNetwork.send(player, packet);
         }
     }
 
-    private BattlezoneZoneStateS2CPacket createVisualStatePacket() {
+    private ZoneStateS2CPacket createVisualStatePacket() {
         return createVisualStatePacket(isStart && phase != MatchPhase.RESETTING);
     }
 
-    private BattlezoneZoneStateS2CPacket createVisualStatePacket(boolean boundaryVisible) {
+    private ZoneStateS2CPacket createVisualStatePacket(boolean boundaryVisible) {
         AreaData area = getMapArea();
-        return new BattlezoneZoneStateS2CPacket(
+        return new ZoneStateS2CPacket(
                 getMapName(),
                 getServerLevel().dimension().location(),
                 boundaryVisible,

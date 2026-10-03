@@ -1,6 +1,6 @@
 package dev.stya.blockzone.command;
 
-import dev.stya.blockzone.map.battlezone.BattlezoneFlightRoute;
+import dev.stya.blockzone.map.battlezone.FlightRoute;
 import dev.stya.blockzone.map.battlezone.BattlezoneMap;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -114,7 +114,7 @@ public final class BattlezoneRouteCommands {
             return 0;
         }
         var routes = new ArrayList<>(map.getDeploymentRoutes());
-        BattlezoneFlightRoute route = map.defaultDeploymentRoute();
+        FlightRoute route = map.defaultDeploymentRoute();
         routes.add(route);
         map.setDeploymentRoutes(routes);
         context.getSource().sendSuccess(() -> Component.literal("Added and saved " + describe(routes.size(), route)), true);
@@ -132,8 +132,8 @@ public final class BattlezoneRouteCommands {
             context.getSource().sendFailure(Component.literal("Route index out of range. Use setting route list; indexes start at 1."));
             return 0;
         }
-        BattlezoneFlightRoute old = routes.get(index - 1);
-        BattlezoneFlightRoute updated = old;
+        FlightRoute old = routes.get(index - 1);
+        FlightRoute updated = old;
         if (operation.equals("start") || operation.equals("end")) {
             if (context.getSource().getLevel() != map.getServerLevel()) {
                 context.getSource().sendFailure(Component.literal("Set route points from the map's dimension."));
@@ -145,15 +145,15 @@ public final class BattlezoneRouteCommands {
                 return 0;
             }
             updated = operation.equals("start")
-                    ? new BattlezoneFlightRoute(position.x, position.y, position.z, old.endX(), old.endY(), old.endZ(), old.speed())
-                    : new BattlezoneFlightRoute(old.startX(), old.startY(), old.startZ(), position.x, position.y, position.z, old.speed());
+                    ? new FlightRoute(position.x, position.y, position.z, old.endX(), old.endY(), old.endZ(), old.speed())
+                    : new FlightRoute(old.startX(), old.startY(), old.startZ(), position.x, position.y, position.z, old.speed());
         } else if (operation.equals("speed")) {
             double speed = DoubleArgumentType.getDouble(context, "speed");
             if (!Double.isFinite(speed)) {
                 context.getSource().sendFailure(Component.literal("Route speed must be finite."));
                 return 0;
             }
-            updated = new BattlezoneFlightRoute(old.startX(), old.startY(), old.startZ(), old.endX(), old.endY(), old.endZ(), speed);
+            updated = new FlightRoute(old.startX(), old.startY(), old.startZ(), old.endX(), old.endY(), old.endZ(), speed);
         }
         if (operation.equals("remove")) {
             routes.remove(index - 1);
@@ -168,7 +168,7 @@ public final class BattlezoneRouteCommands {
         return 1;
     }
 
-    private static String describe(int index, BattlezoneFlightRoute route) {
+    private static String describe(int index, FlightRoute route) {
         return String.format(Locale.ROOT, "route %d: (%.2f, %.2f, %.2f) -> (%.2f, %.2f, %.2f), %.2f blocks/s",
                 index, route.startX(), route.startY(), route.startZ(), route.endX(), route.endY(), route.endZ(), route.speed());
     }

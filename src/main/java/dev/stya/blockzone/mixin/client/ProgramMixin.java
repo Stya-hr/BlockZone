@@ -2,7 +2,7 @@ package dev.stya.blockzone.mixin.client;
 
 import com.mojang.blaze3d.shaders.Program;
 import com.mojang.blaze3d.preprocessor.GlslPreprocessor;
-import dev.stya.blockzone.client.battlezone.BattlezoneMaterialShaderSource;
+import dev.stya.blockzone.client.battlezone.MaterialShaderSource;
 import org.apache.commons.io.IOUtils;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -17,6 +17,6 @@ public abstract class ProgramMixin {
             target = "Lorg/apache/commons/io/IOUtils;toString(Ljava/io/InputStream;Ljava/nio/charset/Charset;)Ljava/lang/String;", remap = false))
     private static String blockzone$materialSource(InputStream input, Charset charset, Program.Type type,
             String name, InputStream original, String sourceName, GlslPreprocessor preprocessor) throws IOException {
-        return BattlezoneMaterialShaderSource.transform(type == Program.Type.VERTEX, name, IOUtils.toString(input, charset));
+        return MaterialShaderSource.transform(type == Program.Type.VERTEX, name, IOUtils.toString(input, charset));
     }
 }

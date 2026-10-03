@@ -49,6 +49,9 @@ public final class BattlezoneMap extends BaseMap {
     private final Setting<Integer> countdownSeconds;
     private final Setting<Integer> deploymentSeconds;
     private final Setting<Integer> settlementSeconds;
+    private final Setting<List<BattlezoneFlightRoute>> deploymentRoutes;
+    private final BattlezoneDeployment deployment = new BattlezoneDeployment(this);
+    private final BattlezoneLanding landing = new BattlezoneLanding();
     // Kept as settings so maps saved before configurable final centers can still use their old center.
     private final Setting<Double> poisonCenterX;
     private final Setting<Double> poisonCenterZ;
@@ -88,6 +91,8 @@ public final class BattlezoneMap extends BaseMap {
         this.countdownSeconds = addSetting("battlezone", "countdown_seconds", 30);
         this.deploymentSeconds = addSetting("battlezone", "deployment_seconds", 15);
         this.settlementSeconds = addSetting("battlezone", "settlement_seconds", 10);
+        this.deploymentRoutes = addSetting(new Setting<>("battlezone", "deployment_routes",
+                BattlezoneFlightRoute.CODEC.listOf(), List.of()));
 
         double defaultCenterX = (areaData.pos1().getX() + areaData.pos2().getX() + 1.0) / 2.0;
         double defaultCenterZ = (areaData.pos1().getZ() + areaData.pos2().getZ() + 1.0) / 2.0;
@@ -126,6 +131,9 @@ public final class BattlezoneMap extends BaseMap {
         }
         snapshotValid = sceneSnapshot.hasValidSnapshot();
 
+        if (isMatchActive()) {
+            deployment.tick();
+        }
         switch (phase) {
             case WAITING -> tickWaiting();
             case COUNTDOWN -> tickCountdown();
@@ -165,7 +173,7 @@ public final class BattlezoneMap extends BaseMap {
 
     private void tickDeployment() {
         phaseTicks++;
-        if (phaseTicks >= Math.max(0, deploymentSeconds.get()) * 20) {
+        if (deployment.routeFinished() && phaseTicks >= Math.max(0, deploymentSeconds.get()) * 20) {
             phase = MatchPhase.MATCH;
             phaseTicks = 0;
             poisonPhaseIndex = 0;
@@ -339,7 +347,7 @@ public final class BattlezoneMap extends BaseMap {
                 if (team.getPlayerData(player.getUUID()).map(data -> !data.isLiving()).orElse(true)) {
                     continue;
                 }
-                if (!zone.contains(player.getX(), player.getY(), player.getZ())) {
+                if (!hasDeploymentProtection(player) && !zone.contains(player.getX(), player.getY(), player.getZ())) {
                     player.hurt(damageSource, poisonDamage.get());
                 }
             }
@@ -415,6 +423,7 @@ public final class BattlezoneMap extends BaseMap {
         victoryAnnounced = false;
         resetMatchClock();
         initializePoisonZone();
+        deployment.start(selectDeploymentRoute());
         syncVisualState(true);
         return true;
     }
@@ -504,6 +513,9 @@ public final class BattlezoneMap extends BaseMap {
         }
         if (result.isSuccess() && isStart) {
             BattlezoneNetwork.send(player, createVisualStatePacket());
+            if (phase == MatchPhase.DEPLOYMENT) {
+                deployment.board(player);
+            }
         }
         return result;
     }
@@ -602,6 +614,8 @@ public final class BattlezoneMap extends BaseMap {
 
     @Override
     public void reset() {
+        deployment.clear();
+        landing.clear();
         super.reset();
         isStart = false;
         syncVisualState(true);
@@ -647,6 +661,8 @@ public final class BattlezoneMap extends BaseMap {
 
     @Override
     public void handlePlayerDisconnect(ServerPlayer player) {
+        deployment.remove(player);
+        landing.finish(player);
         super.handlePlayerDisconnect(player);
         if (getMapTeams().getTeamByPlayer(player).isEmpty()) {
             BattlezonePlayerState state = playerStates.remove(player.getUUID());
@@ -672,6 +688,8 @@ public final class BattlezoneMap extends BaseMap {
     public void leave(ServerPlayer player) {
         super.leave(player);
         if (getMapTeams().getTeamByPlayer(player).isEmpty()) {
+            deployment.remove(player);
+            landing.finish(player);
             BattlezoneNetwork.send(player, createVisualStatePacket(false));
             BattlezonePlayerState state = playerStates.remove(player.getUUID());
             if (state != null) {
@@ -707,6 +725,80 @@ public final class BattlezoneMap extends BaseMap {
             snapshotValid = false;
         }
         return started;
+    }
+
+    public List<BattlezoneFlightRoute> getDeploymentRoutes() {
+        return List.copyOf(deploymentRoutes.get());
+    }
+
+    public void setDeploymentRoutes(List<BattlezoneFlightRoute> routes) {
+        if (isStart) {
+            throw new IllegalStateException("Stop the match before editing deployment routes.");
+        }
+        deploymentRoutes.set(List.copyOf(routes));
+        saveConfig();
+    }
+
+    public boolean isValidDeploymentRoute(BattlezoneFlightRoute route) {
+        AreaData area = getMapArea();
+        return route.isValid(Math.min(area.pos1().getX(), area.pos2().getX()) + 0.31,
+                Math.max(area.pos1().getX(), area.pos2().getX()) + 0.69,
+                Math.min(area.pos1().getZ(), area.pos2().getZ()) + 0.31,
+                Math.max(area.pos1().getZ(), area.pos2().getZ()) + 0.69,
+                Math.max(area.pos1().getY(), area.pos2().getY()) + 16.0);
+    }
+
+    public BattlezoneFlightRoute defaultDeploymentRoute() {
+        AreaData area = getMapArea();
+        double minX = Math.min(area.pos1().getX(), area.pos2().getX()) + 0.31;
+        double maxX = Math.max(area.pos1().getX(), area.pos2().getX()) + 0.69;
+        double minZ = Math.min(area.pos1().getZ(), area.pos2().getZ()) + 0.31;
+        double maxZ = Math.max(area.pos1().getZ(), area.pos2().getZ()) + 0.69;
+        double altitude = Math.min(1999, Math.max(area.pos1().getY(), area.pos2().getY()) + 64.0);
+        return maxX - minX >= maxZ - minZ
+                ? new BattlezoneFlightRoute(minX, altitude, getMapCenterZ(), maxX, altitude, getMapCenterZ(), 20)
+                : new BattlezoneFlightRoute(getMapCenterX(), altitude, minZ, getMapCenterX(), altitude, maxZ, 20);
+    }
+
+    private BattlezoneFlightRoute selectDeploymentRoute() {
+        List<BattlezoneFlightRoute> valid = deploymentRoutes.get().stream()
+                .filter(this::isValidDeploymentRoute).toList();
+        if (valid.size() != deploymentRoutes.get().size()) {
+            LOGGER.warn("Ignored invalid deployment routes for Battlezone map {}", getMapName());
+        }
+        if (!valid.isEmpty()) {
+            return valid.get(getServerLevel().getRandom().nextInt(valid.size()));
+        }
+        // Old maps gain a usable route without requiring a settings migration.
+        return defaultDeploymentRoute();
+    }
+
+    public boolean releaseDeployment(ServerPlayer player) {
+        return deployment.release(player);
+    }
+
+    public boolean hasDeploymentProtection(ServerPlayer player) {
+        return deployment.protects(player) || landing.isDescending(player);
+    }
+
+    /** Shared entry point for route release and future airborne respawns. */
+    public void beginLanding(ServerPlayer player) {
+        if (isMatchActive() && getMapTeams().getTeamByPlayer(player)
+                .filter(team -> !team.isSpectator()).flatMap(team -> team.getPlayerData(player.getUUID()))
+                .map(data -> data.isLiving()).orElse(false)) {
+            landing.begin(player);
+        }
+    }
+
+    void tickDeploymentPlayer(ServerPlayer player) {
+        deployment.tickPlayer(player);
+        if (!isMatchActive() || player.serverLevel() != getServerLevel()
+                || getMapTeams().getTeamByPlayer(player).filter(team -> !team.isSpectator())
+                .flatMap(team -> team.getPlayerData(player.getUUID())).map(data -> !data.isLiving()).orElse(true)) {
+            landing.finish(player);
+        } else {
+            landing.tick(player);
+        }
     }
 
     public MatchPhase getPhase() {

@@ -1,0 +1,7 @@
+{
+  "key.blockzone.release_deployment": "Release deployment",
+  "key.categories.blockzone": "Blockzone",
+  "blockzone.deployment.boarded": "On the deployment route. Press your release key to dive.",
+  "blockzone.deployment.release_hint": "Press %s to dive",
+  "blockzone.deployment.diving_hint": "Diving · First landing protected"
+}

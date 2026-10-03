@@ -7,6 +7,10 @@ final class BattlezoneClientPacketHandler {
     private BattlezoneClientPacketHandler() {
     }
 
+    static void handle(BattlezoneFlightStateS2CPacket packet) {
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> BattlezoneDeploymentClient.apply(packet));
+    }
+
     static void handle(BattlezoneZoneStateS2CPacket packet) {
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> BattlezoneClientState.apply(packet));
     }

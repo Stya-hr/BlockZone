@@ -69,6 +69,14 @@
         0,
         0
       ]
+    },
+    {
+      "name": "ZoneDaylight",
+      "type": "float",
+      "count": 1,
+      "values": [
+        1
+      ]
     }
   ],
   "blend": {

@@ -1,5 +1,6 @@
 #version 150
 uniform float ZoneTime;
+uniform float ZoneDaylight;
 uniform vec3 CameraLocalPosition;
 in vec3 spherePosition;
 out vec4 fragColor;
@@ -39,11 +40,14 @@ void main() {
     float filament = smoothstep(0.86 - aa, 0.95 + aa, ridge);
     float facing = abs(dot(normal, normalize(toCamera)));
     float rim = pow(1.0 - facing, 2.0);
-    // Blue-violet separates the translucent shell from daylight sky and pale poisoned terrain.
-    vec3 color = mix(vec3(0.22, 0.12, 0.52), vec3(0.40, 0.28, 0.72), broad);
-    color = mix(color, vec3(0.25, 0.12, 0.58), filament * 0.75);
-    color = mix(color, vec3(0.32, 0.20, 0.68), rim);
-    // Concentrate opacity on filaments and the silhouette, keeping the shell transparent.
-    float alpha = 0.04 + filament * 0.22 + rim * 0.30;
+    // Invert ambient brightness: dark violet by day, luminous lavender by night.
+    float daylight = smoothstep(0.0, 1.0, ZoneDaylight);
+    vec3 darkBody = mix(vec3(0.075, 0.035, 0.20), vec3(0.16, 0.08, 0.34), broad);
+    vec3 lightBody = mix(vec3(0.48, 0.36, 0.76), vec3(0.68, 0.56, 0.94), broad);
+    vec3 color = mix(lightBody, darkBody, daylight);
+    color = mix(color, mix(vec3(0.76, 0.65, 1.0), vec3(0.13, 0.055, 0.32), daylight), filament * 0.75);
+    color = mix(color, mix(vec3(0.84, 0.76, 1.0), vec3(0.20, 0.10, 0.43), daylight), rim);
+    // A stronger daytime body actually darkens the background through alpha blending.
+    float alpha = mix(0.07, 0.14, daylight) + filament * 0.22 + rim * 0.30;
     fragColor = vec4(color, alpha * (outside ? 0.90 : 1.0));
 }

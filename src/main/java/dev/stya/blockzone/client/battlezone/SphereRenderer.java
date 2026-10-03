@@ -44,6 +44,9 @@ final class SphereRenderer {
                     (float)((camera.y - state.centerY()) / state.radius()),
                     (float)((camera.z - state.centerZ()) / state.radius()));
             shader.safeGetUniform("ZoneTime").set((Minecraft.getInstance().level.getGameTime() + event.getPartialTick()) / 20f);
+            // Vanilla sky brightness includes smooth dawn/dusk and rain/thunder dimming.
+            float daylight = (Minecraft.getInstance().level.getSkyDarken(event.getPartialTick()) - 0.2f) / 0.8f;
+            shader.safeGetUniform("ZoneDaylight").set(Math.max(0f, Math.min(1f, daylight)));
             mesh.bind();
             mesh.drawWithShader(modelView, event.getProjectionMatrix(), shader);
         } finally {

@@ -29,10 +29,9 @@ public final class LandingController {
         player.setForcedPose(Pose.SWIMMING);
         player.fallDistance = 0;
         player.setOnGround(false);
-        player.setXRot(30);
         player.setDeltaMovement(0, -0.8, 0);
         player.connection.send(new ClientboundSetEntityMotionPacket(player));
-        BattlezoneNetwork.send(player, new FlightStateS2CPacket(3));
+        BattlezoneNetwork.send(player, new FlightStateS2CPacket(player.getUUID(), 3));
     }
 
     public boolean toggleParachute(ServerPlayer player) {
@@ -46,7 +45,7 @@ public final class LandingController {
         }
         state.lastToggleTick = now;
         state.parachuteOpen = !state.parachuteOpen;
-        BattlezoneNetwork.send(player, new FlightStateS2CPacket(state.parachuteOpen ? 2 : 3));
+        BattlezoneNetwork.send(player, new FlightStateS2CPacket(player.getUUID(), state.parachuteOpen ? 2 : 3));
         return true;
     }
 
@@ -91,7 +90,7 @@ public final class LandingController {
         player.onUpdateAbilities();
         player.fallDistance = 0;
         player.setDeltaMovement(Vec3.ZERO);
-        BattlezoneNetwork.send(player, new FlightStateS2CPacket(0));
+        BattlezoneNetwork.send(player, new FlightStateS2CPacket(player.getUUID(), 0));
     }
 
     public void clear() {

@@ -48,9 +48,16 @@ public final class DeploymentClientController {
     }
 
     public static void apply(FlightStateS2CPacket packet) {
+        FlightVisualPose.apply(packet);
         var player = Minecraft.getInstance().player;
         if (player == null) {
             clear();
+            return;
+        }
+        if (!packet.playerId().equals(player.getUUID())) {
+            return;
+        }
+        if (packet.state() == 0 && trackedPlayer != player) {
             return;
         }
         if (trackedPlayer != player) {
@@ -65,7 +72,6 @@ public final class DeploymentClientController {
         int previous = state;
         state = packet.state();
         if (state == 3 && previous < 2) {
-            player.setXRot(30);
             player.setDeltaMovement(0, -0.8, 0);
         }
         if (state == 0) {
@@ -78,8 +84,7 @@ public final class DeploymentClientController {
             trackedPlayer.setForcedPose(previousPose);
             trackedPlayer.setNoGravity(previousNoGravity);
             Minecraft minecraft = Minecraft.getInstance();
-            if (previousCameraType != null
-                    && minecraft.options.getCameraType() == CameraType.THIRD_PERSON_BACK) {
+            if (previousCameraType != null) {
                 setCameraType(minecraft, previousCameraType);
             }
         }

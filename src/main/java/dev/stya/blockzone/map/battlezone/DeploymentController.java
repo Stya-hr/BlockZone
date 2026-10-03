@@ -48,7 +48,7 @@ final class DeploymentController {
         player.setYHeadRot(routeYaw);
         player.setXRot(0);
         moveAlongRoute(player, false);
-        BattlezoneNetwork.send(player, new FlightStateS2CPacket(1));
+        BattlezoneNetwork.send(player, new FlightStateS2CPacket(player.getUUID(), 1));
         player.sendSystemMessage(Component.translatable("blockzone.deployment.boarded"));
     }
 
@@ -88,7 +88,7 @@ final class DeploymentController {
         if (flight == null || !map.isMatchActive() || !isParticipant(player)) {
             return false;
         }
-        remove(player);
+        remove(player, false);
         map.beginLanding(player);
         return true;
     }
@@ -122,6 +122,10 @@ final class DeploymentController {
     }
 
     void remove(ServerPlayer player) {
+        remove(player, true);
+    }
+
+    private void remove(ServerPlayer player, boolean notifyClient) {
         Flight flight = flights.remove(player.getUUID());
         if (flight == null) {
             return;
@@ -130,7 +134,9 @@ final class DeploymentController {
         player.setForcedPose(flight.pose);
         player.fallDistance = 0;
         player.setDeltaMovement(Vec3.ZERO);
-        BattlezoneNetwork.send(player, new FlightStateS2CPacket(0));
+        if (notifyClient) {
+            BattlezoneNetwork.send(player, new FlightStateS2CPacket(player.getUUID(), 0));
+        }
     }
 
     private static void restoreFlightAbilities(ServerPlayer player, Flight flight) {

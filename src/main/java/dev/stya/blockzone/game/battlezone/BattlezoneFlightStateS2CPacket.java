@@ -4,7 +4,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.network.NetworkEvent;
 import java.util.function.Supplier;
 
-/** 0 = normal, 1 = on route, 2 = diving. */
+/** 0 = normal, 1 = on route, 2 = parachute open, 3 = freefall. */
 public record BattlezoneFlightStateS2CPacket(int state) {
     public static void encode(BattlezoneFlightStateS2CPacket packet, FriendlyByteBuf buffer) {
         buffer.writeByte(packet.state);

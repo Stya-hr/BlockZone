@@ -777,6 +777,15 @@ public final class BattlezoneMap extends BaseMap {
         return deployment.release(player);
     }
 
+    void clearAirbornePlayer(ServerPlayer player) {
+        deployment.remove(player);
+        landing.finish(player);
+    }
+
+    public boolean toggleParachute(ServerPlayer player) {
+        return isMatchActive() && landing.toggleParachute(player);
+    }
+
     public boolean hasDeploymentProtection(ServerPlayer player) {
         return deployment.protects(player) || landing.isDescending(player);
     }

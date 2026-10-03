@@ -3,5 +3,8 @@
   "key.categories.blockzone": "Blockzone",
   "blockzone.deployment.boarded": "已进入跳伞线路，按设置中的释放跳伞按键开始俯冲。",
   "blockzone.deployment.release_hint": "按 %s 释放跳伞",
-  "blockzone.deployment.diving_hint": "俯冲中 · 首次落地免疫摔落伤害"
+  "blockzone.deployment.diving_hint": "俯冲中 · 首次落地免疫摔落伤害",
+  "blockzone.deployment.open_hint": "自由落体 · 按 %s 开伞",
+  "blockzone.deployment.close_hint": "降落伞已打开 · 按 %s 收伞",
+  "key.blockzone.toggle_parachute": "开伞 / 收伞"
 }

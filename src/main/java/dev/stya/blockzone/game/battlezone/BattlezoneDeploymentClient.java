@@ -20,9 +20,12 @@ import org.lwjgl.glfw.GLFW;
 public final class BattlezoneDeploymentClient {
     private static final KeyMapping RELEASE = new KeyMapping("key.blockzone.release_deployment",
             KeyConflictContext.IN_GAME, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, "key.categories.blockzone");
+    private static final KeyMapping PARACHUTE = new KeyMapping("key.blockzone.toggle_parachute",
+            KeyConflictContext.IN_GAME, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_H, "key.categories.blockzone");
     private static int state;
     private static net.minecraft.client.player.LocalPlayer trackedPlayer;
     private static Pose previousPose;
+    private static boolean previousNoGravity;
 
     private BattlezoneDeploymentClient() { }
 
@@ -36,8 +39,14 @@ public final class BattlezoneDeploymentClient {
             clear();
             trackedPlayer = player;
             previousPose = player.getForcedPose();
+            previousNoGravity = player.isNoGravity();
         }
+        int previous = state;
         state = packet.state();
+        if (state == 3 && previous < 2) {
+            player.setXRot(30);
+            player.setDeltaMovement(0, -0.8, 0);
+        }
         if (state == 0) {
             clear();
         }
@@ -46,6 +55,7 @@ public final class BattlezoneDeploymentClient {
     private static void clear() {
         if (trackedPlayer != null) {
             trackedPlayer.setForcedPose(previousPose);
+            trackedPlayer.setNoGravity(previousNoGravity);
         }
         trackedPlayer = null;
         previousPose = null;
@@ -67,10 +77,24 @@ public final class BattlezoneDeploymentClient {
                 BattlezoneNetwork.releaseDeployment();
             }
         }
+        while (PARACHUTE.consumeClick()) {
+            if ((state == 2 || state == 3) && minecraft.screen == null) {
+                BattlezoneNetwork.toggleParachute();
+            }
+        }
         if (state != 0 && trackedPlayer != null) {
             trackedPlayer.setForcedPose(Pose.SWIMMING);
+            trackedPlayer.setNoGravity(true);
             if (state == 1) {
                 trackedPlayer.setDeltaMovement(0, 0, 0);
+            } else {
+                trackedPlayer.getAbilities().flying = false;
+                var movement = trackedPlayer.getDeltaMovement();
+                var motion = state == 2
+                        ? BattlezoneParachuteMotion.step(movement.x, movement.y, movement.z,
+                                trackedPlayer.getYRot(), trackedPlayer.getXRot())
+                        : BattlezoneParachuteMotion.freefall(movement.x, movement.y, movement.z, trackedPlayer.getYRot());
+                trackedPlayer.setDeltaMovement(motion.x(), motion.y(), motion.z());
             }
         }
     }
@@ -83,7 +107,8 @@ public final class BattlezoneDeploymentClient {
         Minecraft minecraft = Minecraft.getInstance();
         Component text = state == 1
                 ? Component.translatable("blockzone.deployment.release_hint", RELEASE.getTranslatedKeyMessage())
-                : Component.translatable("blockzone.deployment.diving_hint");
+                : Component.translatable(state == 2 ? "blockzone.deployment.close_hint" : "blockzone.deployment.open_hint",
+                        PARACHUTE.getTranslatedKeyMessage());
         event.getGuiGraphics().drawCenteredString(minecraft.font, text,
                 event.getWindow().getGuiScaledWidth() / 2, event.getWindow().getGuiScaledHeight() - 65, 0xFFFFFF);
     }
@@ -95,6 +120,7 @@ public final class BattlezoneDeploymentClient {
         @SubscribeEvent
         public static void registerKeys(RegisterKeyMappingsEvent event) {
             event.register(RELEASE);
+            event.register(PARACHUTE);
         }
     }
 }

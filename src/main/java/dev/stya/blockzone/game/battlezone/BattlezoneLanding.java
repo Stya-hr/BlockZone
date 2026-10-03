@@ -21,17 +21,32 @@ public final class BattlezoneLanding {
         }
         players.put(player.getUUID(), new LandingState(player));
         player.stopRiding();
-        player.getAbilities().mayfly = false;
+        player.getAbilities().mayfly = true;
         player.getAbilities().flying = false;
         player.onUpdateAbilities();
-        player.setNoGravity(false);
+        player.setNoGravity(true);
         player.setForcedPose(Pose.SWIMMING);
         player.fallDistance = 0;
         player.setOnGround(false);
-        player.setXRot(70);
-        player.setDeltaMovement(0, -1.5, 0);
+        player.setXRot(30);
+        player.setDeltaMovement(0, -0.8, 0);
         player.connection.send(new ClientboundSetEntityMotionPacket(player));
-        BattlezoneNetwork.send(player, new BattlezoneFlightStateS2CPacket(2));
+        BattlezoneNetwork.send(player, new BattlezoneFlightStateS2CPacket(3));
+    }
+
+    public boolean toggleParachute(ServerPlayer player) {
+        LandingState state = players.get(player.getUUID());
+        if (state == null || !player.isAlive() || player.isSpectator() || player.onGround()) {
+            return false;
+        }
+        long now = player.level().getGameTime();
+        if (now - state.lastToggleTick < 5) {
+            return false;
+        }
+        state.lastToggleTick = now;
+        state.parachuteOpen = !state.parachuteOpen;
+        BattlezoneNetwork.send(player, new BattlezoneFlightStateS2CPacket(state.parachuteOpen ? 2 : 3));
+        return true;
     }
 
     public boolean isDescending(ServerPlayer player) {
@@ -50,9 +65,13 @@ public final class BattlezoneLanding {
             return;
         }
         player.getAbilities().flying = false;
-        player.setNoGravity(false);
+        player.setNoGravity(true);
         Vec3 movement = player.getDeltaMovement();
-        player.setDeltaMovement(movement.x, Math.min(movement.y, -1.5), movement.z);
+        LandingState state = players.get(player.getUUID());
+        var motion = state.parachuteOpen
+                ? BattlezoneParachuteMotion.step(movement.x, movement.y, movement.z, player.getYRot(), player.getXRot())
+                : BattlezoneParachuteMotion.freefall(movement.x, movement.y, movement.z, player.getYRot());
+        player.setDeltaMovement(motion.x(), motion.y(), motion.z());
         player.connection.send(new ClientboundSetEntityMotionPacket(player));
     }
 
@@ -85,6 +104,8 @@ public final class BattlezoneLanding {
         final boolean mayfly;
         final boolean flying;
         final boolean noGravity;
+        boolean parachuteOpen;
+        long lastToggleTick = Long.MIN_VALUE / 2;
         final Pose pose;
         final net.minecraft.world.level.GameType gameMode;
 

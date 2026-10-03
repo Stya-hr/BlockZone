@@ -3,5 +3,8 @@
   "key.categories.blockzone": "Blockzone",
   "blockzone.deployment.boarded": "On the deployment route. Press your release key to dive.",
   "blockzone.deployment.release_hint": "Press %s to dive",
-  "blockzone.deployment.diving_hint": "Diving · First landing protected"
+  "blockzone.deployment.diving_hint": "Diving · First landing protected",
+  "blockzone.deployment.open_hint": "Freefall · Press %s to open parachute",
+  "blockzone.deployment.close_hint": "Parachute open · Press %s to cut parachute",
+  "key.blockzone.toggle_parachute": "Toggle parachute"
 }

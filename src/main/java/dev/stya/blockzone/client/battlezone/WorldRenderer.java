@@ -2,6 +2,7 @@ package dev.stya.blockzone.client.battlezone;
 
 import dev.stya.blockzone.net.battlezone.BoundaryPreviewS2CPacket;
 import dev.stya.blockzone.util.battlezone.BoundaryGeometry;
+import dev.stya.blockzone.util.battlezone.WarningRibbonGeometry;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -97,77 +98,67 @@ public final class WorldRenderer {
         double minZ = bounds.minZ();
         double maxZ = bounds.maxZ();
         var box = player.getBoundingBox();
-        boolean west = bounds.touchesX(minX, box.minX, box.maxX, box.minZ, box.maxZ);
-        boolean east = bounds.touchesX(maxX, box.minX, box.maxX, box.minZ, box.maxZ);
-        boolean north = bounds.touchesZ(minZ, box.minX, box.maxX, box.minZ, box.maxZ);
-        boolean south = bounds.touchesZ(maxZ, box.minX, box.maxX, box.minZ, box.maxZ);
-        if (!west && !east && !north && !south) {
-            return;
-        }
+        boolean overlapsZ = box.maxZ >= minZ && box.minZ <= maxZ;
+        boolean overlapsX = box.maxX >= minX && box.minX <= maxX;
+        float west = overlapsZ ? WarningRibbonGeometry.proximityAlpha(minX, box.minX, box.maxX) : 0;
+        float east = overlapsZ ? WarningRibbonGeometry.proximityAlpha(maxX, box.minX, box.maxX) : 0;
+        float north = overlapsX ? WarningRibbonGeometry.proximityAlpha(minZ, box.minZ, box.maxZ) : 0;
+        float south = overlapsX ? WarningRibbonGeometry.proximityAlpha(maxZ, box.minZ, box.maxZ) : 0;
+        if (west + east + north + south <= 0) return;
 
         Vec3 position = player.getPosition(partialTick);
         double playerX = Math.max(minX, Math.min(maxX, position.x));
         double playerZ = Math.max(minZ, Math.min(maxZ, position.z));
-        double fenceMinY = position.y - 0.1;
-        double fenceMaxY = position.y + player.getBbHeight() + 0.1;
+        double bottom = position.y + 0.9;
         ResourceLocation texture = fenceTexture(state.boundaryTexture());
-        float aspect = cachedFenceAspect;
-        double panelWidth = (fenceMaxY - fenceMinY) * aspect;
+        MultiBufferSource.BufferSource buffers = Minecraft.getInstance().renderBuffers().bufferSource();
+        RenderType renderType = ZoneRenderTypes.boundary(texture);
+        VertexConsumer consumer = buffers.getBuffer(renderType);
+        renderWarningSide(consumer, poseStack.last(), camera, true, minX + 0.002,
+                minZ, maxZ, playerZ, bottom, west, true);
+        renderWarningSide(consumer, poseStack.last(), camera, true, maxX - 0.002,
+                minZ, maxZ, playerZ, bottom, east, false);
+        renderWarningSide(consumer, poseStack.last(), camera, false, minZ + 0.002,
+                minX, maxX, playerX, bottom, north, false);
+        renderWarningSide(consumer, poseStack.last(), camera, false, maxZ - 0.002,
+                minX, maxX, playerX, bottom, south, true);
+        buffers.endBatch(renderType);
+    }
 
-        poseStack.pushPose();
-        poseStack.translate(-camera.x, -camera.y, -camera.z);
-        try {
-            MultiBufferSource.BufferSource buffers = Minecraft.getInstance().renderBuffers().bufferSource();
-            RenderType renderType = ZoneRenderTypes.boundary(texture);
-            VertexConsumer consumer = buffers.getBuffer(renderType);
-            if (west) {
-                renderFenceSide(consumer, poseStack.last(), true, minX + 0.002, Math.max(minZ, playerZ - panelWidth / 2),
-                        Math.min(maxZ, playerZ + panelWidth / 2), fenceMinY, fenceMaxY, playerZ, panelWidth);
-            }
-            if (east) {
-                renderFenceSide(consumer, poseStack.last(), true, maxX - 0.002, Math.max(minZ, playerZ - panelWidth / 2),
-                        Math.min(maxZ, playerZ + panelWidth / 2), fenceMinY, fenceMaxY, playerZ, panelWidth);
-            }
-            if (north) {
-                renderFenceSide(consumer, poseStack.last(), false, minZ + 0.002, Math.max(minX, playerX - panelWidth / 2),
-                        Math.min(maxX, playerX + panelWidth / 2), fenceMinY, fenceMaxY, playerX, panelWidth);
-            }
-            if (south) {
-                renderFenceSide(consumer, poseStack.last(), false, maxZ - 0.002, Math.max(minX, playerX - panelWidth / 2),
-                        Math.min(maxX, playerX + panelWidth / 2), fenceMinY, fenceMaxY, playerX, panelWidth);
-            }
-            buffers.endBatch(renderType);
-        } finally {
-            poseStack.popPose();
+    private static void renderWarningSide(VertexConsumer consumer, PoseStack.Pose pose, Vec3 camera,
+                                          boolean xPlane, double plane, double min, double max,
+                                          double center, double bottom, float proximity, boolean reverse) {
+        if (proximity <= 0) return;
+        double start = Math.max(min, center - WarningRibbonGeometry.HALF_LENGTH);
+        double end = Math.min(max, center + WarningRibbonGeometry.HALF_LENGTH);
+        double tileWidth = WarningRibbonGeometry.HEIGHT * cachedFenceAspect;
+        double top = bottom + WarningRibbonGeometry.HEIGHT;
+        for (double a = start; a < end;) {
+            double b = Math.min(end, a + 0.5);
+            double sign = reverse ? -1 : 1;
+            addTexturedFenceVertex(consumer, pose, camera, xPlane, plane, a, bottom,
+                    sign * a / tileWidth, 1, center, proximity);
+            addTexturedFenceVertex(consumer, pose, camera, xPlane, plane, b, bottom,
+                    sign * b / tileWidth, 1, center, proximity);
+            addTexturedFenceVertex(consumer, pose, camera, xPlane, plane, b, top,
+                    sign * b / tileWidth, 0, center, proximity);
+            addTexturedFenceVertex(consumer, pose, camera, xPlane, plane, a, top,
+                    sign * a / tileWidth, 0, center, proximity);
+            a = b;
         }
     }
 
-    private static void renderFenceSide(VertexConsumer consumer, PoseStack.Pose pose, boolean xPlane, double plane,
-                                        double alongMin, double alongMax, double minY, double maxY,
-                                        double centerAlong, double fullWidth) {
-        if (alongMax <= alongMin) {
-            return;
-        }
-        double uMin = (alongMin - centerAlong) / fullWidth + 0.5;
-        double uMax = (alongMax - centerAlong) / fullWidth + 0.5;
-        addTexturedFenceVertex(consumer, pose, xPlane, plane, alongMin, minY, uMin, 1);
-        addTexturedFenceVertex(consumer, pose, xPlane, plane, alongMax, minY, uMax, 1);
-        addTexturedFenceVertex(consumer, pose, xPlane, plane, alongMax, maxY, uMax, 0);
-        addTexturedFenceVertex(consumer, pose, xPlane, plane, alongMin, maxY, uMin, 0);
-    }
-
-    private static void addTexturedFenceVertex(VertexConsumer consumer, PoseStack.Pose pose, boolean xPlane,
-                                               double plane, double along, double y,
-                                               double u, double v) {
-        float normalX = xPlane ? 1.0F : 0.0F;
-        float normalZ = xPlane ? 0.0F : 1.0F;
-        consumer.vertex(pose.pose(), (float) (xPlane ? plane : along), (float) y,
-                        (float) (xPlane ? along : plane))
-                .color(255, 255, 255, 255)
-                .uv((float) u, (float) v)
+    private static void addTexturedFenceVertex(VertexConsumer consumer, PoseStack.Pose pose, Vec3 camera,
+                                               boolean xPlane, double plane, double along, double y,
+                                               double u, double v, double center, float proximity) {
+        int alpha = Math.round(255 * proximity * WarningRibbonGeometry.endAlpha(along, center));
+        consumer.vertex(pose.pose(), (float)((xPlane ? plane : along) - camera.x),
+                        (float)(y - camera.y), (float)((xPlane ? along : plane) - camera.z))
+                .color(255, 255, 255, alpha)
+                .uv((float)u, (float)v)
                 .overlayCoords(OverlayTexture.NO_OVERLAY)
                 .uv2(LightTexture.FULL_BRIGHT)
-                .normal(pose.normal(), normalX, 0.0F, normalZ)
+                .normal(pose.normal(), xPlane ? 1.0F : 0.0F, 0.0F, xPlane ? 0.0F : 1.0F)
                 .endVertex();
     }
 

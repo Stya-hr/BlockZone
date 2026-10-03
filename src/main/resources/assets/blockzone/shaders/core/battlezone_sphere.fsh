@@ -39,10 +39,10 @@ void main() {
     float filament = smoothstep(0.86 - aa, 0.95 + aa, ridge);
     float facing = abs(dot(normal, normalize(toCamera)));
     float rim = pow(1.0 - facing, 2.0);
-    // Saturated blue retains contrast against both daylight sky and pale poisoned terrain.
-    vec3 color = mix(vec3(0.08, 0.32, 0.65), vec3(0.16, 0.56, 0.82), broad);
-    color = mix(color, vec3(0.05, 0.28, 0.62), filament * 0.75);
-    color = mix(color, vec3(0.06, 0.40, 0.78), rim);
+    // Blue-violet separates the translucent shell from daylight sky and pale poisoned terrain.
+    vec3 color = mix(vec3(0.22, 0.12, 0.52), vec3(0.40, 0.28, 0.72), broad);
+    color = mix(color, vec3(0.25, 0.12, 0.58), filament * 0.75);
+    color = mix(color, vec3(0.32, 0.20, 0.68), rim);
     // Concentrate opacity on filaments and the silhouette, keeping the shell transparent.
     float alpha = 0.04 + filament * 0.22 + rim * 0.30;
     fragColor = vec4(color, alpha * (outside ? 0.90 : 1.0));

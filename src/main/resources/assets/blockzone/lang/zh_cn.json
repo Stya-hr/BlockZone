@@ -6,5 +6,6 @@
   "blockzone.deployment.diving_hint": "俯冲中 · 首次落地免疫摔落伤害",
   "blockzone.deployment.open_hint": "自由落体 · 按 %s 开伞",
   "blockzone.deployment.close_hint": "降落伞已打开 · 按 %s 收伞",
-  "key.blockzone.toggle_parachute": "开伞 / 收伞"
+  "key.blockzone.toggle_parachute": "开伞 / 收伞",
+  "blockzone.deployment.outside_zone": "只能在毒圈内跳下，请继续沿路线飞入圈内。"
 }

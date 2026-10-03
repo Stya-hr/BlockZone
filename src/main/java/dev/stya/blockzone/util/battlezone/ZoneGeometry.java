@@ -15,4 +15,12 @@ public record ZoneGeometry(double centerX, double centerY, double centerZ, doubl
         double dz = z - centerZ;
         return dx * dx + dy * dy + dz * dz <= radius * radius;
     }
+
+    /** Horizontal projection used by high-altitude deployment, independent of sphere damage checks. */
+    public boolean containsHorizontal(double x, double z) {
+        if (!(radius > 0.0)) return false;
+        double dx = x - centerX;
+        double dz = z - centerZ;
+        return dx * dx + dz * dz <= radius * radius;
+    }
 }

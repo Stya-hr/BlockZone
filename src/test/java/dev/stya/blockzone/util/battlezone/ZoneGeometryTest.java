@@ -6,6 +6,14 @@ import static org.junit.jupiter.api.Assertions.*;
 class ZoneGeometryTest {
     private final ZoneGeometry zone = new ZoneGeometry(100, 64, -100, 50);
 
+    @Test void deploymentUsesHorizontalProjectionWhileDamageUsesFullSphere() {
+        assertTrue(zone.containsHorizontal(130, -100));
+        assertFalse(zone.contains(130, 200, -100));
+        assertTrue(zone.containsHorizontal(150, -100));
+        assertFalse(zone.containsHorizontal(151, -100));
+        assertFalse(new ZoneGeometry(0, 0, 0, 0).containsHorizontal(0, 0));
+    }
+
     @Test
     void highGroundUsesSphereInsteadOfHorizontalCircle() {
         assertTrue(zone.contains(130, 104, -100));

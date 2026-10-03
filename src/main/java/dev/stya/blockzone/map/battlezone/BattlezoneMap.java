@@ -51,7 +51,8 @@ public final class BattlezoneMap extends BaseMap {
     private final Setting<Integer> countdownSeconds;
     private final Setting<Integer> deploymentSeconds;
     private final Setting<Integer> settlementSeconds;
-    private final Setting<List<FlightRoute>> deploymentRoutes;
+    private final Setting<Double> deploymentSpeed;
+    private final Setting<Double> deploymentHeight;
     private final DeploymentController deployment = new DeploymentController(this);
     private final LandingController landing = new LandingController();
     // Kept as settings so maps saved before configurable final centers can still use their old center.
@@ -93,8 +94,11 @@ public final class BattlezoneMap extends BaseMap {
         this.countdownSeconds = addSetting("battlezone", "countdown_seconds", 30);
         this.deploymentSeconds = addSetting("battlezone", "deployment_seconds", 15);
         this.settlementSeconds = addSetting("battlezone", "settlement_seconds", 10);
-        this.deploymentRoutes = addSetting(new Setting<>("battlezone", "deployment_routes",
-                FlightRoute.CODEC.listOf(), List.of()));
+        this.deploymentSpeed = addSetting(new Setting<>("battlezone", "deployment_speed",
+                Codec.doubleRange(0.1, 100.0), 20.0));
+        this.deploymentHeight = addSetting(new Setting<>("battlezone", "deployment_height",
+                Codec.doubleRange(-30_000_000.0, 1999.999),
+                Math.min(1999.0, Math.max(areaData.pos1().getY(), areaData.pos2().getY()) + 64.0)));
 
         double defaultCenterX = (areaData.pos1().getX() + areaData.pos2().getX() + 1.0) / 2.0;
         double defaultCenterZ = (areaData.pos1().getZ() + areaData.pos2().getZ() + 1.0) / 2.0;
@@ -413,6 +417,11 @@ public final class BattlezoneMap extends BaseMap {
             broadcast(Component.literal("Battlezone cannot start: save a valid scene snapshot first."));
             return false;
         }
+        var route = generateDeploymentRoute();
+        if (route.isEmpty()) {
+            broadcast(Component.literal("Battlezone cannot start: deployment_height must be at least 16 blocks above the map and below Y=2000, and the initial horizontal circle must have room for a route."));
+            return false;
+        }
         if (!super.start()) {
             return false;
         }
@@ -424,7 +433,7 @@ public final class BattlezoneMap extends BaseMap {
         poisonPhaseIndex = 0;
         poisonPhaseTicks = 0;
         initializePoisonZone();
-        deployment.start(selectDeploymentRoute());
+        deployment.start(route.get());
         broadcast(Component.literal("Battlezone match started."));
         syncVisualState(true);
         return true;
@@ -732,50 +741,20 @@ public final class BattlezoneMap extends BaseMap {
         return started;
     }
 
-    public List<FlightRoute> getDeploymentRoutes() {
-        return List.copyOf(deploymentRoutes.get());
-    }
-
-    public void setDeploymentRoutes(List<FlightRoute> routes) {
-        if (isStart) {
-            throw new IllegalStateException("Stop the match before editing deployment routes.");
-        }
-        deploymentRoutes.set(List.copyOf(routes));
-        saveConfig();
-    }
-
-    public boolean isValidDeploymentRoute(FlightRoute route) {
+    private java.util.Optional<FlightRoute> generateDeploymentRoute() {
         AreaData area = getMapArea();
-        return route.isValid(Math.min(area.pos1().getX(), area.pos2().getX()) + 0.31,
+        var zone = new ZoneGeometry(getMapCenterX(),
+                ZoneGeometry.centerY(area.pos1().getY(), area.pos2().getY()),
+                getMapCenterZ(), getInitialPoisonRadius());
+        double highestY = Math.max(area.pos1().getY(), area.pos2().getY());
+        var random = getServerLevel().getRandom();
+        return FlightRoute.generateAcrossCircle(zone,
+                Math.min(area.pos1().getX(), area.pos2().getX()) + 0.31,
                 Math.max(area.pos1().getX(), area.pos2().getX()) + 0.69,
                 Math.min(area.pos1().getZ(), area.pos2().getZ()) + 0.31,
                 Math.max(area.pos1().getZ(), area.pos2().getZ()) + 0.69,
-                Math.max(area.pos1().getY(), area.pos2().getY()) + 16.0);
-    }
-
-    public FlightRoute defaultDeploymentRoute() {
-        AreaData area = getMapArea();
-        double minX = Math.min(area.pos1().getX(), area.pos2().getX()) + 0.31;
-        double maxX = Math.max(area.pos1().getX(), area.pos2().getX()) + 0.69;
-        double minZ = Math.min(area.pos1().getZ(), area.pos2().getZ()) + 0.31;
-        double maxZ = Math.max(area.pos1().getZ(), area.pos2().getZ()) + 0.69;
-        double altitude = Math.min(1999, Math.max(area.pos1().getY(), area.pos2().getY()) + 64.0);
-        return maxX - minX >= maxZ - minZ
-                ? new FlightRoute(minX, altitude, getMapCenterZ(), maxX, altitude, getMapCenterZ(), 20)
-                : new FlightRoute(getMapCenterX(), altitude, minZ, getMapCenterX(), altitude, maxZ, 20);
-    }
-
-    private FlightRoute selectDeploymentRoute() {
-        List<FlightRoute> valid = deploymentRoutes.get().stream()
-                .filter(this::isValidDeploymentRoute).toList();
-        if (valid.size() != deploymentRoutes.get().size()) {
-            LOGGER.warn("Ignored invalid deployment routes for Battlezone map {}", getMapName());
-        }
-        if (!valid.isEmpty()) {
-            return valid.get(getServerLevel().getRandom().nextInt(valid.size()));
-        }
-        // Old maps gain a usable route without requiring a settings migration.
-        return defaultDeploymentRoute();
+                highestY + 16, deploymentHeight.get(), deploymentSpeed.get(),
+                random.nextDouble() * Math.PI * 2, random.nextDouble() * .06 - .03);
     }
 
     public boolean releaseDeployment(ServerPlayer player) {
@@ -787,7 +766,7 @@ public final class BattlezoneMap extends BaseMap {
                 ZoneGeometry.centerY(area.pos1().getY(), area.pos2().getY()),
                 poisonCurrentCenterZ, poisonCurrentRadius);
         if (player.serverLevel() != getServerLevel()
-                || !zone.contains(player.getX(), player.getY(), player.getZ())) {
+                || !zone.containsHorizontal(player.getX(), player.getZ())) {
             player.displayClientMessage(Component.translatable("blockzone.deployment.outside_zone"), true);
             return false;
         }

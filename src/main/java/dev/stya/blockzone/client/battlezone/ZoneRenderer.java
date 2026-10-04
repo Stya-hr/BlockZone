@@ -11,6 +11,7 @@ import dev.stya.blockzone.util.battlezone.ZoneShape;
 import java.util.EnumMap;
 
 final class ZoneRenderer {
+    private static final float WALL_HEIGHT = 96f;
     private static final EnumMap<ZoneShape, VertexBuffer> MESHES = new EnumMap<>(ZoneShape.class);
     private ZoneRenderer() {}
 
@@ -37,9 +38,9 @@ final class ZoneRenderer {
             VertexBuffer.unbind();
         }
         var camera = event.getCamera().getPosition();
-        // A short band follows camera height; safety checks remain unbounded vertically.
-        float height = (float) dev.stya.blockzone.util.battlezone.ZoneGeometry.VISUAL_HEIGHT / 2;
-        double centerY = camera.y;
+        // Anchor the wall to the map floor rather than the observer's height.
+        float height = WALL_HEIGHT / 2;
+        double centerY = state.centerY() + height;
         Matrix4f modelView = new Matrix4f(event.getPoseStack().last().pose())
                 .translate((float)(state.centerX() - camera.x), (float)(centerY - camera.y),
                         (float)(state.centerZ() - camera.z)).scale(state.radius(), height, state.radius());

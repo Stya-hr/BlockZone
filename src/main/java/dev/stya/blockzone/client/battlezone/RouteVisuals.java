@@ -60,17 +60,28 @@ public final class RouteVisuals {
         }
         for (var player : minecraft.level.players()) {
             var pose = FlightVisualPose.get(player);
-            if (pose == null || pose.state != 2 || player.isInvisible()) continue;
+            if (pose == null || (pose.state != 2 && pose.state != 3) || player.isInvisible()) continue;
             var position = player.getPosition(partialTick);
             stack.pushPose();
             orientModel(stack, position, camera, Mth.rotLerp(partialTick, player.yBodyRotO, player.yBodyRot));
-            // Swing about the harness, keeping the canopy attached to the player.
+            int light = LevelRenderer.getLightColor(minecraft.level, BlockPos.containing(position.add(0, 2, 0)));
+            stack.pushPose();
+            float bodyPitch = pose.value(0, partialTick);
+            stack.mulPose(Axis.XP.rotationDegrees(bodyPitch));
+            AirborneModels.render(AirborneModels.PARACHUTE_PACK, 4, stack, vertices, light);
+            stack.popPose();
+            if (pose.state != 2) {
+                stack.popPose();
+                continue;
+            }
+            // The upright canopy follows the rotated pack's upper attachment point.
+            double pitch = bodyPitch * Mth.DEG_TO_RAD;
+            stack.translate(0, 1.45 * Math.cos(pitch) - .32 * Math.sin(pitch),
+                    1.45 * Math.sin(pitch) + .32 * Math.cos(pitch));
             double swing = animationTime * .09 + player.getId();
-            stack.translate(0, 1.2, 0);
             stack.mulPose(Axis.ZP.rotationDegrees((float) Math.sin(swing) * 2));
             stack.mulPose(Axis.XP.rotationDegrees((float) Math.cos(swing * .8) * 1.2f));
-            stack.translate(0, -1.2, 0);
-            int light = LevelRenderer.getLightColor(minecraft.level, BlockPos.containing(position.add(0, 4, 0)));
+            light = LevelRenderer.getLightColor(minecraft.level, BlockPos.containing(position.add(0, 4, 0)));
             AirborneModels.render(AirborneModels.PARACHUTE, 4, stack, vertices, light);
             stack.popPose();
         }

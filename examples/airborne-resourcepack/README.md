@@ -11,6 +11,7 @@
 | 运输机模型 | `assets/blockzone/models/airborne/transport_aircraft.json` |
 | 旋转螺旋桨模型 | `assets/blockzone/models/airborne/propeller.json` |
 | 降落伞模型 | `assets/blockzone/models/airborne/parachute.json` |
+| 背部伞包与背带 | `assets/blockzone/models/airborne/parachute_pack.json` |
 | 常亮航行灯与光晕 | `assets/blockzone/models/airborne/aircraft_lights.json` |
 | 闪烁信标与光晕 | `assets/blockzone/models/airborne/aircraft_beacon.json` |
 | 运输机贴图 | `assets/blockzone/textures/block/airborne/transport_aircraft.png` |
@@ -27,7 +28,7 @@
 两套模型以 JSON 坐标 `(8, 8, 8)` 为原点，+Y 为上方，-Z 为前方。
 
 - 运输机采用 8 倍基础缩放，JSON 中 2 个单位对应游戏中 1 格。原点位于航线位置上方 1.5 格，默认翼展 12 格。
-- 降落伞采用 4 倍基础缩放，JSON 中 4 个单位对应游戏中 1 格。原点位于玩家脚部，默认伞翼在脚部上方约 4.75 格。
+- 降落伞与伞包采用 4 倍基础缩放，JSON 中 4 个单位对应游戏中 1 格。伞包原点位于玩家脚部，跟随身体倾角；伞翼原点位于伞包顶部连接点，默认在脚部上方 1.45 格、身体后方 0.32 格，并随身体倾角调整位置。默认薄伞翼在玩家上方约 4.5 格。
 
 可通过标准 `display.fixed` 调整大小、旋转和挂载位置。例如：
 
@@ -46,6 +47,8 @@
 螺旋桨使用独立的标准 JSON，原点 `(8, 8, 8)` 为桨轴，沿 Z 轴旋转，采用 8 倍缩放。四个固定挂点相对运输机原点为 `(±4.25, 0.625, -2.375)` 和 `(±2.25, 0.625, -2.375)` 格；运输机模型不应再包含静态桨叶。螺旋桨默认共用运输机贴图，也可在资源包中指定独立贴图。修改机身的 `display.fixed` 不会移动这些挂点，可通过螺旋桨自身的 `display.fixed` 调整桨叶尺寸。
 
 动画由模组驱动：螺旋桨持续旋转，展开的降落伞绕背带轻微摆动，各玩家的摆动相位不同。资源包只需替换这些标准 JSON 和贴图，无需额外动画模组。
+
+自由落体和开伞状态均显示背部伞包，伞翼仅在开伞时显示。开伞后人物轻微后倾、抬手握持控制带，双腿略向前弯；伞包与人物使用同一身体倾角，伞翼保持竖直悬挂。替换伞具时同时编辑 `parachute_pack.json` 与 `parachute.json`，两者共用降落伞贴图。
 
 常亮灯包含左红右绿航行灯、白色尾灯和机头下方的着陆灯；顶部红色信标每秒亮约 0.15 秒。两套灯光模型采用与机身相同的原点和 8 倍缩放，使用全亮、透明混合显示，位置和光晕都由 JSON 定义。灯光为视觉自发光，不改变世界方块亮度。替换载具时可一起替换灯光模型；将对应模型的 `elements` 设置为空数组即可关闭这一类灯光。
 

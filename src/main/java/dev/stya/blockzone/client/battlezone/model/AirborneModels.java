@@ -17,6 +17,7 @@ import net.minecraftforge.fml.common.Mod;
 public final class AirborneModels {
     public static final ResourceLocation AIRCRAFT = model("transport_aircraft");
     public static final ResourceLocation PARACHUTE = model("parachute");
+    public static final ResourceLocation PARACHUTE_PACK = model("parachute_pack");
     public static final ResourceLocation PROPELLER = model("propeller");
     public static final ResourceLocation AIRCRAFT_LIGHTS = model("aircraft_lights");
     public static final ResourceLocation AIRCRAFT_BEACON = model("aircraft_beacon");
@@ -31,6 +32,7 @@ public final class AirborneModels {
     public static void registerModels(ModelEvent.RegisterAdditional event) {
         event.register(AIRCRAFT);
         event.register(PARACHUTE);
+        event.register(PARACHUTE_PACK);
         event.register(PROPELLER);
         event.register(AIRCRAFT_LIGHTS);
         event.register(AIRCRAFT_BEACON);

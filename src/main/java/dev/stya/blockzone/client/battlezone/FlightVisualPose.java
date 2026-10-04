@@ -33,7 +33,7 @@ public final class FlightVisualPose {
         } else {
             float[] target = switch (packet.state()) {
                 case 1 -> new float[] {-90, -2.8f, .2f, 0, .05f};
-                case 2 -> new float[] {0, -2.7f, .25f, .35f, .1f};
+                case 2 -> new float[] {12, -2.4f, .18f, -.45f, .06f};
                 case 3 -> new float[] {-60, -.4f, 1.1f, .2f, .2f};
                 default -> null;
             };

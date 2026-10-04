@@ -1,4 +1,5 @@
 {
+  "blockzone.match.eliminated": "你已被淘汰，进入观战。",
   "key.blockzone.release_deployment": "释放跳伞",
   "key.categories.blockzone": "Blockzone",
   "blockzone.deployment.boarded": "已登上运输机，按设置中的释放跳伞按键离机跳伞。",

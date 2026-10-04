@@ -9,11 +9,12 @@ import java.util.List;
 public record PoisonPath(List<Circle> circles) {
     public PoisonPath { circles = List.copyOf(circles); }
     public static final Codec<Circle> CIRCLE_CODEC = RecordCodecBuilder.create(instance -> instance.group(
-            Codec.DOUBLE.fieldOf("x").forGetter(Circle::x),
-            Codec.DOUBLE.fieldOf("z").forGetter(Circle::z),
+            dev.stya.blockzone.util.CodecSettings.FINITE_DOUBLE.fieldOf("x").forGetter(Circle::x),
+            dev.stya.blockzone.util.CodecSettings.FINITE_DOUBLE.fieldOf("z").forGetter(Circle::z),
             Codec.doubleRange(0, 30_000_000).fieldOf("radius").forGetter(Circle::radius),
             Codec.intRange(0, 1_000_000).fieldOf("wait_seconds").forGetter(Circle::waitSeconds),
-            Codec.intRange(0, 1_000_000).fieldOf("shrink_seconds").forGetter(Circle::shrinkSeconds)
+            Codec.intRange(0, 1_000_000).fieldOf("shrink_seconds").forGetter(Circle::shrinkSeconds),
+            dev.stya.blockzone.util.CodecSettings.optionalField(dev.stya.blockzone.util.CodecSettings.NONNEGATIVE_DOUBLE, "damage_multiplier", 1.0).forGetter(Circle::damageMultiplier)
     ).apply(instance, Circle::new));
     public static final Codec<PoisonPath> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             CIRCLE_CODEC.listOf().fieldOf("circles").forGetter(PoisonPath::circles)
@@ -22,14 +23,21 @@ public record PoisonPath(List<Circle> circles) {
     public List<ZoneGeometry> resolve(BoundaryGeometry bounds, double y) {
         if (circles.isEmpty()) throw new IllegalArgumentException("Path must contain an initial circle");
         var result = new ArrayList<ZoneGeometry>();
-        double previous = Double.POSITIVE_INFINITY;
         for (var circle : circles) {
-            if (circle.radius() > previous) throw new IllegalArgumentException("Circle radii must not increase");
+            if (!Double.isFinite(circle.x()) || !Double.isFinite(circle.z()) || !Double.isFinite(circle.radius())
+                    || !Double.isFinite(circle.damageMultiplier()) || circle.damageMultiplier() < 0)
+                throw new IllegalArgumentException("Circle numbers must be finite and damage_multiplier nonnegative");
             if (circle.waitSeconds() < 0 || circle.shrinkSeconds() < 0) throw new IllegalArgumentException("Negative circle duration");
             result.add(new ZoneGeometry(circle.x(), y, circle.z(), circle.radius()).fitInside(bounds));
-            previous = circle.radius();
         }
         return List.copyOf(result);
     }
-    public record Circle(double x, double z, double radius, int waitSeconds, int shrinkSeconds) {}
+    public double damageAt(int completedTransitions, double baseDamage) {
+        return Math.min(Float.MAX_VALUE, baseDamage * circles.get(Math.min(completedTransitions, circles.size() - 1)).damageMultiplier());
+    }
+    public record Circle(double x, double z, double radius, int waitSeconds, int shrinkSeconds, double damageMultiplier) {
+        public Circle(double x, double z, double radius, int waitSeconds, int shrinkSeconds) {
+            this(x, z, radius, waitSeconds, shrinkSeconds, 1.0);
+        }
+    }
 }

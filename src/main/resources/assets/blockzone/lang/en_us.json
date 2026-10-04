@@ -7,5 +7,13 @@
   "blockzone.deployment.open_hint": "Freefall · Press %s to open parachute",
   "blockzone.deployment.close_hint": "Parachute open · Press %s to cut parachute",
   "key.blockzone.toggle_parachute": "Toggle parachute",
-  "blockzone.deployment.outside_zone": "You can only jump inside the poison zone. Stay on the route until you enter it."
+  "blockzone.deployment.outside_zone": "You can only jump inside the poison zone. Stay on the route until you enter it.",
+  "setting.battlezone.poison_sequences": "Poison sequences (JSON)",
+  "setting.battlezone.poison_sequences.desc": "Complete path array: x, z, radius, wait_seconds, shrink_seconds, damage_multiplier. Indices start at 1; damage changes on reaching the circle.",
+  "setting.battlezone.poison_damage_per_second": "Base zone damage / second",
+  "setting.battlezone.poison_damage_per_second.desc": "Actual damage = base damage × current circle damage_multiplier. 2 health points = 1 heart.",
+  "setting.battlezone.deployment_height": "Flight altitude Y",
+  "setting.battlezone.deployment_height.desc": "Absolute Y, without map-top or 2000 limits. Choose an altitude clear of buildings.",
+  "setting.battlezone.deployment_speed": "Flight speed (blocks/second)",
+  "setting.battlezone.deployment_speed.desc": "Range: 0.1–100 blocks/second."
 }

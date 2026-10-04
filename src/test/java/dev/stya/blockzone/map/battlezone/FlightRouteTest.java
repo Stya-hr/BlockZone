@@ -8,12 +8,12 @@ class FlightRouteTest {
     @Test void randomRoutesKeepAreaDifferenceBelowEightPercentRegardlessOfHeight() {
         var zone = new ZoneGeometry(100, 0, 100, 100);
         for (int i = 0; i < 360; i++) {
-            for (double height : new double[]{16, 64, 200}) {
+            for (double height : new double[]{-500, 0, 16, 64, 200, 2500, 10000}) {
                 for (double offset : new double[]{-.03, 0, .03}) {
                     double angle = Math.toRadians(i);
                     var route = FlightRoute.generateAcrossCircle(zone, .31, 199.69, .31, 199.69,
-                            16, height, 20, angle, offset).orElseThrow();
-                    assertTrue(route.isValid(.31, 199.69, .31, 199.69, 16));
+                            height, 20, angle, offset).orElseThrow();
+                    assertTrue(route.isValid(.31, 199.69, .31, 199.69));
                     assertEquals(20, route.speed());
                     assertEquals(height, route.startY());
                     assertEquals(height, route.endY());
@@ -34,20 +34,20 @@ class FlightRouteTest {
 
     @Test void configuredHeightIsIndependentOfSphereHeight() {
         var route = FlightRoute.generateAcrossCircle(new ZoneGeometry(0, 0, 0, 10),
-                -10, 10, -10, 10, 16, 200, 10, 0, 0).orElseThrow();
+                -10, 10, -10, 10, 200, 10, 0, 0).orElseThrow();
         assertEquals(200, route.startY());
     }
 
     @Test void invalidHeightSpeedOrCircleCannotGenerateRoute() {
         var zone = new ZoneGeometry(0, 0, 0, 10);
         assertTrue(FlightRoute.generateAcrossCircle(zone, -10, 10, -10, 10,
-                1, 2, 101, 0, 0).isEmpty());
+                2, 101, 0, 0).isEmpty());
         assertTrue(FlightRoute.generateAcrossCircle(zone, -10, 10, -10, 10,
-                5, 2, 20, 0, 0).isEmpty());
+                Double.NaN, 20, 0, 0).isEmpty());
         assertTrue(FlightRoute.generateAcrossCircle(zone, -10, 10, -10, 10,
-                1, 2000, 20, 0, 0).isEmpty());
+                Double.POSITIVE_INFINITY, 20, 0, 0).isEmpty());
         assertTrue(FlightRoute.generateAcrossCircle(new ZoneGeometry(0, 0, 0, 0), -10, 10, -10, 10,
-                1, 200, 20, 0, 0).isEmpty());
+                200, 20, 0, 0).isEmpty());
     }
 
     @Test void speedUsesBlocksPerSecondAndStopsExactlyAtEndpoint() {
@@ -65,7 +65,7 @@ class FlightRouteTest {
     @Test void validatesHorizontalHighAltitudeRoutesInsideMap() {
         assertTrue(valid(new FlightRoute(1, 200, 1, 99, 200, 99, 20)));
         assertFalse(valid(new FlightRoute(1, 200, 1, 99, 201, 99, 20)));
-        assertFalse(valid(new FlightRoute(1, 100, 1, 99, 100, 99, 20)));
+        assertTrue(valid(new FlightRoute(1, 100, 1, 99, 100, 99, 20)));
         assertFalse(valid(new FlightRoute(-1, 200, 1, 99, 200, 99, 20)));
         assertFalse(valid(new FlightRoute(1, 200, 1, 1, 200, 1, 20)));
         for (double speed : new double[]{0, -1, Double.NaN, Double.POSITIVE_INFINITY, 101}) {
@@ -82,6 +82,6 @@ class FlightRouteTest {
     }
 
     private boolean valid(FlightRoute route) {
-        return route.isValid(0, 100, 0, 100, 150);
+        return route.isValid(0, 100, 0, 100);
     }
 }

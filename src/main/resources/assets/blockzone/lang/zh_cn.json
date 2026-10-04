@@ -7,5 +7,13 @@
   "blockzone.deployment.open_hint": "自由落体 · 按 %s 开伞",
   "blockzone.deployment.close_hint": "降落伞已打开 · 按 %s 收伞",
   "key.blockzone.toggle_parachute": "开伞 / 收伞",
-  "blockzone.deployment.outside_zone": "只能在毒圈内跳下，请继续沿路线飞入圈内。"
+  "blockzone.deployment.outside_zone": "只能在毒圈内跳下，请继续沿路线飞入圈内。",
+  "setting.battlezone.poison_sequences": "毒圈完整序列（JSON）",
+  "setting.battlezone.poison_sequences.desc": "完整序列数组；每圈包含 x、z、radius、wait_seconds、shrink_seconds、damage_multiplier。编号从1开始，倍率在抵达对应圈后生效。",
+  "setting.battlezone.poison_damage_per_second": "毒圈基础伤害 / 秒",
+  "setting.battlezone.poison_damage_per_second.desc": "实际伤害=基础伤害×当前圈的damage_multiplier；2点生命为一颗心。",
+  "setting.battlezone.deployment_height": "航线绝对高度 Y",
+  "setting.battlezone.deployment_height.desc": "绝对Y坐标，无地图顶部或2000上限；自行避开建筑。",
+  "setting.battlezone.deployment_speed": "航线速度（格/秒）",
+  "setting.battlezone.deployment_speed.desc": "范围0.1–100格/秒。"
 }

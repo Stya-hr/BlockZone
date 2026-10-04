@@ -37,11 +37,33 @@ class PoisonPathTest {
         assertEquals(20, path.circles().get(1).radius());
     }
 
-    @Test void impossibleOrGrowingPathsAreRejectedWithoutAlteringConfig() {
+    @Test void impossiblePathsAreRejectedWithoutAlteringConfig() {
         assertThrows(IllegalArgumentException.class, () -> new PoisonPath(List.of()).resolve(bounds, 64));
         assertThrows(IllegalArgumentException.class, () -> new PoisonPath(List.of(
                 new PoisonPath.Circle(0, 0, 101, 0, 0))).resolve(bounds, 64));
-        assertThrows(IllegalArgumentException.class, () -> new PoisonPath(List.of(
-                new PoisonPath.Circle(0, 0, 20, 0, 0), new PoisonPath.Circle(0, 0, 30, 1, 1))).resolve(bounds, 64));
+        var expanding = new PoisonPath(List.of(new PoisonPath.Circle(0, 0, 20, 0, 0),
+                new PoisonPath.Circle(0, 0, 30, 1, 1))).resolve(bounds, 64);
+        assertEquals(20, expanding.get(0).radius());
+        assertEquals(30, expanding.get(1).radius());
+    }
+    @Test void damageMultipliersDefaultForOldFilesAndApplyAfterEachCompletedTransition() {
+        var path = new PoisonPath(List.of(new PoisonPath.Circle(0, 0, 80, 0, 0, .5),
+                new PoisonPath.Circle(0, 0, 40, 5, 10, 2), new PoisonPath.Circle(0, 0, 0, 5, 10, 4)));
+        assertEquals(1, path.damageAt(0, 2));
+        assertEquals(4, path.damageAt(1, 2));
+        assertEquals(8, path.damageAt(2, 2));
+        assertEquals(8, path.damageAt(3, 2));
+        assertEquals(0, path.damageAt(1, 0));
+        var json = PoisonPath.CODEC.encodeStart(JsonOps.INSTANCE, path).result().orElseThrow();
+        assertEquals(path, PoisonPath.CODEC.parse(JsonOps.INSTANCE, json).result().orElseThrow());
+        var old = JsonParser.parseString("{\"x\":0,\"z\":0,\"radius\":10,\"wait_seconds\":0,\"shrink_seconds\":0}");
+        var circle = PoisonPath.CIRCLE_CODEC.parse(JsonOps.INSTANCE, old).result().orElseThrow();
+        assertEquals(1, circle.damageMultiplier());
+        assertTrue(PoisonPath.CIRCLE_CODEC.encodeStart(JsonOps.INSTANCE, circle).result().orElseThrow().getAsJsonObject().has("damage_multiplier"));
+        for (String invalid : List.of("-1", "1e999", "\"NaN\"")) {
+            var input = old.deepCopy().getAsJsonObject();
+            input.add("damage_multiplier", JsonParser.parseString(invalid));
+            assertTrue(PoisonPath.CIRCLE_CODEC.parse(JsonOps.INSTANCE, input).error().isPresent());
+        }
     }
 }

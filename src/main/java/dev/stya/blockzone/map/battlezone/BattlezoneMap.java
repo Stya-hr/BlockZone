@@ -565,6 +565,17 @@ public final class BattlezoneMap extends BaseMap {
     }
 
     @Override
+    public void handleDeath(com.ptcrys.fpsmatch.core.map.DeathContext context) {
+        super.handleDeath(context);
+        ServerPlayer player = context.getDeadPlayer();
+        clearAirbornePlayer(player);
+        // FPSMatch records elimination and restores entity health; the game type owns spectator mode.
+        player.setGameMode(net.minecraft.world.level.GameType.SPECTATOR);
+        player.displayClientMessage(Component.translatable("blockzone.match.eliminated"), false);
+        BattlezoneNetwork.send(player, createVisualStatePacket(player));
+    }
+
+    @Override
     public void victory() {
         if (phase != MatchPhase.MATCH || victoryAnnounced) {
             return;

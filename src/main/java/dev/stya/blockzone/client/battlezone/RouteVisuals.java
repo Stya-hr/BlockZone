@@ -1,15 +1,25 @@
 package dev.stya.blockzone.client.battlezone;
 
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
 import dev.stya.blockzone.BlockZone;
+import dev.stya.blockzone.client.battlezone.model.AirborneModels;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.texture.TextureAtlas;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.client.event.RenderPlayerEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-/** Route visibility is local to the observer; airborne opponents render normally. */
+/** The route has one transport; descending players and their canopies remain visible to all teams. */
 @Mod.EventBusSubscriber(modid = BlockZone.MOD_ID, value = Dist.CLIENT)
 public final class RouteVisuals {
     private RouteVisuals() { }
@@ -17,29 +27,75 @@ public final class RouteVisuals {
     @SubscribeEvent
     public static void renderPlayer(RenderPlayerEvent.Pre event) {
         var pose = FlightVisualPose.get(event.getEntity());
-        var local = Minecraft.getInstance().player;
-        if (pose != null && pose.state == 1 && local != null
-                && !pose.squad.contains(local.getUUID())) {
-            event.setCanceled(true);
+        if (pose != null && pose.state == 1) event.setCanceled(true);
+    }
+
+    @SubscribeEvent
+    public static void renderAirborneModels(RenderLevelStageEvent event) {
+        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_ENTITIES) return;
+        var minecraft = Minecraft.getInstance();
+        if (minecraft.level == null) return;
+        var buffers = minecraft.renderBuffers().bufferSource();
+        var type = RenderType.entityCutoutNoCull(TextureAtlas.LOCATION_BLOCKS);
+        var vertices = buffers.getBuffer(type);
+        var stack = event.getPoseStack();
+        var camera = event.getCamera().getPosition();
+        float partialTick = event.getPartialTick();
+        double animationTime = minecraft.level.getGameTime() + partialTick;
+        Vec3 transport = DeploymentVehicleState.position(partialTick);
+        if (transport != null) {
+            stack.pushPose();
+            orientModel(stack, transport, camera, DeploymentVehicleState.yaw());
+            int light = LevelRenderer.getLightColor(minecraft.level, BlockPos.containing(transport));
+            AirborneModels.render(AirborneModels.AIRCRAFT, 8, stack, vertices, light);
+            for (float side : new float[] {-4.25f, -2.25f, 2.25f, 4.25f}) {
+                stack.pushPose();
+                stack.translate(side, .625, -2.375);
+                stack.mulPose(Axis.ZP.rotationDegrees((float) ((animationTime * 37 + side * 30) % 360)));
+                AirborneModels.render(AirborneModels.PROPELLER, 8, stack, vertices, light);
+                stack.popPose();
+            }
+            stack.popPose();
         }
+        for (var player : minecraft.level.players()) {
+            var pose = FlightVisualPose.get(player);
+            if (pose == null || pose.state != 2 || player.isInvisible()) continue;
+            var position = player.getPosition(partialTick);
+            stack.pushPose();
+            orientModel(stack, position, camera, Mth.rotLerp(partialTick, player.yBodyRotO, player.yBodyRot));
+            // Swing about the harness, keeping the canopy attached to the player.
+            double swing = animationTime * .09 + player.getId();
+            stack.translate(0, 1.2, 0);
+            stack.mulPose(Axis.ZP.rotationDegrees((float) Math.sin(swing) * 2));
+            stack.mulPose(Axis.XP.rotationDegrees((float) Math.cos(swing * .8) * 1.2f));
+            stack.translate(0, -1.2, 0);
+            int light = LevelRenderer.getLightColor(minecraft.level, BlockPos.containing(position.add(0, 4, 0)));
+            AirborneModels.render(AirborneModels.PARACHUTE, 4, stack, vertices, light);
+            stack.popPose();
+        }
+        buffers.endBatch(type);
+    }
+
+    private static void orientModel(PoseStack stack, Vec3 position, Vec3 camera, float yaw) {
+        stack.translate(position.x - camera.x, position.y - camera.y, position.z - camera.z);
+        stack.mulPose(Axis.YP.rotationDegrees(180 - yaw));
+        // Standard block/item models use positive Y for up and negative Z for forward.
     }
 
     @SubscribeEvent
     public static void tick(TickEvent.ClientTickEvent event) {
         var minecraft = Minecraft.getInstance();
-        if (event.phase != TickEvent.Phase.END || minecraft.level == null || minecraft.player == null) return;
-        for (var player : minecraft.level.players()) {
-            var pose = FlightVisualPose.get(player);
-            if (pose == null || pose.state != 1 || !pose.squad.contains(minecraft.player.getUUID())) continue;
-            double yaw = Math.toRadians(pose.routeYaw);
-            // Emit behind the fixed route heading, independently of mouse look.
-            for (int i = 0; i < 3; i++) {
-                double distance = 1.2 + i * .45;
-                minecraft.level.addParticle(ParticleTypes.CLOUD,
-                        player.getX() + Math.sin(yaw) * distance, player.getY() + .25,
-                        player.getZ() - Math.cos(yaw) * distance,
-                        Math.sin(yaw) * .08, 0, -Math.cos(yaw) * .08);
-            }
+        if (event.phase != TickEvent.Phase.END || minecraft.level == null) return;
+        var position = DeploymentVehicleState.position(0);
+        if (position == null) return;
+        double yaw = Math.toRadians(DeploymentVehicleState.yaw());
+        // One exhaust stream per engine, surviving even after the final passenger jumps.
+        for (double side : new double[] {-4.25, -2.25, 2.25, 4.25}) {
+            minecraft.level.addParticle(ParticleTypes.CLOUD,
+                    position.x + Math.cos(yaw) * side + Math.sin(yaw) * 1.2,
+                    position.y + .6,
+                    position.z + Math.sin(yaw) * side - Math.cos(yaw) * 1.2,
+                    Math.sin(yaw) * .08, 0, -Math.cos(yaw) * .08);
         }
     }
 }

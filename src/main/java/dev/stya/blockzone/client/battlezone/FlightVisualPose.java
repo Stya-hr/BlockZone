@@ -42,7 +42,6 @@ public final class FlightVisualPose {
                 blend.target = target;
                 blend.state = packet.state();
                 blend.routeYaw = packet.routeYaw();
-                blend.squad = packet.squad();
             }
         }
     }
@@ -77,7 +76,6 @@ public final class FlightVisualPose {
     public static final class Blend {
         public int state;
         public float routeYaw;
-        public java.util.List<UUID> squad = java.util.List.of();
         private float[] target;
         private final float[] current;
         private final float[] previous;

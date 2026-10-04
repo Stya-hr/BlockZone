@@ -5,6 +5,7 @@ uniform float ZoneYOffset;
 uniform float ZoneDaylight;
 uniform vec3 CameraLocalPosition;
 in vec3 zonePosition;
+in float wallHeight;
 
 out vec4 fragColor;
 
@@ -62,5 +63,7 @@ void main() {
     color = mix(color, mix(vec3(0.84, 0.76, 1.0), vec3(0.20, 0.10, 0.43), daylight), rim);
     // A stronger daytime body actually darkens the background through alpha blending.
     float alpha = mix(0.07, 0.14, daylight) + smoke * 0.13 + wisps * 0.08 + rim * 0.24;
-    fragColor = vec4(color, alpha * (outside ? 0.90 : 1.0));
+    // Fade the upper third to avoid a hard horizontal edge against the sky.
+    float topFade = 1.0 - smoothstep(2.0 / 3.0, 1.0, wallHeight);
+    fragColor = vec4(color, alpha * topFade * (outside ? 0.90 : 1.0));
 }

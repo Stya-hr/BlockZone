@@ -1,0 +1,171 @@
+{
+  "credit": "Blockzone — refined in Blockbench via MCP",
+  "ambientocclusion": false,
+  "texture_size": [
+    64,
+    64
+  ],
+  "textures": {
+    "texture": "blockzone:block/airborne/transport_aircraft",
+    "particle": "#texture"
+  },
+  "elements": [
+    {
+      "name": "propeller_vertical",
+      "from": [
+        7.875,
+        6.25,
+        7.925
+      ],
+      "to": [
+        8.125,
+        9.75,
+        8.075
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            4.125,
+            4.125,
+            7.875,
+            7.875
+          ],
+          "texture": "#texture"
+        },
+        "east": {
+          "uv": [
+            4.125,
+            4.125,
+            7.875,
+            7.875
+          ],
+          "texture": "#texture"
+        },
+        "south": {
+          "uv": [
+            4.125,
+            4.125,
+            7.875,
+            7.875
+          ],
+          "texture": "#texture"
+        },
+        "west": {
+          "uv": [
+            4.125,
+            4.125,
+            7.875,
+            7.875
+          ],
+          "texture": "#texture"
+        },
+        "up": {
+          "uv": [
+            4.125,
+            4.125,
+            7.875,
+            7.875
+          ],
+          "texture": "#texture"
+        },
+        "down": {
+          "uv": [
+            4.125,
+            4.125,
+            7.875,
+            7.875
+          ],
+          "texture": "#texture"
+        }
+      }
+    },
+    {
+      "name": "propeller_horizontal",
+      "from": [
+        6.25,
+        7.875,
+        7.925
+      ],
+      "to": [
+        9.75,
+        8.125,
+        8.075
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            4.125,
+            4.125,
+            7.875,
+            7.875
+          ],
+          "texture": "#texture"
+        },
+        "east": {
+          "uv": [
+            4.125,
+            4.125,
+            7.875,
+            7.875
+          ],
+          "texture": "#texture"
+        },
+        "south": {
+          "uv": [
+            4.125,
+            4.125,
+            7.875,
+            7.875
+          ],
+          "texture": "#texture"
+        },
+        "west": {
+          "uv": [
+            4.125,
+            4.125,
+            7.875,
+            7.875
+          ],
+          "texture": "#texture"
+        },
+        "up": {
+          "uv": [
+            4.125,
+            4.125,
+            7.875,
+            7.875
+          ],
+          "texture": "#texture"
+        },
+        "down": {
+          "uv": [
+            4.125,
+            4.125,
+            7.875,
+            7.875
+          ],
+          "texture": "#texture"
+        }
+      }
+    }
+  ],
+  "display": {
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    }
+  }
+}

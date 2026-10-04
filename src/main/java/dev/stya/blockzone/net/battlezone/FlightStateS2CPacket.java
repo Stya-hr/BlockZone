@@ -6,19 +6,18 @@ import java.util.function.Supplier;
 import java.util.UUID;
 
 /** 0 = normal, 1 = on route, 2 = parachute open, 3 = freefall. */
-public record FlightStateS2CPacket(UUID playerId, int state, float routeYaw, java.util.List<UUID> squad) {
+public record FlightStateS2CPacket(UUID playerId, int state, float routeYaw) {
     public FlightStateS2CPacket(UUID playerId, int state) {
-        this(playerId, state, 0, java.util.List.of());
+        this(playerId, state, 0);
     }
     public static void encode(FlightStateS2CPacket packet, FriendlyByteBuf buffer) {
         buffer.writeUUID(packet.playerId);
         buffer.writeByte(packet.state);
         buffer.writeFloat(packet.routeYaw);
-        buffer.writeCollection(packet.squad, FriendlyByteBuf::writeUUID);
     }
 
     public static FlightStateS2CPacket decode(FriendlyByteBuf buffer) {
-        return new FlightStateS2CPacket(buffer.readUUID(), buffer.readUnsignedByte(), buffer.readFloat(), buffer.readList(FriendlyByteBuf::readUUID));
+        return new FlightStateS2CPacket(buffer.readUUID(), buffer.readUnsignedByte(), buffer.readFloat());
     }
 
     public void handle(Supplier<NetworkEvent.Context> supplier) {

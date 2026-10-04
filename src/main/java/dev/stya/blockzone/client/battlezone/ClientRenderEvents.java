@@ -22,6 +22,7 @@ public final class ClientRenderEvents {
     @SubscribeEvent
     public static void onLogout(ClientPlayerNetworkEvent.LoggingOut event) {
         ZoneClientState.clear();
+        DeploymentVehicleState.clear();
         MaterialRenderState.end();
         ZoneRenderer.release();
     }

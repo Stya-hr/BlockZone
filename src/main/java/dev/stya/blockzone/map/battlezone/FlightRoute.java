@@ -48,6 +48,16 @@ public record FlightRoute(double startX, double startY, double startZ,
                 && startZ >= minZ && startZ <= maxZ && endZ >= minZ && endZ <= maxZ;
     }
 
+    /** The transport keeps flying after the last automatic jump, until deployment ends. */
+    public VehiclePosition vehiclePosition(double ticks) {
+        double distance = Math.max(0, ticks) * speed / 20.0;
+        double fraction = length() > .001 ? distance / length() : 0;
+        return new VehiclePosition(startX + (endX - startX) * fraction,
+                startZ + (endZ - startZ) * fraction);
+    }
+
+    public record VehiclePosition(double x, double z) { }
+
     public double progress(long ticks) {
         if (length() <= 0.001) {
             return 1.0;

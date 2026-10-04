@@ -1,0 +1,299 @@
+{
+  "meta": {
+    "format_version": "5.0",
+    "model_format": "java_block",
+    "box_uv": false
+  },
+  "name": "propeller",
+  "parent": "",
+  "java_block_version": "1.9.0",
+  "credit": "Blockzone — refined in Blockbench via MCP",
+  "ambientocclusion": false,
+  "front_gui_light": false,
+  "visible_box": [
+    1,
+    1,
+    0
+  ],
+  "variable_placeholders": "",
+  "multi_file_ruleset": "",
+  "variable_placeholder_buttons": [],
+  "unhandled_root_fields": {},
+  "ai_used": true,
+  "ai_agents": "blockzone-model-editor",
+  "resolution": {
+    "width": 64,
+    "height": 64
+  },
+  "elements": [
+    {
+      "name": "propeller_vertical",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        7.875,
+        6.25,
+        7.925
+      ],
+      "to": [
+        8.125,
+        9.75,
+        8.075
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            16.5,
+            16.5,
+            31.5,
+            31.5
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            16.5,
+            16.5,
+            31.5,
+            31.5
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            16.5,
+            16.5,
+            31.5,
+            31.5
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            16.5,
+            16.5,
+            31.5,
+            31.5
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            16.5,
+            16.5,
+            31.5,
+            31.5
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            16.5,
+            16.5,
+            31.5,
+            31.5
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "d5317ecc-8f85-6d80-b4de-df66f71c26bc"
+    },
+    {
+      "name": "propeller_horizontal",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        6.25,
+        7.875,
+        7.925
+      ],
+      "to": [
+        9.75,
+        8.125,
+        8.075
+      ],
+      "autouv": 0,
+      "color": 6,
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            16.5,
+            16.5,
+            31.5,
+            31.5
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            16.5,
+            16.5,
+            31.5,
+            31.5
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            16.5,
+            16.5,
+            31.5,
+            31.5
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            16.5,
+            16.5,
+            31.5,
+            31.5
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            16.5,
+            16.5,
+            31.5,
+            31.5
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            16.5,
+            16.5,
+            31.5,
+            31.5
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "ecfd20f0-4244-b99e-5bbc-d68560dc486f"
+    }
+  ],
+  "groups": [
+    {
+      "name": "动力装置",
+      "uuid": "d3321563-dec9-a002-d2f0-ca377dce4416",
+      "export": true,
+      "locked": false,
+      "scope": 0,
+      "selected": false,
+      "visibility": true,
+      "_static": {
+        "properties": {},
+        "temp_data": {}
+      },
+      "origin": [
+        8,
+        8,
+        8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 0,
+      "children": [],
+      "reset": false,
+      "shade": true,
+      "mirror_uv": false,
+      "autouv": 0,
+      "isOpen": false,
+      "primary_selected": false
+    }
+  ],
+  "outliner": [
+    {
+      "uuid": "d3321563-dec9-a002-d2f0-ca377dce4416",
+      "isOpen": false,
+      "children": [
+        "d5317ecc-8f85-6d80-b4de-df66f71c26bc",
+        "ecfd20f0-4244-b99e-5bbc-d68560dc486f"
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "name": "transport_aircraft.png",
+      "folder": "block/airborne",
+      "namespace": "blockzone",
+      "id": "texture",
+      "group": "",
+      "scope": 0,
+      "width": 0,
+      "height": 0,
+      "uv_width": 64,
+      "uv_height": 64,
+      "particle": false,
+      "use_as_default": false,
+      "layers_enabled": false,
+      "sync_to_project": "",
+      "file_format": "png",
+      "render_mode": "default",
+      "render_sides": "auto",
+      "wrap_mode": "limited",
+      "pbr_channel": "color",
+      "fps": 7,
+      "frame_time": 1,
+      "frame_order_type": "loop",
+      "frame_order": "",
+      "frame_interpolate": false,
+      "visible": true,
+      "internal": true,
+      "saved": false,
+      "uuid": "7e6e4980-8d89-140a-0611-80e893fbde23",
+      "source": "data:image/png;base64,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"
+    }
+  ],
+  "display": {
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    }
+  }
+}

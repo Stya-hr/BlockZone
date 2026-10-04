@@ -81,6 +81,25 @@ class FlightRouteTest {
         assertEquals(1, route.progress(400));
     }
 
+    @Test void vehicleKeepsFlyingAfterThePassengerRouteEnds() {
+        var route = new FlightRoute(0, 200, 0, 30, 200, 40, 10);
+        var vehicle = route.vehiclePosition(200);
+        assertEquals(30, route.x(200));
+        assertEquals(40, route.z(200));
+        assertEquals(60, vehicle.x(), 1e-9);
+        assertEquals(80, vehicle.z(), 1e-9);
+    }
+
+    @Test void vehicleInterpolatesBetweenTicksInEitherDirection() {
+        var route = new FlightRoute(10, 200, 20, 0, 200, 20, 10);
+        assertEquals(9.75, route.vehiclePosition(.5).x(), 1e-9);
+        assertEquals(20, route.vehiclePosition(.5).z(), 1e-9);
+        assertEquals(10, route.vehiclePosition(-10).x(), 1e-9);
+        var stationary = new FlightRoute(1, 100, 2, 1, 100, 2, 10);
+        assertEquals(1, stationary.vehiclePosition(1000).x());
+        assertEquals(2, stationary.vehiclePosition(1000).z());
+    }
+
     private boolean valid(FlightRoute route) {
         return route.isValid(0, 100, 0, 100);
     }

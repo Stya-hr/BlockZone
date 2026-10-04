@@ -113,7 +113,7 @@ public final class DeploymentClientController {
             return;
         }
         previousCameraDistance = cameraDistance;
-        cameraDistance = net.minecraft.util.Mth.lerp(.2f, cameraDistance, state == 1 ? 12 : 4);
+        cameraDistance = net.minecraft.util.Mth.lerp(.2f, cameraDistance, state == 1 ? 18 : state == 2 ? 7 : 4);
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.player != trackedPlayer
                 || minecraft.player.isDeadOrDying() || minecraft.player.isSpectator()) {

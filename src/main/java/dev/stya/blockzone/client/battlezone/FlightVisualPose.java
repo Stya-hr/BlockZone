@@ -33,7 +33,7 @@ public final class FlightVisualPose {
         } else {
             float[] target = switch (packet.state()) {
                 case 1 -> new float[] {-90, -2.8f, .2f, 0, .05f};
-                case 2 -> new float[] {0, -2.7f, .25f, .35f, .1f};
+                case 2 -> new float[] {12, -2.4f, .18f, -.45f, .06f};
                 case 3 -> new float[] {-60, -.4f, 1.1f, .2f, .2f};
                 default -> null;
             };
@@ -42,7 +42,6 @@ public final class FlightVisualPose {
                 blend.target = target;
                 blend.state = packet.state();
                 blend.routeYaw = packet.routeYaw();
-                blend.squad = packet.squad();
             }
         }
     }
@@ -77,7 +76,6 @@ public final class FlightVisualPose {
     public static final class Blend {
         public int state;
         public float routeYaw;
-        public java.util.List<UUID> squad = java.util.List.of();
         private float[] target;
         private final float[] current;
         private final float[] previous;

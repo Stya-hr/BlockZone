@@ -43,6 +43,20 @@ public final class LootCrateBlockEntity extends BlockEntity {
         setChanged();
     }
 
+    public dev.stya.blockzone.util.editor.LootCrateEdit editorData() {
+        return new dev.stya.blockzone.util.editor.LootCrateEdit(worldPosition.getX(), worldPosition.getY(),
+                worldPosition.getZ(), lootTable.toString(), lootTableSeed, opened);
+    }
+
+    public void applyEditorData(dev.stya.blockzone.util.editor.LootCrateEdit entry) {
+        ResourceLocation table = ResourceLocation.tryParse(entry.table());
+        if (table == null) throw new IllegalArgumentException("Invalid loot table ID");
+        configure(table, entry.seed());
+        opened = entry.opened();
+        updateAppearance();
+        setChanged();
+    }
+
     public void resetOpened() {
         opened = false;
         updateAppearance();

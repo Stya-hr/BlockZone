@@ -819,6 +819,11 @@ public final class BattlezoneMap extends BaseMap {
 
     public java.util.UUID getLootRoundId() { return lootRoundId; }
 
+    public boolean saveLootCrateEdits(java.util.List<dev.stya.blockzone.util.editor.LootCrateEdit> changes,
+                                      java.util.function.Consumer<Boolean> result) {
+        return sceneSnapshot.saveLootCrateEdits(changes, result);
+    }
+
     public boolean canEditLootCrates() { return !isStart && !sceneSnapshot.isBusy(); }
 
     public boolean isMatchActive() {

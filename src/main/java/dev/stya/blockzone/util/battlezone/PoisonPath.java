@@ -6,7 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** A complete configured path: first circle is deployment, subsequent circles are shrink targets. */
-public record PoisonPath(List<Circle> circles) {
+public record PoisonPath(List<Circle> circles, ZoneShape shape) {
+    public PoisonPath(List<Circle> circles) { this(circles, ZoneShape.CYLINDER); }
     public PoisonPath { circles = List.copyOf(circles); }
     public static final Codec<Circle> CIRCLE_CODEC = RecordCodecBuilder.create(instance -> instance.group(
             dev.stya.blockzone.util.CodecSettings.FINITE_DOUBLE.fieldOf("x").forGetter(Circle::x),
@@ -17,7 +18,8 @@ public record PoisonPath(List<Circle> circles) {
             dev.stya.blockzone.util.CodecSettings.aliasedField(dev.stya.blockzone.util.CodecSettings.NONNEGATIVE_DOUBLE, "damageMultiplier", "damage_multiplier", 1.0).forGetter(Circle::damageMultiplier)
     ).apply(instance, Circle::new));
     public static final Codec<PoisonPath> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-            CIRCLE_CODEC.listOf().fieldOf("circles").forGetter(PoisonPath::circles)
+            CIRCLE_CODEC.listOf().fieldOf("circles").forGetter(PoisonPath::circles),
+            dev.stya.blockzone.util.CodecSettings.optionalField(ZoneShape.CODEC, "shape", ZoneShape.CYLINDER).forGetter(PoisonPath::shape)
     ).apply(instance, PoisonPath::new));
 
     public List<ZoneGeometry> resolve(BoundaryGeometry bounds, double y) {
@@ -28,7 +30,7 @@ public record PoisonPath(List<Circle> circles) {
                     || !Double.isFinite(circle.damageMultiplier()) || circle.damageMultiplier() < 0)
                 throw new IllegalArgumentException("Circle numbers must be finite and damageMultiplier nonnegative");
             if (circle.waitSeconds() < 0 || circle.shrinkSeconds() < 0) throw new IllegalArgumentException("Negative circle duration");
-            result.add(new ZoneGeometry(circle.x(), y, circle.z(), circle.radius()).fitInside(bounds));
+            result.add(new ZoneGeometry(circle.x(), y, circle.z(), circle.radius(), shape).fitInside(bounds));
         }
         return List.copyOf(result);
     }

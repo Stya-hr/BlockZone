@@ -11,7 +11,7 @@ import java.util.WeakHashMap;
 
 public final class BattlezoneNetwork {
     private static final NetworkPacketRegister PACKETS = new NetworkPacketRegister(
-            ResourceLocation.fromNamespaceAndPath(BlockZone.MOD_ID, "main"), "8");
+            ResourceLocation.fromNamespaceAndPath(BlockZone.MOD_ID, "main"), "9");
 
     private static final Map<ServerPlayer, Integer> FLIGHT_STATES = new WeakHashMap<>();
 

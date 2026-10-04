@@ -19,7 +19,7 @@ public final class PoisonEditorScreen extends Screen {
     private static String fieldKey(int index) { return "setting.battlezone.poisonCircle." + FIELD_KEYS[index]; }
     private final List<EditBox> fields = new ArrayList<>();
     private int panel, panelScroll;
-    private boolean moving, resizing;
+    private boolean moving;
     public PoisonEditorScreen() { super(Component.translatable("editor.blockzone.title")); }
     @Override public boolean isPauseScreen() { return false; }
     @Override protected void init() {
@@ -49,6 +49,9 @@ public final class PoisonEditorScreen extends Screen {
         button(panel + 111, 222, 97, "editor.blockzone.move_down", () -> change(() -> draft.moveCircle(1)));
         button(panel + 8, 246, 97, "editor.blockzone.observe", () -> { if (apply()) minecraft.setScreen(null); });
         button(panel + 111, 246, 97, "editor.blockzone.save", () -> { if (apply()) PoisonWorldEditor.save(); });
+        button(panel + 8, 270, 200, "setting.battlezone.poisonShape." + draft.path().shape().id(),
+                () -> change(() -> draft.setShape(dev.stya.blockzone.util.battlezone.ZoneShape.values()[
+                        (draft.path().shape().ordinal() + 1) % dev.stya.blockzone.util.battlezone.ZoneShape.values().length])));
         button(panel + 170, 3, 38, "editor.blockzone.exit", this::onClose);
     }
     private void button(int x, int y, int w, String key, Runnable action) {
@@ -106,7 +109,7 @@ public final class PoisonEditorScreen extends Screen {
         var c = d.selected();
         String warning = PoisonWorldEditor.message;
         try {
-            var actual = new ZoneGeometry(c.x(), PoisonWorldEditor.y(), c.z(), c.radius()).fitInside(PoisonWorldEditor.bounds());
+            var actual = new ZoneGeometry(c.x(), PoisonWorldEditor.y(), c.z(), c.radius(), PoisonWorldEditor.draft.path().shape()).fitInside(PoisonWorldEditor.bounds());
             if (warning.isEmpty() && (actual.centerX()!=c.x() || actual.centerZ()!=c.z()))
                 warning = Component.translatable("editor.blockzone.adjusted", String.format(java.util.Locale.ROOT, "%.2f", actual.centerX()),
                         String.format(java.util.Locale.ROOT, "%.2f", actual.centerZ())).getString();
@@ -124,8 +127,7 @@ public final class PoisonEditorScreen extends Screen {
         var point = ground(x,y);
         if (point == null) { PoisonWorldEditor.message = Component.translatable("editor.blockzone.look_down").getString(); return; }
         var c = PoisonWorldEditor.draft.selected();
-        if (resizing) PoisonWorldEditor.setGeometry(c.x(), c.z(), Math.hypot(point.x-c.x(), point.z-c.z()));
-        else PoisonWorldEditor.setGeometry(point.x, point.z, c.radius());
+        PoisonWorldEditor.setGeometry(point.x, point.z, c.radius());
         var next = PoisonWorldEditor.draft.selected();
         fields.get(0).setValue(Double.toString(next.x())); fields.get(1).setValue(Double.toString(next.z()));
         fields.get(2).setValue(Double.toString(next.radius()));
@@ -145,7 +147,7 @@ public final class PoisonEditorScreen extends Screen {
         setFocused(null);
         if (PoisonWorldEditor.saving) return true;
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && apply()) {
-            moving = true; resizing = hasShiftDown(); manipulate(x,y); return true;
+            moving = true; manipulate(x,y); return true;
         }
         return button == GLFW.GLFW_MOUSE_BUTTON_RIGHT || super.mouseClicked(x,y,button);
     }
@@ -166,7 +168,7 @@ public final class PoisonEditorScreen extends Screen {
             fields.get(2).setValue(Double.toString(PoisonWorldEditor.draft.selected().radius())); return true;
         }
         if (x >= panel && !PoisonWorldEditor.saving && apply()) {
-            panelScroll = net.minecraft.util.Mth.clamp(panelScroll - (int)(delta * 18), 0, Math.max(0, 270 - height));
+            panelScroll = net.minecraft.util.Mth.clamp(panelScroll - (int)(delta * 18), 0, Math.max(0, 294 - height));
             rebuildWidgets(); return true;
         }
         return super.mouseScrolled(x,y,delta);

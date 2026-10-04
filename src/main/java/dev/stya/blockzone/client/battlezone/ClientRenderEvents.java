@@ -23,6 +23,6 @@ public final class ClientRenderEvents {
     public static void onLogout(ClientPlayerNetworkEvent.LoggingOut event) {
         ZoneClientState.clear();
         MaterialRenderState.end();
-        SphereRenderer.release();
+        ZoneRenderer.release();
     }
 }

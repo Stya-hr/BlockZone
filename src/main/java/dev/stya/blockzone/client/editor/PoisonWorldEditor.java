@@ -73,7 +73,7 @@ public final class PoisonWorldEditor {
                 event.getPoseStack(), camera);
         for (int i = Math.max(0, draft.circle() - 1); i <= Math.min(draft.path().circles().size() - 1, draft.circle() + 1); i++) {
             var c = draft.path().circles().get(i);
-            var raw = new ZoneGeometry(c.x(), y(), c.z(), c.radius());
+            var raw = new ZoneGeometry(c.x(), y(), c.z(), c.radius(), PoisonWorldEditor.draft.path().shape());
             int color = i == draft.circle() ? 0xffffff : net.minecraft.util.Mth.hsvToRgb(
                     (float)i / draft.path().circles().size(), .65f, .65f);
             try {

@@ -4,6 +4,28 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ZoneGeometryTest {
+    @Test void defaultCylinderIgnoresHeightAndIncludesCircularBoundary() {
+        var cylinder = new ZoneGeometry(0, 64, 0, 10);
+        assertEquals(ZoneShape.CYLINDER, cylinder.shape());
+        assertTrue(cylinder.contains(6, 100000, 8));
+        assertTrue(cylinder.contains(6, -100000, 8));
+        assertFalse(cylinder.contains(10, 64, 10));
+        assertFalse(cylinder.contains(10.001, 64, 0));
+    }
+
+    @Test void squarePrismIncludesCornersAtEveryHeightButRejectsBeyondSideFaces() {
+        var prism = new ZoneGeometry(0, 64, 0, 10, ZoneShape.SQUARE_PRISM);
+        assertTrue(prism.contains(10, 74, 10));
+        assertTrue(prism.contains(-10, 54, -10));
+        assertFalse(prism.contains(10.001, 64, 0));
+        assertTrue(prism.contains(0, 100000, 0));
+        assertTrue(prism.contains(0, -100000, 0));
+        assertFalse(prism.contains(0, 64, -10.001));
+        assertTrue(prism.containsHorizontal(10, 10));
+        assertEquals(ZoneShape.SQUARE_PRISM, prism.fitInside(BoundaryGeometry.of(-20, -20, 20, 20)).shape());
+        for (var shape : ZoneShape.values()) assertFalse(new ZoneGeometry(0, 0, 0, 0, shape).contains(0, 0, 0));
+    }
+
     @Test void outOfBoundsCirclesAreTranslatedWithoutChangingRadius() {
         var bounds = BoundaryGeometry.of(99, 49, -100, -50);
         var original = new ZoneGeometry(500, 64, -500, 20);
@@ -29,32 +51,19 @@ class ZoneGeometryTest {
         }
     }
 
-    private final ZoneGeometry zone = new ZoneGeometry(100, 64, -100, 50);
+    private final ZoneGeometry zone = new ZoneGeometry(100, 64, -100, 50, ZoneShape.CYLINDER);
 
-    @Test void deploymentUsesHorizontalProjectionWhileDamageUsesFullSphere() {
+    @Test void deploymentAndDamageUseTheSameHorizontalFootprint() {
         assertTrue(zone.containsHorizontal(130, -100));
-        assertFalse(zone.contains(130, 200, -100));
+        assertTrue(zone.contains(130, 200, -100));
+        assertTrue(zone.contains(130, -200, -100));
         assertTrue(zone.containsHorizontal(150, -100));
         assertFalse(zone.containsHorizontal(151, -100));
         assertFalse(new ZoneGeometry(0, 0, 0, 0).containsHorizontal(0, 0));
     }
 
     @Test
-    void highGroundUsesSphereInsteadOfHorizontalCircle() {
-        assertTrue(zone.contains(130, 104, -100));
-        assertFalse(zone.contains(140, 104, -100));
-        assertFalse(zone.contains(100, 115, -100));
-    }
-
-    @Test
-    void lowerHemisphereIsSafeWithinRadius() {
-        assertTrue(zone.contains(130, 24, -100));
-        assertFalse(zone.contains(140, 24, -100));
-        assertFalse(zone.contains(100, 13, -100));
-    }
-
-    @Test
-    void equatorIncludesBoundaryAndRejectsOutside() {
+    void cylinderIncludesBoundaryAndRejectsOutside() {
         assertTrue(zone.contains(150, 64, -100));
         assertFalse(zone.contains(150.001, 64, -100));
     }

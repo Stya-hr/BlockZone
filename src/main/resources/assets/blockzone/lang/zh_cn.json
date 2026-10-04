@@ -23,7 +23,7 @@
   "editor.blockzone.discard_hint": "草稿尚未保存，退出后将丢弃。",
   "editor.blockzone.sequence": "序列 %s / %s",
   "editor.blockzone.circle": "圈 %s / %s",
-  "editor.blockzone.drag_controls": "左拖移动 · Shift 左拖半径 · 右拖看向 · 滚轮半径",
+  "editor.blockzone.drag_controls": "左拖移动 · 右拖看向 · 滚轮半径",
   "editor.blockzone.colors": "白：选中 · 橙：越界原始圈 · 青：实际圈",
   "editor.blockzone.adjusted": "越界：实际圈心为 X=%s Z=%s，保存原坐标。",
   "editor.blockzone.too_large": "半径无法放入地图，请减小后再保存。",
@@ -49,7 +49,7 @@
   "setting.battlezone.poisonDamagePerSecond": "毒圈基础伤害（每秒）",
   "setting.battlezone.poisonDamagePerSecond.desc": "圈外每秒伤害等于基础伤害乘以当前圈的伤害系数；2 点生命值为一颗心，设为 0 可关闭伤害。",
   "setting.battlezone.poisonSequences": "毒圈序列",
-  "setting.battlezone.poisonSequences.desc": "每局随机选择一套完整路径；第一圈为部署圈，后续圈可缩小或扩大。推荐使用 settings sequence edit 在世界内编辑。",
+  "setting.battlezone.poisonSequences.desc": "每条序列包含 shape（cylinder/square_prism，默认 cylinder）和 circles。首阶段用于投放，后续阶段为缩圈目标；整条序列使用同一种形状。",
   "setting.battlezone.boundaryTexture": "地图边界贴图",
   "setting.battlezone.boundaryTexture.desc": "地图边界警示围栏的纹理资源路径，例如 blockzone:textures/effect/battlezone_warning_fence.png。",
   "setting.battlezone.poisonCircle.x": "圈心 X",
@@ -57,7 +57,7 @@
   "setting.battlezone.poisonCircle.z": "圈心 Z",
   "setting.battlezone.poisonCircle.z.desc": "保存的圈心水平 Z 坐标；越界时保留此值，游戏内平移到地图范围内。",
   "setting.battlezone.poisonCircle.radius": "半径（格）",
-  "setting.battlezone.poisonCircle.radius.desc": "球体半径，单位为格。可为 0，也可比前一圈更大；直径必须能放入地图水平范围。",
+  "setting.battlezone.poisonCircle.radius.desc": "圆柱半径或方柱半边长，高度不限。允许为零和扩大；水平直径／边长必须能放入地图。",
   "setting.battlezone.poisonCircle.waitSeconds": "等待时间（秒）",
   "setting.battlezone.poisonCircle.waitSeconds.desc": "向本圈过渡前的等待时间；首圈由部署时间控制，此字段不参与首圈计时。",
   "setting.battlezone.poisonCircle.shrinkSeconds": "过渡时间（秒）",
@@ -68,5 +68,7 @@
   "editor.blockzone.camera_controls": "WASD 飞行 · 空格/Shift 升降 · Ctrl 加速 · F6 聚焦",
   "editor.blockzone.camera_position": "镜头 X=%s Y=%s Z=%s",
   "editor.blockzone.camera_busy": "镜头暂不可用；其他镜头结束后按 F6 重试。",
-  "editor.blockzone.camera_ended": "自由镜头已结束，草稿保留；按 F6 重新启用。"
+  "editor.blockzone.camera_ended": "自由镜头已结束，草稿保留；按 F6 重新启用。",
+  "setting.battlezone.poisonShape.cylinder": "形状：圆柱（高度不限）",
+  "setting.battlezone.poisonShape.square_prism": "形状：方柱（高度不限）"
 }

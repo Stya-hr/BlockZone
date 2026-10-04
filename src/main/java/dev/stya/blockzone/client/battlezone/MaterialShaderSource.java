@@ -12,7 +12,7 @@ public final class MaterialShaderSource {
         if (!world || !source.matches("(?s).*void\\s+main\\s*\\(\\s*\\)\\s*\\{.*")) return source;
         String declarations = vertex
                 ? "\nuniform mat4 BlockzoneClipToWorld;\nuniform float BlockzoneMaterialsActive;\nout vec3 BlockzoneWorldPosition;\n"
-                : "\nin vec3 BlockzoneWorldPosition;\nuniform float BlockzoneMaterialsActive;\nuniform vec3 BlockzoneZoneCenter;\nuniform float BlockzoneZoneRadius;\n";
+                : "\nin vec3 BlockzoneWorldPosition;\nuniform float BlockzoneMaterialsActive;\nuniform vec3 BlockzoneZoneCenter;\nuniform float BlockzoneZoneRadius;\nuniform int BlockzoneZoneShape;\n";
         // Keep #version, #extension and resource-pack imports in their original order.
         String modified = source.replaceFirst("void\\s+main\\s*\\(\\s*\\)",
                 declarations + "void blockzoneOriginalMain()");
@@ -31,8 +31,10 @@ public final class MaterialShaderSource {
                 void main() {
                     blockzoneOriginalMain();
                     vec3 delta = BlockzoneWorldPosition - BlockzoneZoneCenter;
-                    if (BlockzoneMaterialsActive > 0.5 && (BlockzoneZoneRadius <= 0.0
-                        || dot(delta, delta) > BlockzoneZoneRadius * BlockzoneZoneRadius)) {
+                    bool outside = BlockzoneZoneShape == 1
+                        ? max(abs(delta.x), abs(delta.z)) > BlockzoneZoneRadius
+                        : dot(delta.xz, delta.xz) > BlockzoneZoneRadius * BlockzoneZoneRadius;
+                    if (BlockzoneMaterialsActive > 0.5 && (BlockzoneZoneRadius <= 0.0 || outside)) {
                         float luminance = clamp(dot(fragColor.rgb, vec3(0.2126, 0.7152, 0.0722)), 0.0, 1.0);
                         // Lift shadows without flattening texture and lighting contrast.
                         float grey = 0.16 + 0.70 * sqrt(luminance);

@@ -66,6 +66,7 @@ public final class BattlezoneMap extends BaseMap {
     private boolean snapshotValid;
     private boolean snapshotSavePending;
     private boolean victoryAnnounced;
+    private java.util.UUID lootRoundId;
     private long lastVisualStateSync = Long.MIN_VALUE;
 
     public BattlezoneMap(ServerLevel serverLevel, String mapName, AreaData areaData) {
@@ -411,6 +412,7 @@ public final class BattlezoneMap extends BaseMap {
             return false;
         }
         isStart = true;
+        lootRoundId = java.util.UUID.randomUUID();
         phase = MatchPhase.DEPLOYMENT;
         phaseTicks = 0;
         victoryAnnounced = false;
@@ -621,6 +623,13 @@ public final class BattlezoneMap extends BaseMap {
 
     @Override
     public void reset() {
+        lootRoundId = null;
+        // Drops that escaped the arena bounds must also disappear when this match ends.
+        for (var entity : getServerLevel().getAllEntities()) {
+            if (entity instanceof dev.stya.blockzone.loot.LootDropEntity drop && drop.belongsToMap(getMapName())) {
+                drop.discard();
+            }
+        }
         deployment.clear();
         landing.clear();
         super.reset();
@@ -807,6 +816,10 @@ public final class BattlezoneMap extends BaseMap {
     public MatchPhase getPhase() {
         return phase;
     }
+
+    public java.util.UUID getLootRoundId() { return lootRoundId; }
+
+    public boolean canEditLootCrates() { return !isStart && !sceneSnapshot.isBusy(); }
 
     public boolean isMatchActive() {
         return isStart && phase != MatchPhase.RESETTING;

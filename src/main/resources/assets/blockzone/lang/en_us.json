@@ -71,5 +71,14 @@
   "editor.blockzone.camera_busy": "Camera unavailable. Press F6 after the other camera ends to retry.",
   "editor.blockzone.camera_ended": "Free camera ended; your draft is retained. Press F6 to resume.",
   "setting.battlezone.poisonShape.cylinder": "Shape: Cylinder (unbounded height)",
-  "setting.battlezone.poisonShape.square_prism": "Shape: Square prism (unbounded height)"
+  "setting.battlezone.poisonShape.square_prism": "Shape: Square prism (unbounded height)",
+  "block.blockzone.loot_crate": "Loot Crate",
+  "entity.blockzone.loot_drop": "Ground Loot",
+  "blockzone.loot_crate.unavailable": "Loot crates are only available to living players during a match.",
+  "blockzone.loot_crate.missing_table": "Missing loot table: %s",
+  "blockzone.loot_crate.invalid_table": "Could not generate loot table: %s",
+  "blockzone.loot_crate.edit_locked": "Stop the match and wait for scene operations before editing loot crates.",
+  "blockzone.loot_crate.not_found": "No BlockZone loot crate at that position.",
+  "blockzone.loot_crate.configured": "Loot table set to %s (seed %s). Save the map scene snapshot to keep this configuration for future matches.",
+  "blockzone.loot_crate.reset": "Loot crate closed. Existing dropped items remain in the world."
 }

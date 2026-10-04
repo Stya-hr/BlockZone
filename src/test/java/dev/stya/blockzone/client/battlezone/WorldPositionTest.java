@@ -19,7 +19,7 @@ class WorldPositionTest {
         assertEquals(position.z, world.z, 0.002f);
     }
 
-    @Test void sphereTranslationStaysFixedWhenCameraMovesAtLargeWorldCoordinates() {
+    @Test void zoneTranslationStaysFixedWhenCameraMovesAtLargeWorldCoordinates() {
         double center = 29_999_980.25;
         for (double camera : new double[]{29_999_970.5, 29_999_985.75}) {
             // Subtract in double precision before passing the relative offset to OpenGL.

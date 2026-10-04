@@ -30,7 +30,7 @@ public final class ZoneClientState {
         Snapshot next = new Snapshot(packet.mapName(), packet.dimension(), packet.whiteoutActive(),
                 packet.areaPos1().getX(), packet.areaPos1().getY(), packet.areaPos1().getZ(),
                 packet.areaPos2().getX(), packet.areaPos2().getY(), packet.areaPos2().getZ(),
-                packet.centerX(), packet.centerZ(), Math.max(0.0F, packet.radius()), packet.boundaryTexture());
+                packet.centerX(), packet.centerZ(), Math.max(0.0F, packet.radius()), packet.boundaryTexture(), packet.shape());
         Snapshot current = snapshot;
         if (current == null || !current.dimension().equals(next.dimension())
                 || !current.mapName().equals(next.mapName())) {
@@ -73,12 +73,12 @@ public final class ZoneClientState {
                 target.x1(), target.y1(), target.z1(), target.x2(), target.y2(), target.z2(),
                 Mth.lerp(progress, previous.centerX(), target.centerX()),
                 Mth.lerp(progress, previous.centerZ(), target.centerZ()),
-                Mth.lerp(progress, previous.radius(), target.radius()), target.boundaryTexture());
+                Mth.lerp(progress, previous.radius(), target.radius()), target.boundaryTexture(), target.shape());
     }
 
     record Snapshot(String mapName, ResourceLocation dimension, boolean whiteoutActive,
                     int x1, int y1, int z1, int x2, int y2, int z2,
-                    double centerX, double centerZ, float radius, String boundaryTexture) {
+                    double centerX, double centerZ, float radius, String boundaryTexture, dev.stya.blockzone.util.battlezone.ZoneShape shape) {
         double centerY() {
             return ZoneGeometry.centerY(y1, y2);
         }

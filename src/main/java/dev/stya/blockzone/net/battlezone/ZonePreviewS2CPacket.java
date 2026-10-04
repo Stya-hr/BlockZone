@@ -17,11 +17,12 @@ public record ZonePreviewS2CPacket(ResourceLocation dimension, boolean visible, 
             out.writeDouble(zone.centerY());
             out.writeDouble(zone.centerZ());
             out.writeDouble(zone.radius());
+            out.writeEnum(zone.shape());
         });
     }
     public static ZonePreviewS2CPacket decode(FriendlyByteBuf buffer) {
         return new ZonePreviewS2CPacket(buffer.readResourceLocation(), buffer.readBoolean(),
-                buffer.readList(in -> new ZoneGeometry(in.readDouble(), in.readDouble(), in.readDouble(), in.readDouble())));
+                buffer.readList(in -> new ZoneGeometry(in.readDouble(), in.readDouble(), in.readDouble(), in.readDouble(), in.readEnum(dev.stya.blockzone.util.battlezone.ZoneShape.class))));
     }
     public void handle(Supplier<NetworkEvent.Context> supplier) {
         var context = supplier.get();

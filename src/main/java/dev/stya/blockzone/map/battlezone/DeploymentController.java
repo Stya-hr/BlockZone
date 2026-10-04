@@ -37,7 +37,7 @@ final class DeploymentController {
             return;
         }
         player.stopRiding();
-        flights.put(player.getUUID(), new Flight(player));
+        flights.put(player.getUUID(), new Flight(player, squad(player)));
         player.getAbilities().mayfly = true;
         player.getAbilities().flying = true;
         player.onUpdateAbilities();
@@ -48,7 +48,7 @@ final class DeploymentController {
         player.setYHeadRot(routeYaw);
         player.setXRot(0);
         moveAlongRoute(player, false);
-        BattlezoneNetwork.send(player, new FlightStateS2CPacket(player.getUUID(), 1));
+        BattlezoneNetwork.send(player, new FlightStateS2CPacket(player.getUUID(), 1, routeYaw, flights.get(player.getUUID()).squad));
         player.sendSystemMessage(Component.translatable("blockzone.deployment.boarded"));
     }
 
@@ -99,14 +99,25 @@ final class DeploymentController {
         player.fallDistance = 0;
         player.setOnGround(false);
         player.setDeltaMovement(Vec3.ZERO);
+        var squad = flights.get(player.getUUID()).squad;
+        int slot = Math.max(0, squad.indexOf(player.getUUID()));
+        var offset = FlightFormation.offset(slot, routeYaw());
+        double x = route.x(ticks) + offset.x();
+        double z = route.z(ticks) + offset.z();
         if (keepClientLook) {
             // Zero relative rotation keeps the client's newest mouse look, even before it reaches the server.
-            player.connection.teleport(route.x(ticks), route.startY(), route.z(ticks),
+            player.connection.teleport(x, route.startY(), z,
                     player.getYRot(), player.getXRot(), Set.of(RelativeMovement.Y_ROT, RelativeMovement.X_ROT));
         } else {
-            player.teleportTo(map.getServerLevel(), route.x(ticks), route.startY(), route.z(ticks),
+            player.teleportTo(map.getServerLevel(), x, route.startY(), z,
                     player.getYRot(), player.getXRot());
         }
+    }
+
+    private List<UUID> squad(ServerPlayer player) {
+        return map.getMapTeams().getTeamByPlayer(player)
+                .map(team -> team.getOnline().stream().map(ServerPlayer::getUUID).sorted().toList())
+                .orElse(List.of(player.getUUID()));
     }
 
     private float routeYaw() {
@@ -158,13 +169,15 @@ final class DeploymentController {
 
     private static final class Flight {
         final ServerPlayer player;
+        final List<UUID> squad;
         final boolean mayfly;
         final boolean flying;
         final boolean noGravity;
         final Pose pose;
         final net.minecraft.world.level.GameType gameMode;
 
-        Flight(ServerPlayer player) {
+        Flight(ServerPlayer player, List<UUID> squad) {
+            this.squad = squad;
             this.player = player;
             mayfly = player.getAbilities().mayfly;
             flying = player.getAbilities().flying;

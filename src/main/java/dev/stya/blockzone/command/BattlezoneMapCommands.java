@@ -47,7 +47,7 @@ public final class BattlezoneMapCommands {
                         .then(gameType)));
 
         event.registerHelp("fpsm map modify debug zone",
-                Component.literal("Preview a complete configured path by sequence number (1..N) with colored sphere grids; hide clears preview."));
+                Component.literal("Preview a complete configured path by sequence number (1..N) with colored shape grids; hide clears preview."));
         event.registerParameters("fpsm map modify debug zone", "*game_type", "*map_name", "show <sequence>|hide");
         event.registerHelp("fpsm map modify snapshot save",
                 Component.literal("Save the scene snapshot for a Battlezone map."));
@@ -76,7 +76,7 @@ public final class BattlezoneMapCommands {
         }
         try {
             if (!map.previewPoisonSequence(player, IntegerArgumentType.getInteger(context, "sequence"))) {
-                source.sendFailure(Component.literal("Invalid sequence number: use 1..N from poison_sequences (legacy configuration uses 1)."));
+                source.sendFailure(Component.literal("Invalid sequence number: use 1..N from poisonSequences."));
                 return 0;
             }
         } catch (IllegalArgumentException exception) {

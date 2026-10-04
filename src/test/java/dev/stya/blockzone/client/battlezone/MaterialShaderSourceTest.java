@@ -11,10 +11,10 @@ class MaterialShaderSourceTest {
         assertTrue(fragment.contains("fragColor.rgb ="));
         assertFalse(fragment.contains("fragColor.a ="));
         assertFalse(fragment.contains("DepthSampler"));
-        assertTrue(fragment.contains("dot(delta, delta)"));
+        assertTrue(fragment.contains("dot(delta.xz, delta.xz)"));
     }
     @Test void leavesSkyGuiAndCustomShadersAlone() {
-        for (String name : new String[]{"position", "rendertype_sky", "rendertype_gui", "blockzone:battlezone_sphere"}) {
+        for (String name : new String[]{"position", "rendertype_sky", "rendertype_gui", "blockzone:battlezone_zone"}) {
             assertEquals(SOURCE, MaterialShaderSource.transform(false, name, SOURCE));
         }
     }

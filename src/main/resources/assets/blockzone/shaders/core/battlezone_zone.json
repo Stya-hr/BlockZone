@@ -1,6 +1,6 @@
 {
-  "vertex": "blockzone:battlezone_sphere",
-  "fragment": "blockzone:battlezone_sphere",
+  "vertex": "blockzone:battlezone_zone",
+  "fragment": "blockzone:battlezone_zone",
   "attributes": [
     "Position"
   ],
@@ -53,14 +53,6 @@
       ]
     },
     {
-      "name": "ZoneTime",
-      "type": "float",
-      "count": 1,
-      "values": [
-        0
-      ]
-    },
-    {
       "name": "CameraLocalPosition",
       "type": "float",
       "count": 3,
@@ -76,6 +68,38 @@
       "count": 1,
       "values": [
         1
+      ]
+    },
+    {
+      "name": "ZoneShape",
+      "type": "int",
+      "count": 1,
+      "values": [
+        0
+      ]
+    },
+    {
+      "name": "ZoneTime",
+      "type": "float",
+      "count": 1,
+      "values": [
+        0
+      ]
+    },
+    {
+      "name": "ZoneHeightRatio",
+      "type": "float",
+      "count": 1,
+      "values": [
+        1
+      ]
+    },
+    {
+      "name": "ZoneYOffset",
+      "type": "float",
+      "count": 1,
+      "values": [
+        0
       ]
     }
   ],

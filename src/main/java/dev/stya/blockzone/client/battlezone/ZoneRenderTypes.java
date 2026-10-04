@@ -16,15 +16,15 @@ import java.util.Map;
 @Mod.EventBusSubscriber(modid = "blockzone", value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
 public abstract class ZoneRenderTypes extends RenderType {
     private static ShaderInstance boundaryShader;
-    private static ShaderInstance sphereShader;
-    private static final RenderType SPHERE = create("battlezone_sphere", DefaultVertexFormat.POSITION,
+    private static ShaderInstance zoneShader;
+    private static final RenderType ZONE = create("battlezone_zone", DefaultVertexFormat.POSITION,
             VertexFormat.Mode.QUADS, 256, false, false, CompositeState.builder()
-            .setShaderState(new ShaderStateShard(() -> sphereShader))
+            .setShaderState(new ShaderStateShard(() -> zoneShader))
             .setTransparencyState(TRANSLUCENT_TRANSPARENCY).setCullState(NO_CULL)
             .setOutputState(PARTICLES_TARGET).setWriteMaskState(COLOR_WRITE).createCompositeState(false));
 
-    static RenderType sphere() { return SPHERE; }
-    static ShaderInstance sphereShader() { return sphereShader; }
+    static RenderType zone() { return ZONE; }
+    static ShaderInstance zoneShader() { return zoneShader; }
     private static final Map<ResourceLocation, RenderType> BOUNDARY_TYPES = new HashMap<>();
 
     private ZoneRenderTypes(String name, VertexFormat format, VertexFormat.Mode mode,
@@ -36,8 +36,8 @@ public abstract class ZoneRenderTypes extends RenderType {
     @SubscribeEvent
     public static void registerShaders(RegisterShadersEvent event) throws IOException {
         event.registerShader(new ShaderInstance(event.getResourceProvider(),
-                ResourceLocation.fromNamespaceAndPath("blockzone", "battlezone_sphere"),
-                DefaultVertexFormat.POSITION), shader -> sphereShader = shader);
+                ResourceLocation.fromNamespaceAndPath("blockzone", "battlezone_zone"),
+                DefaultVertexFormat.POSITION), shader -> zoneShader = shader);
         event.registerShader(new ShaderInstance(event.getResourceProvider(),
                 ResourceLocation.fromNamespaceAndPath("blockzone", "battlezone_boundary"),
                 DefaultVertexFormat.NEW_ENTITY), shader -> boundaryShader = shader);

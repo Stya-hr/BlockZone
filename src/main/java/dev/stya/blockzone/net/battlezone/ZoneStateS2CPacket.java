@@ -16,7 +16,8 @@ public record ZoneStateS2CPacket(
         double centerX,
         double centerZ,
         float radius,
-        String boundaryTexture
+        String boundaryTexture,
+        dev.stya.blockzone.util.battlezone.ZoneShape shape
 ) {
     public static void encode(ZoneStateS2CPacket packet, FriendlyByteBuf buffer) {
         buffer.writeUtf(packet.mapName, 128);
@@ -29,6 +30,7 @@ public record ZoneStateS2CPacket(
         buffer.writeDouble(packet.centerZ);
         buffer.writeFloat(packet.radius);
         buffer.writeUtf(packet.boundaryTexture, 256);
+        buffer.writeEnum(packet.shape);
     }
 
     public static ZoneStateS2CPacket decode(FriendlyByteBuf buffer) {
@@ -42,7 +44,8 @@ public record ZoneStateS2CPacket(
                 buffer.readDouble(),
                 buffer.readDouble(),
                 buffer.readFloat(),
-                buffer.readUtf(256));
+                buffer.readUtf(256),
+                buffer.readEnum(dev.stya.blockzone.util.battlezone.ZoneShape.class));
     }
 
     public void handle(Supplier<NetworkEvent.Context> contextSupplier) {

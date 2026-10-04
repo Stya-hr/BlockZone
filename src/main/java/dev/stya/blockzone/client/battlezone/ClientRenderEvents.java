@@ -16,12 +16,13 @@ public final class ClientRenderEvents {
     @SubscribeEvent
     public static void render(RenderLevelStageEvent event) {
         WorldRenderer.renderWorld(event);
+        dev.stya.blockzone.client.editor.PoisonWorldEditor.render(event);
     }
 
     @SubscribeEvent
     public static void onLogout(ClientPlayerNetworkEvent.LoggingOut event) {
         ZoneClientState.clear();
         MaterialRenderState.end();
-        SphereRenderer.release();
+        ZoneRenderer.release();
     }
 }

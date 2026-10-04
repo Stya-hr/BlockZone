@@ -23,8 +23,8 @@ public abstract class FlightPlayerModelMixin<T extends LivingEntity> extends Hum
         if (pose == null) return;
         float partialTick = Minecraft.getInstance().getFrameTime();
         body.xRot = body.yRot = body.zRot = 0;
-        head.xRot = Mth.clamp(pitch * Mth.DEG_TO_RAD, -.35f, .35f);
-        head.yRot = Mth.clamp(yaw * Mth.DEG_TO_RAD, -.8f, .8f);
+        head.xRot = pose.state == 1 ? 0 : Mth.clamp(pitch * Mth.DEG_TO_RAD, -.35f, .35f);
+        head.yRot = pose.state == 1 ? 0 : Mth.clamp(yaw * Mth.DEG_TO_RAD, -.8f, .8f);
         head.zRot = 0;
         hat.copyFrom(head);
         leftArm.xRot = rightArm.xRot = pose.value(1, partialTick);

@@ -21,7 +21,25 @@ public final class PoisonSettingsMigration {
 
     public static JsonObject migrate(JsonElement config, double x, double z, double radius) {
         JsonObject result = config.getAsJsonObject().deepCopy();
-        JsonElement sequences = result.get("poison_sequences");
+        // Canonical names win when both spellings are present. Never mutate the caller's JSON.
+        String[][] aliases = {
+                {"team_player_limit","teamPlayerLimit"},
+                {"total_player_limit","totalPlayerLimit"},
+                {"minimum_teams_to_start","minimumTeamsToStart"},
+                {"countdown_seconds","countdownSeconds"},
+                {"deployment_seconds","deploymentSeconds"},
+                {"settlement_seconds","settlementSeconds"},
+                {"deployment_speed","deploymentSpeed"},
+                {"deployment_height","deploymentHeight"},
+                {"poison_damage_per_second","poisonDamagePerSecond"},
+                {"poison_sequences","poisonSequences"},
+                {"boundary_texture","boundaryTexture"}
+        };
+        for (String[] alias : aliases) {
+            if (!result.has(alias[1]) && result.has(alias[0])) result.add(alias[1], result.get(alias[0]));
+            result.remove(alias[0]);
+        }
+        JsonElement sequences = result.get("poisonSequences");
         if (sequences != null && (!sequences.isJsonArray() || !sequences.getAsJsonArray().isEmpty())) return result;
         JsonArray centers = result.has("poison_final_centers") ? result.getAsJsonArray("poison_final_centers") : new JsonArray();
         if (centers.isEmpty()) {
@@ -46,7 +64,7 @@ public final class PoisonSettingsMigration {
             } else circles.addAll(defaults(cx, cz, radius).circles().subList(1, 5));
             paths.add(new PoisonPath(circles));
         }
-        result.add("poison_sequences", PoisonPath.CODEC.listOf().encodeStart(JsonOps.INSTANCE, paths)
+        result.add("poisonSequences", PoisonPath.CODEC.listOf().encodeStart(JsonOps.INSTANCE, paths)
                 .getOrThrow(false, message -> {}));
         return result;
     }

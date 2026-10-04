@@ -41,6 +41,25 @@ public final class CodecSettings {
         };
     }
 
+    /** Read old snake_case spellings, but always emit canonical FPSMatch camelCase names. */
+    public static <T> com.mojang.serialization.MapCodec<T> aliasedField(Codec<T> codec, String name, String legacy, T fallback) {
+        return new com.mojang.serialization.MapCodec<>() {
+            @Override public <O> DataResult<T> decode(com.mojang.serialization.DynamicOps<O> ops, com.mojang.serialization.MapLike<O> input) {
+                O value = input.get(name);
+                if (value == null) value = input.get(legacy);
+                return value != null ? codec.parse(ops, value) : fallback != null ? DataResult.success(fallback)
+                        : DataResult.error(() -> "Missing field " + name);
+            }
+            @Override public <O> com.mojang.serialization.RecordBuilder<O> encode(T input,
+                    com.mojang.serialization.DynamicOps<O> ops, com.mojang.serialization.RecordBuilder<O> prefix) {
+                return prefix.add(name, codec.encodeStart(ops, input));
+            }
+            @Override public <O> java.util.stream.Stream<O> keys(com.mojang.serialization.DynamicOps<O> ops) {
+                return java.util.stream.Stream.of(ops.createString(name));
+            }
+        };
+    }
+
     /** Marker used by the FPSMatch room settings adapter for codec-backed JSON fields. */
     public static final class JsonSetting<T> extends Setting<T> {
         private JsonSetting(String category, String name, Codec<T> codec, T initial) {

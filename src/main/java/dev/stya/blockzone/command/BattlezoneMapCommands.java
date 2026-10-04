@@ -76,7 +76,7 @@ public final class BattlezoneMapCommands {
         }
         try {
             if (!map.previewPoisonSequence(player, IntegerArgumentType.getInteger(context, "sequence"))) {
-                source.sendFailure(Component.literal("Invalid sequence number: use 1..N from poison_sequences."));
+                source.sendFailure(Component.literal("Invalid sequence number: use 1..N from poisonSequences."));
                 return 0;
             }
         } catch (IllegalArgumentException exception) {

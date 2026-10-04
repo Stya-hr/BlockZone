@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class CodecSettingsTest {
     @Test void codecParserAllowsUnrestrictedFiniteAltitudeAndRejectsInvalidInput() {
-        var height = CodecSettings.create("battlezone", "deployment_height", CodecSettings.FINITE_DOUBLE, 64.0);
+        var height = CodecSettings.create("battlezone", "deploymentHeight", CodecSettings.FINITE_DOUBLE, 64.0);
         assertTrue(height.parse("2500"));
         assertEquals(2500, height.get());
         assertTrue(height.parse("-500"));
@@ -25,11 +25,11 @@ class CodecSettingsTest {
     @Test void nativeUiReceivesEditableJsonAndCodecDefaultInsteadOfJavaRecordText() {
         var codec = PoisonPath.CODEC.listOf();
         var initial = List.of(PoisonSettingsMigration.defaults(80, 80, 80));
-        var setting = CodecSettings.create("battlezone", "poison_sequences", codec, initial);
+        var setting = CodecSettings.create("battlezone", "poisonSequences", codec, initial);
         var changed = List.of(new PoisonPath(List.of(new PoisonPath.Circle(1, 2, 30, 0, 0, 3))));
         setting.set(changed);
-        var previous = new MapRoomSettingInfo("poison_sequences", "unusable record text", "unusable default text", true,
-                "setting.battlezone.poison_sequences", MapRoomSettingInfo.SettingType.OTHER, "description", false, 0, 0, 1, "battlezone");
+        var previous = new MapRoomSettingInfo("poisonSequences", "unusable record text", "unusable default text", true,
+                "setting.battlezone.poisonSequences", MapRoomSettingInfo.SettingType.OTHER, "description", false, 0, 0, 1, "battlezone");
         var result = CodecSettings.forUi(setting, previous);
         assertEquals(MapRoomSettingInfo.SettingType.STRING, result.type());
         assertTrue(result.editable());
@@ -37,7 +37,7 @@ class CodecSettingsTest {
         assertEquals(initial, codec.parse(JsonOps.INSTANCE, JsonParser.parseString(result.defaultValue())).result().orElseThrow());
         assertTrue(setting.parse(result.defaultValue()));
         assertEquals(initial, setting.get());
-        var readOnly = new MapRoomSettingInfo("poison_sequences", "", "", false, "translation", MapRoomSettingInfo.SettingType.OTHER);
+        var readOnly = new MapRoomSettingInfo("poisonSequences", "", "", false, "translation", MapRoomSettingInfo.SettingType.OTHER);
         assertFalse(CodecSettings.forUi(setting, readOnly).editable());
     }
 }

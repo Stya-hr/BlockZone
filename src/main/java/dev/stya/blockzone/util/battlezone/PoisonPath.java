@@ -12,9 +12,9 @@ public record PoisonPath(List<Circle> circles) {
             dev.stya.blockzone.util.CodecSettings.FINITE_DOUBLE.fieldOf("x").forGetter(Circle::x),
             dev.stya.blockzone.util.CodecSettings.FINITE_DOUBLE.fieldOf("z").forGetter(Circle::z),
             Codec.doubleRange(0, 30_000_000).fieldOf("radius").forGetter(Circle::radius),
-            Codec.intRange(0, 1_000_000).fieldOf("wait_seconds").forGetter(Circle::waitSeconds),
-            Codec.intRange(0, 1_000_000).fieldOf("shrink_seconds").forGetter(Circle::shrinkSeconds),
-            dev.stya.blockzone.util.CodecSettings.optionalField(dev.stya.blockzone.util.CodecSettings.NONNEGATIVE_DOUBLE, "damage_multiplier", 1.0).forGetter(Circle::damageMultiplier)
+            dev.stya.blockzone.util.CodecSettings.aliasedField(Codec.intRange(0, 1_000_000), "waitSeconds", "wait_seconds", null).forGetter(Circle::waitSeconds),
+            dev.stya.blockzone.util.CodecSettings.aliasedField(Codec.intRange(0, 1_000_000), "shrinkSeconds", "shrink_seconds", null).forGetter(Circle::shrinkSeconds),
+            dev.stya.blockzone.util.CodecSettings.aliasedField(dev.stya.blockzone.util.CodecSettings.NONNEGATIVE_DOUBLE, "damageMultiplier", "damage_multiplier", 1.0).forGetter(Circle::damageMultiplier)
     ).apply(instance, Circle::new));
     public static final Codec<PoisonPath> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             CIRCLE_CODEC.listOf().fieldOf("circles").forGetter(PoisonPath::circles)
@@ -26,7 +26,7 @@ public record PoisonPath(List<Circle> circles) {
         for (var circle : circles) {
             if (!Double.isFinite(circle.x()) || !Double.isFinite(circle.z()) || !Double.isFinite(circle.radius())
                     || !Double.isFinite(circle.damageMultiplier()) || circle.damageMultiplier() < 0)
-                throw new IllegalArgumentException("Circle numbers must be finite and damage_multiplier nonnegative");
+                throw new IllegalArgumentException("Circle numbers must be finite and damageMultiplier nonnegative");
             if (circle.waitSeconds() < 0 || circle.shrinkSeconds() < 0) throw new IllegalArgumentException("Negative circle duration");
             result.add(new ZoneGeometry(circle.x(), y, circle.z(), circle.radius()).fitInside(bounds));
         }

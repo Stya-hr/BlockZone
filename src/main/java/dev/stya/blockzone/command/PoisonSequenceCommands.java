@@ -39,7 +39,7 @@ public final class PoisonSequenceCommands {
                         .then(Commands.argument("map_name", StringArgumentType.string())
                                 .then(Commands.literal("settings").requires(source -> source.hasPermission(2)).then(sequence))))));
         event.registerHelp("fpsm map modify settings sequence", Component.literal(
-                "Edit poison paths: edit opens the world editor; list/add; <sequence> get/remove; <sequence> circle add <x> <z> <radius> <wait> <shrink> <damage_multiplier>; <sequence> circle <circle> set <same fields>/remove. Indices start at 1. Save with settings save."));
+                "Edit poison paths: edit opens the world editor; list/add; <sequence> get/remove; <sequence> circle add <x> <z> <radius> <waitSeconds> <shrinkSeconds> <damageMultiplier>; <sequence> circle <circle> set <same fields>/remove. Indices start at 1. Save with settings save."));
         event.registerParameters("fpsm map modify settings sequence", "*game_type", "*map_name", "list|add|<sequence> get|remove|circle ...");
     }
 
@@ -47,9 +47,9 @@ public final class PoisonSequenceCommands {
         return Commands.argument("x", DoubleArgumentType.doubleArg())
                 .then(Commands.argument("z", DoubleArgumentType.doubleArg())
                         .then(Commands.argument("radius", DoubleArgumentType.doubleArg(0, 30_000_000))
-                                .then(Commands.argument("wait", IntegerArgumentType.integer(0, 1_000_000))
-                                        .then(Commands.argument("shrink", IntegerArgumentType.integer(0, 1_000_000))
-                                                .then(Commands.argument("damage_multiplier", DoubleArgumentType.doubleArg(0, Float.MAX_VALUE))
+                                .then(Commands.argument("waitSeconds", IntegerArgumentType.integer(0, 1_000_000))
+                                        .then(Commands.argument("shrinkSeconds", IntegerArgumentType.integer(0, 1_000_000))
+                                                .then(Commands.argument("damageMultiplier", DoubleArgumentType.doubleArg(0, Float.MAX_VALUE))
                                                         .executes(context -> edit(context, action)))))));
     }
 
@@ -95,8 +95,8 @@ public final class PoisonSequenceCommands {
                     else {
                         var circle = new PoisonPath.Circle(DoubleArgumentType.getDouble(context, "x"),
                                 DoubleArgumentType.getDouble(context, "z"), DoubleArgumentType.getDouble(context, "radius"),
-                                IntegerArgumentType.getInteger(context, "wait"), IntegerArgumentType.getInteger(context, "shrink"),
-                                DoubleArgumentType.getDouble(context, "damage_multiplier"));
+                                IntegerArgumentType.getInteger(context, "waitSeconds"), IntegerArgumentType.getInteger(context, "shrinkSeconds"),
+                                DoubleArgumentType.getDouble(context, "damageMultiplier"));
                         if (action.equals("circle_add")) circles.add(circle); else circles.set(circleIndex, circle);
                     }
                     paths.set(index, new PoisonPath(circles));

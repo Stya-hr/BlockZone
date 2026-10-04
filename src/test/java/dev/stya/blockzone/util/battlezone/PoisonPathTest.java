@@ -59,11 +59,29 @@ class PoisonPathTest {
         var old = JsonParser.parseString("{\"x\":0,\"z\":0,\"radius\":10,\"wait_seconds\":0,\"shrink_seconds\":0}");
         var circle = PoisonPath.CIRCLE_CODEC.parse(JsonOps.INSTANCE, old).result().orElseThrow();
         assertEquals(1, circle.damageMultiplier());
-        assertTrue(PoisonPath.CIRCLE_CODEC.encodeStart(JsonOps.INSTANCE, circle).result().orElseThrow().getAsJsonObject().has("damage_multiplier"));
+        assertTrue(PoisonPath.CIRCLE_CODEC.encodeStart(JsonOps.INSTANCE, circle).result().orElseThrow().getAsJsonObject().has("damageMultiplier"));
         for (String invalid : List.of("-1", "1e999", "\"NaN\"")) {
             var input = old.deepCopy().getAsJsonObject();
             input.add("damage_multiplier", JsonParser.parseString(invalid));
             assertTrue(PoisonPath.CIRCLE_CODEC.parse(JsonOps.INSTANCE, input).error().isPresent());
         }
+    }
+    @Test void legacyJsonReadsButOnlyCamelCaseIsWrittenAndCanonicalInvalidValuesAreNotIgnored() {
+        var old = JsonParser.parseString("""
+                {"x":1,"z":2,"radius":3,"wait_seconds":4,"shrink_seconds":5,"damage_multiplier":6}
+                """).getAsJsonObject();
+        var decoded = PoisonPath.CIRCLE_CODEC.parse(JsonOps.INSTANCE, old).result().orElseThrow();
+        var encoded = PoisonPath.CIRCLE_CODEC.encodeStart(JsonOps.INSTANCE, decoded).result().orElseThrow().getAsJsonObject();
+        assertEquals(4, encoded.get("waitSeconds").getAsInt());
+        assertEquals(5, encoded.get("shrinkSeconds").getAsInt());
+        assertEquals(6, encoded.get("damageMultiplier").getAsDouble());
+        assertFalse(encoded.has("wait_seconds")); assertFalse(encoded.has("shrink_seconds")); assertFalse(encoded.has("damage_multiplier"));
+        old.addProperty("waitSeconds", 10); old.addProperty("damageMultiplier", 2);
+        decoded = PoisonPath.CIRCLE_CODEC.parse(JsonOps.INSTANCE, old).result().orElseThrow();
+        assertEquals(10, decoded.waitSeconds()); assertEquals(2, decoded.damageMultiplier());
+        old.addProperty("damageMultiplier", -1);
+        assertTrue(PoisonPath.CIRCLE_CODEC.parse(JsonOps.INSTANCE, old).error().isPresent());
+        old.addProperty("damageMultiplier", 2); old.addProperty("waitSeconds", -1);
+        assertTrue(PoisonPath.CIRCLE_CODEC.parse(JsonOps.INSTANCE, old).error().isPresent());
     }
 }

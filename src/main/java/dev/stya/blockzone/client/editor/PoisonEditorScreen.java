@@ -15,6 +15,8 @@ import java.util.List;
 
 /** Transparent parameter panel with direct manipulation of the visible world. */
 public final class PoisonEditorScreen extends Screen {
+    private static final String[] FIELD_KEYS = {"x", "z", "radius", "waitSeconds", "shrinkSeconds", "damageMultiplier"};
+    private static String fieldKey(int index) { return "setting.battlezone.poisonCircle." + FIELD_KEYS[index]; }
     private final List<EditBox> fields = new ArrayList<>();
     private int panel, panelScroll;
     private boolean moving, resizing;
@@ -37,7 +39,8 @@ public final class PoisonEditorScreen extends Screen {
                 Integer.toString(c.waitSeconds()), Integer.toString(c.shrinkSeconds()), Double.toString(c.damageMultiplier())};
         for (int i = 0; i < values.length; i++) {
             var field = new EditBox(font, panel + 8 + (i % 2) * 103, 134 + (i / 2) * 32 - panelScroll, 97, 18,
-                    Component.translatable("editor.blockzone.field." + i));
+                    Component.translatable(fieldKey(i)));
+            field.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.translatable(fieldKey(i) + ".desc")));
             field.setMaxLength(32); field.setValue(values[i]);
             fields.add(addRenderableWidget(field));
             field.setResponder(value -> { if (fields.size() == 6 && !PoisonWorldEditor.saving) apply(); });
@@ -95,7 +98,7 @@ public final class PoisonEditorScreen extends Screen {
         var d = PoisonWorldEditor.draft;
         g.drawCenteredString(font, Component.translatable("editor.blockzone.sequence", d.sequence()+1, d.paths().size()), panel + 108, 33 - panelScroll, 0xffffff);
         g.drawCenteredString(font, Component.translatable("editor.blockzone.circle", d.circle()+1, d.path().circles().size()), panel + 108, 83 - panelScroll, 0xffffff);
-        for (int i = 0; i < 6; i++) g.drawString(font, Component.translatable("editor.blockzone.field." + i), panel + 8 + (i % 2) * 103, 123+(i / 2)*32 - panelScroll, 0xffffff);
+        for (int i = 0; i < 6; i++) g.drawString(font, Component.translatable(fieldKey(i)), panel + 8 + (i % 2) * 103, 123+(i / 2)*32 - panelScroll, 0xffffff);
         g.fill(4, 4, Math.max(4, panel - 4), 47, 0xb0000000);
         g.drawString(font, Component.translatable("editor.blockzone.drag_controls"), 8, 8, 0xffffff);
         g.drawString(font, Component.translatable("editor.blockzone.colors"), 8, 24, 0xffffff);

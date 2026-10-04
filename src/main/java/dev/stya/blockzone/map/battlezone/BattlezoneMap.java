@@ -70,23 +70,23 @@ public final class BattlezoneMap extends BaseMap {
 
     public BattlezoneMap(ServerLevel serverLevel, String mapName, AreaData areaData) {
         super(serverLevel, mapName, areaData);
-        this.teamPlayerLimit = addSetting("battlezone", "team_player_limit", 3);
-        this.totalPlayerLimit = addSetting("battlezone", "total_player_limit", 24);
-        this.minimumTeamsToStart = addSetting("battlezone", "minimum_teams_to_start", 2);
-        this.countdownSeconds = addSetting("battlezone", "countdown_seconds", 30);
-        this.deploymentSeconds = addSetting("battlezone", "deployment_seconds", 15);
-        this.settlementSeconds = addSetting("battlezone", "settlement_seconds", 10);
-        this.deploymentSpeed = addSetting(CodecSettings.create("battlezone", "deployment_speed",
+        this.teamPlayerLimit = addSetting("battlezone", "teamPlayerLimit", 3);
+        this.totalPlayerLimit = addSetting("battlezone", "totalPlayerLimit", 24);
+        this.minimumTeamsToStart = addSetting("battlezone", "minimumTeamsToStart", 2);
+        this.countdownSeconds = addSetting("battlezone", "countdownSeconds", 30);
+        this.deploymentSeconds = addSetting("battlezone", "deploymentSeconds", 15);
+        this.settlementSeconds = addSetting("battlezone", "settlementSeconds", 10);
+        this.deploymentSpeed = addSetting(CodecSettings.create("battlezone", "deploymentSpeed",
                 Codec.doubleRange(0.1, 100.0), 20.0));
-        this.deploymentHeight = addSetting(CodecSettings.create("battlezone", "deployment_height",
+        this.deploymentHeight = addSetting(CodecSettings.create("battlezone", "deploymentHeight",
                 CodecSettings.FINITE_DOUBLE,
                 Math.max(areaData.pos1().getY(), areaData.pos2().getY()) + 64.0));
 
-        this.poisonDamage = addSetting(CodecSettings.create("battlezone", "poison_damage_per_second",
+        this.poisonDamage = addSetting(CodecSettings.create("battlezone", "poisonDamagePerSecond",
                 CodecSettings.NONNEGATIVE_DOUBLE, 1.0));
-        this.poisonSequences = addSetting(CodecSettings.create("battlezone", "poison_sequences", PoisonPath.CODEC.listOf(),
+        this.poisonSequences = addSetting(CodecSettings.create("battlezone", "poisonSequences", PoisonPath.CODEC.listOf(),
                 List.of(PoisonSettingsMigration.defaults(getMapCenterX(), getMapCenterZ(), getInitialPoisonRadius()))));
-        this.boundaryTexture = addSetting("battlezone", "boundary_texture",
+        this.boundaryTexture = addSetting("battlezone", "boundaryTexture",
                 "blockzone:textures/effect/battlezone_warning_fence.png");
         this.sceneSnapshot = new SceneSnapshot(this);
         this.snapshotValid = sceneSnapshot.load();
@@ -399,12 +399,12 @@ public final class BattlezoneMap extends BaseMap {
         try {
             initializePoisonZone();
         } catch (IllegalArgumentException exception) {
-            broadcast(Component.literal("Battlezone cannot start: invalid poison_sequences: " + exception.getMessage()));
+            broadcast(Component.literal("Battlezone cannot start: invalid poisonSequences: " + exception.getMessage()));
             return false;
         }
         var route = generateDeploymentRoute();
         if (route.isEmpty()) {
-            broadcast(Component.literal("Battlezone cannot start: deployment_height and deployment_speed must be valid numbers, and the initial horizontal circle must have room for a route."));
+            broadcast(Component.literal("Battlezone cannot start: deploymentHeight and deploymentSpeed must be valid numbers, and the initial horizontal circle must have room for a route."));
             return false;
         }
         if (!super.start()) {

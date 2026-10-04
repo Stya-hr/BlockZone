@@ -4,6 +4,8 @@
 
 两套模型均使用 Minecraft 1.20.1 原版方块／物品 JSON 格式，可在 Blockbench 中选择 **Java Block/Item（Java 方块／物品）** 编辑并导出。无需额外动画模组或重新编译 Blockzone。
 
+`blockbench/` 包含运输机、降落伞和螺旋桨的 `.bbmodel` 编辑工程，带部件分组和内嵌贴图。游戏实际读取下表中的 JSON 和 PNG；修改工程后需要导出并覆盖对应文件。使用较新版 Blockbench 时选择兼容 Minecraft 1.20.1 的 Java 模型导出，保留标准单轴旋转限制。
+
 | 用途 | 资源包中的路径 |
 | --- | --- |
 | 运输机模型 | `assets/blockzone/models/airborne/transport_aircraft.json` |

@@ -1,32 +1,13 @@
 {
-  "credit": "Blockzone",
+  "credit": "Blockzone — refined in Blockbench via MCP",
+  "ambientocclusion": false,
   "texture_size": [
     64,
     64
   ],
-  "ambientocclusion": false,
   "textures": {
     "texture": "blockzone:block/airborne/transport_aircraft",
     "particle": "#texture"
-  },
-  "display": {
-    "fixed": {
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "translation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        1,
-        1,
-        1
-      ]
-    }
   },
   "elements": [
     {
@@ -51,7 +32,7 @@
           ],
           "texture": "#texture"
         },
-        "south": {
+        "east": {
           "uv": [
             4.125,
             4.125,
@@ -60,7 +41,7 @@
           ],
           "texture": "#texture"
         },
-        "east": {
+        "south": {
           "uv": [
             4.125,
             4.125,
@@ -120,7 +101,7 @@
           ],
           "texture": "#texture"
         },
-        "south": {
+        "east": {
           "uv": [
             4.125,
             4.125,
@@ -129,7 +110,7 @@
           ],
           "texture": "#texture"
         },
-        "east": {
+        "south": {
           "uv": [
             4.125,
             4.125,
@@ -167,5 +148,24 @@
         }
       }
     }
-  ]
+  ],
+  "display": {
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    }
+  }
 }

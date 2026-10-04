@@ -37,6 +37,7 @@ public final class PoisonWorldEditor {
         if (!PoisonEditorCamera.start()) message = Component.translatable("editor.blockzone.camera_busy").getString();
         mc.setScreen(new PoisonEditorScreen());
     }
+    public static boolean hasFreeCamera() { return session != null && PoisonEditorCamera.active(); }
     static BoundaryGeometry bounds() {
         return BoundaryGeometry.of(session.pos1().getX(), session.pos1().getZ(), session.pos2().getX(), session.pos2().getZ());
     }

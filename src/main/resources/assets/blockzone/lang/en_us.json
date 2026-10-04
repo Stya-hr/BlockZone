@@ -1,4 +1,5 @@
 {
+  "blockzone.match.eliminated": "You have been eliminated. Spectator mode enabled.",
   "key.blockzone.release_deployment": "Release deployment",
   "key.categories.blockzone": "Blockzone",
   "blockzone.deployment.boarded": "Aboard the transport aircraft. Press your release key to jump.",

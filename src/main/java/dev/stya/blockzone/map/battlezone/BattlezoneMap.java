@@ -507,7 +507,7 @@ public final class BattlezoneMap extends BaseMap {
             playerStates.putIfAbsent(player.getUUID(), beforeJoin);
         }
         if (result.isSuccess() && isStart) {
-            BattlezoneNetwork.send(player, createVisualStatePacket());
+            BattlezoneNetwork.send(player, createVisualStatePacket(player));
             BattlezoneNetwork.send(player, deployment.vehicleSnapshot(phase == MatchPhase.DEPLOYMENT));
             if (phase == MatchPhase.DEPLOYMENT) {
                 deployment.board(player);
@@ -562,6 +562,17 @@ public final class BattlezoneMap extends BaseMap {
             addTeam(new TeamData(teamName, playersPerTeam));
             teams = getMapTeams().getNormalTeams();
         }
+    }
+
+    @Override
+    public void handleDeath(com.ptcrys.fpsmatch.core.map.DeathContext context) {
+        super.handleDeath(context);
+        ServerPlayer player = context.getDeadPlayer();
+        clearAirbornePlayer(player);
+        // FPSMatch records elimination and restores entity health; the game type owns spectator mode.
+        player.setGameMode(net.minecraft.world.level.GameType.SPECTATOR);
+        player.displayClientMessage(Component.translatable("blockzone.match.eliminated"), false);
+        BattlezoneNetwork.send(player, createVisualStatePacket(player));
     }
 
     @Override
@@ -693,7 +704,7 @@ public final class BattlezoneMap extends BaseMap {
         if (getMapTeams().getTeamByPlayer(player).isEmpty()) {
             deployment.remove(player);
             landing.finish(player);
-            BattlezoneNetwork.send(player, createVisualStatePacket(false));
+            BattlezoneNetwork.send(player, createVisualStatePacket(player, false));
             BattlezoneNetwork.send(player, deployment.vehicleSnapshot(false));
             PlayerStateSnapshot state = playerStates.remove(player.getUUID());
             if (state != null) {
@@ -810,25 +821,29 @@ public final class BattlezoneMap extends BaseMap {
             return;
         }
         lastVisualStateSync = gameTime;
-        ZoneStateS2CPacket packet = createVisualStatePacket();
         var vehicle = deployment.vehicleSnapshot(isStart && phase == MatchPhase.DEPLOYMENT);
         for (ServerPlayer player : getMapTeams().getOnlineWithSpec()) {
-            BattlezoneNetwork.send(player, packet);
+            BattlezoneNetwork.send(player, createVisualStatePacket(player));
             BattlezoneNetwork.send(player, vehicle);
         }
     }
 
-    private ZoneStateS2CPacket createVisualStatePacket() {
-        return createVisualStatePacket(isStart && phase != MatchPhase.RESETTING);
+    private ZoneStateS2CPacket createVisualStatePacket(ServerPlayer player) {
+        return createVisualStatePacket(player, isStart && phase != MatchPhase.RESETTING);
     }
 
-    private ZoneStateS2CPacket createVisualStatePacket(boolean boundaryVisible) {
+    private ZoneStateS2CPacket createVisualStatePacket(ServerPlayer player, boolean boundaryVisible) {
         AreaData area = getMapArea();
+        boolean participant = player.serverLevel() == getServerLevel() && !player.isSpectator()
+                && getMapTeams().getTeamByPlayer(player)
+                .filter(team -> !team.isSpectator())
+                .flatMap(team -> team.getPlayerData(player.getUUID()))
+                .map(data -> data.isLiving()).orElse(false);
         return new ZoneStateS2CPacket(
                 getMapName(),
                 getServerLevel().dimension().location(),
                 boundaryVisible,
-                boundaryVisible && (phase == MatchPhase.DEPLOYMENT || phase == MatchPhase.MATCH),
+                boundaryVisible && participant && (phase == MatchPhase.DEPLOYMENT || phase == MatchPhase.MATCH),
                 area.pos1(),
                 area.pos2(),
                 poisonCurrentCenterX,

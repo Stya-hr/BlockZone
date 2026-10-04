@@ -205,7 +205,7 @@ public final class WorldRenderer {
         }
     }
 
-    private static void renderZoneGrid(dev.stya.blockzone.util.battlezone.ZoneGeometry zone, PoseStack stack, Vec3 camera, int color) {
+    public static void renderZoneGrid(dev.stya.blockzone.util.battlezone.ZoneGeometry zone, PoseStack stack, Vec3 camera, int color) {
         var buffers = Minecraft.getInstance().renderBuffers().bufferSource();
         var type = RenderType.lines();
         var consumer = buffers.getBuffer(type);
@@ -247,7 +247,7 @@ public final class WorldRenderer {
         }
     }
 
-    private static void renderPreview(BoundaryPreviewS2CPacket preview, PoseStack stack, Vec3 camera) {
+    public static void renderPreview(BoundaryPreviewS2CPacket preview, PoseStack stack, Vec3 camera) {
         double minX = Math.min(preview.pos1().getX(), preview.pos2().getX());
         double maxX = Math.max(preview.pos1().getX(), preview.pos2().getX()) + 1.0;
         double minY = Math.min(preview.pos1().getY(), preview.pos2().getY());

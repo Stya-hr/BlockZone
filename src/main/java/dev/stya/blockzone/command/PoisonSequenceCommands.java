@@ -23,6 +23,7 @@ public final class PoisonSequenceCommands {
 
     @SubscribeEvent public static void register(RegisterFPSMCommandEvent event) {
         var sequence = Commands.literal("sequence")
+                .then(Commands.literal("edit").executes(context -> edit(context, "open_editor")))
                 .then(Commands.literal("list").executes(context -> edit(context, "list")))
                 .then(Commands.literal("add").executes(context -> edit(context, "add")))
                 .then(Commands.argument("sequence", IntegerArgumentType.integer(1))
@@ -38,7 +39,7 @@ public final class PoisonSequenceCommands {
                         .then(Commands.argument("map_name", StringArgumentType.string())
                                 .then(Commands.literal("settings").requires(source -> source.hasPermission(2)).then(sequence))))));
         event.registerHelp("fpsm map modify settings sequence", Component.literal(
-                "Edit poison paths: list/add; <sequence> get/remove; <sequence> circle add <x> <z> <radius> <wait> <shrink> <damage_multiplier>; <sequence> circle <circle> set <same fields>/remove. Indices start at 1. Save with settings save."));
+                "Edit poison paths: edit opens the world editor; list/add; <sequence> get/remove; <sequence> circle add <x> <z> <radius> <wait> <shrink> <damage_multiplier>; <sequence> circle <circle> set <same fields>/remove. Indices start at 1. Save with settings save."));
         event.registerParameters("fpsm map modify settings sequence", "*game_type", "*map_name", "list|add|<sequence> get|remove|circle ...");
     }
 
@@ -61,6 +62,11 @@ public final class PoisonSequenceCommands {
             return 0;
         }
         try {
+            if (action.equals("open_editor")) {
+                if (source.getPlayer() == null) throw new IllegalArgumentException("Open the editor in-game");
+                dev.stya.blockzone.net.editor.PoisonEditorSessions.open(source.getPlayer(), map);
+                return 1;
+            }
             var paths = new ArrayList<>(map.configuredPoisonSequences());
             if (action.equals("list")) {
                 for (int i = 0; i < paths.size(); i++) {

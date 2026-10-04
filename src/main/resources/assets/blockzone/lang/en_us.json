@@ -15,7 +15,7 @@
   "editor.blockzone.delete_circle": "Delete circle",
   "editor.blockzone.move_up": "Move earlier",
   "editor.blockzone.move_down": "Move later",
-  "editor.blockzone.observe": "Observe (O returns)",
+  "editor.blockzone.observe": "Free look (O returns)",
   "editor.blockzone.save": "Save configuration",
   "editor.blockzone.exit": "Exit",
   "editor.blockzone.invalid": "Enter finite numbers; radius, time and damage must be nonnegative.",
@@ -29,7 +29,7 @@
   "editor.blockzone.too_large": "Radius cannot fit inside the map. Reduce it before saving.",
   "editor.blockzone.look_down": "Look toward the horizontal circle plane before dragging.",
   "editor.blockzone.observing": "Sequence %s | Circle %s | Radius %s",
-  "editor.blockzone.world_controls": "O: panel | [ ]: circles | Shift click: center / wheel: radius",
+  "editor.blockzone.world_controls": "WASD fly | Space/Shift rise/drop | Ctrl boost | O panel | F6 focus",
   "setting.battlezone.teamPlayerLimit": "Players per team",
   "setting.battlezone.teamPlayerLimit.desc": "Maximum players in each regular team; changes update team capacity.",
   "setting.battlezone.totalPlayerLimit": "Total player limit",
@@ -64,5 +64,9 @@
   "setting.battlezone.poisonCircle.shrinkSeconds.desc": "Time to move and shrink or expand from the previous circle. Zero means instant arrival. Not used for the initial circle.",
   "setting.battlezone.poisonCircle.damageMultiplier": "Damage multiplier",
   "setting.battlezone.poisonCircle.damageMultiplier.desc": "Multiplies base poison damage after reaching this circle. During transition the previous circle multiplier applies; zero disables damage.",
-  "setting.fpsm.category.battlezone": "Battlezone"
+  "setting.fpsm.category.battlezone": "Battlezone",
+  "editor.blockzone.camera_controls": "WASD fly | Space/Shift rise/drop | Ctrl boost | F6 focus",
+  "editor.blockzone.camera_position": "Camera X=%s Y=%s Z=%s",
+  "editor.blockzone.camera_busy": "Camera unavailable. Press F6 after the other camera ends to retry.",
+  "editor.blockzone.camera_ended": "Free camera ended; your draft is retained. Press F6 to resume."
 }

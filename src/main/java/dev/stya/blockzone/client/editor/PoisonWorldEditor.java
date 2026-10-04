@@ -11,7 +11,6 @@ import dev.stya.blockzone.util.battlezone.*;
 import dev.stya.blockzone.util.editor.PoisonEditorDraft;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.*;
@@ -35,6 +34,7 @@ public final class PoisonWorldEditor {
                 JsonParser.parseString(packet.pathsJson())).getOrThrow(false, m -> {}));
         savedJson = PoisonEditorSessions.json(draft.paths());
         saving = false; message = "";
+        if (!PoisonEditorCamera.start()) message = Component.translatable("editor.blockzone.camera_busy").getString();
         mc.setScreen(new PoisonEditorScreen());
     }
     static BoundaryGeometry bounds() {
@@ -62,7 +62,7 @@ public final class PoisonWorldEditor {
         if (packet.saved()) savedJson = PoisonEditorSessions.json(draft.paths());
     }
     static boolean dirty() { return draft != null && !PoisonEditorSessions.json(draft.paths()).equals(savedJson); }
-    static void discard() { session = null; draft = null; saving = false; Minecraft.getInstance().setScreen(null); }
+    static void discard() { session = null; draft = null; saving = false; PoisonEditorCamera.stop(); Minecraft.getInstance().setScreen(null); }
     public static void render(RenderLevelStageEvent event) {
         var mc = Minecraft.getInstance();
         if (session == null || mc.level == null || !mc.level.dimension().location().equals(session.dimension())
@@ -70,7 +70,7 @@ public final class PoisonWorldEditor {
         var camera = event.getCamera().getPosition();
         WorldRenderer.renderPreview(new BoundaryPreviewS2CPacket(session.dimension(), true, session.pos1(), session.pos2()),
                 event.getPoseStack(), camera);
-        for (int i = 0; i < draft.path().circles().size(); i++) {
+        for (int i = Math.max(0, draft.circle() - 1); i <= Math.min(draft.path().circles().size() - 1, draft.circle() + 1); i++) {
             var c = draft.path().circles().get(i);
             var raw = new ZoneGeometry(c.x(), y(), c.z(), c.radius());
             int color = i == draft.circle() ? 0xffffff : net.minecraft.util.Mth.hsvToRgb(
@@ -89,41 +89,42 @@ public final class PoisonWorldEditor {
         var mc = Minecraft.getInstance();
         if (event.phase != net.minecraftforge.event.TickEvent.Phase.END || session == null) return;
         if (mc.level == null || !mc.level.dimension().location().equals(session.dimension())) {
-            session = null; draft = null; saving = false;
+            session = null; draft = null; saving = false; PoisonEditorCamera.stop();
             if (mc.screen instanceof PoisonEditorScreen) mc.setScreen(null);
-        }
+        } else PoisonEditorCamera.tick();
     }
-    @SubscribeEvent public static void logout(ClientPlayerNetworkEvent.LoggingOut event) { session = null; draft = null; }
+    @SubscribeEvent public static void logout(ClientPlayerNetworkEvent.LoggingOut event) { session = null; draft = null; PoisonEditorCamera.stop(); }
     @SubscribeEvent public static void key(InputEvent.Key event) {
         var mc = Minecraft.getInstance();
-        if (session == null || saving || mc.screen != null || event.getAction() != GLFW.GLFW_PRESS) return;
+        if (session == null) return;
+        PoisonEditorCamera.key(event.getKey(), event.getScanCode(), event.getAction());
+        if (mc.screen != null || event.getAction() != GLFW.GLFW_PRESS) return;
+        if (event.getKey() == GLFW.GLFW_KEY_F6) PoisonEditorCamera.focus();
+        if (saving) return;
         if (event.getKey() == GLFW.GLFW_KEY_O) mc.setScreen(new PoisonEditorScreen());
         if (event.getKey() == GLFW.GLFW_KEY_LEFT_BRACKET) draft.selectCircle(draft.circle() - 1);
         if (event.getKey() == GLFW.GLFW_KEY_RIGHT_BRACKET) draft.selectCircle(draft.circle() + 1);
     }
-    @SubscribeEvent public static void mouse(InputEvent.MouseButton.Pre event) {
-        var mc = Minecraft.getInstance();
-        if (session == null || saving || mc.screen != null || mc.player == null || !mc.player.isShiftKeyDown()) return;
-        if (event.getButton() == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-            event.setCanceled(true);
-            if (event.getAction() == GLFW.GLFW_PRESS && mc.hitResult instanceof BlockHitResult hit
-                    && hit.getType() == net.minecraft.world.phys.HitResult.Type.BLOCK)
-                setGeometry(hit.getLocation().x, hit.getLocation().z, draft.selected().radius());
-        }
-    }
-    @SubscribeEvent public static void scroll(InputEvent.MouseScrollingEvent event) {
-        var mc = Minecraft.getInstance();
-        if (session == null || saving || mc.screen != null || mc.player == null || !mc.player.isShiftKeyDown()) return;
+    @SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.LOWEST)
+    public static void fog(ViewportEvent.RenderFog event) {
+        if (session == null || !PoisonEditorCamera.active()
+                || event.getType() != net.minecraft.world.level.material.FogType.NONE) return;
+        // An aerial overview can be farther from the map than the normal gameplay fog distance.
+        event.setNearPlaneDistance(4096);
+        event.setFarPlaneDistance(8192);
         event.setCanceled(true);
-        var c = draft.selected(); setGeometry(c.x(), c.z(), c.radius() + event.getScrollDelta());
     }
     @SubscribeEvent public static void hud(RenderGuiEvent.Post event) {
         var mc = Minecraft.getInstance();
         if (session == null || mc.screen != null) return;
         var graphics = event.getGuiGraphics();
-        graphics.fill(6, 6, 355, 47, 0xb0000000);
+        graphics.fill(6, 6, 440, 63, 0xb0000000);
         graphics.drawString(mc.font, Component.translatable("editor.blockzone.observing", draft.sequence()+1, draft.circle()+1,
                 String.format(java.util.Locale.ROOT, "%.1f", draft.selected().radius())), 10, 10, 0xffffff);
         graphics.drawString(mc.font, Component.translatable("editor.blockzone.world_controls"), 10, 25, 0xffffff);
+        var position = PoisonEditorCamera.position();
+        if (position != null) graphics.drawString(mc.font, Component.translatable("editor.blockzone.camera_position",
+                String.format(java.util.Locale.ROOT, "%.1f", position.x), String.format(java.util.Locale.ROOT, "%.1f", position.y),
+                String.format(java.util.Locale.ROOT, "%.1f", position.z)), 10, 43, 0x80ffff);
     }
 }

@@ -15,7 +15,7 @@
   "editor.blockzone.delete_circle": "删除圈",
   "editor.blockzone.move_up": "提前一圈",
   "editor.blockzone.move_down": "推后一圈",
-  "editor.blockzone.observe": "观察世界 (O 返回)",
+  "editor.blockzone.observe": "自由观察 (O 返回)",
   "editor.blockzone.save": "保存配置",
   "editor.blockzone.exit": "退出",
   "editor.blockzone.invalid": "请输入有限数值；半径、时间、伤害系数不能为负。",
@@ -29,7 +29,7 @@
   "editor.blockzone.too_large": "半径无法放入地图，请减小后再保存。",
   "editor.blockzone.look_down": "请看向圈心所在的水平面再拖动。",
   "editor.blockzone.observing": "编辑序列 %s · 圈 %s · 半径 %s",
-  "editor.blockzone.world_controls": "O 参数面板 · [ ] 切圈 · Shift 左键放圈心 / 滚轮半径",
+  "editor.blockzone.world_controls": "WASD 飞行 · 空格/Shift 升降 · Ctrl 加速 · O 面板 · F6 聚焦",
   "setting.battlezone.teamPlayerLimit": "每队人数上限",
   "setting.battlezone.teamPlayerLimit.desc": "每支普通队伍可加入的最大人数；修改后更新队伍容量。",
   "setting.battlezone.totalPlayerLimit": "地图总人数上限",
@@ -64,5 +64,9 @@
   "setting.battlezone.poisonCircle.shrinkSeconds.desc": "前一圈移动并缩小或扩大到本圈所需的时间；0 表示立即到达。首圈不使用此值。",
   "setting.battlezone.poisonCircle.damageMultiplier": "伤害系数",
   "setting.battlezone.poisonCircle.damageMultiplier.desc": "乘以毒圈基础伤害；抵达本圈后生效，过渡期间沿用前一圈系数。0 表示无伤害。",
-  "setting.fpsm.category.battlezone": "大逃杀"
+  "setting.fpsm.category.battlezone": "大逃杀",
+  "editor.blockzone.camera_controls": "WASD 飞行 · 空格/Shift 升降 · Ctrl 加速 · F6 聚焦",
+  "editor.blockzone.camera_position": "镜头 X=%s Y=%s Z=%s",
+  "editor.blockzone.camera_busy": "镜头暂不可用；其他镜头结束后按 F6 重试。",
+  "editor.blockzone.camera_ended": "自由镜头已结束，草稿保留；按 F6 重新启用。"
 }

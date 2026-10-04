@@ -99,9 +99,10 @@ public final class PoisonEditorScreen extends Screen {
         g.drawCenteredString(font, Component.translatable("editor.blockzone.sequence", d.sequence()+1, d.paths().size()), panel + 108, 33 - panelScroll, 0xffffff);
         g.drawCenteredString(font, Component.translatable("editor.blockzone.circle", d.circle()+1, d.path().circles().size()), panel + 108, 83 - panelScroll, 0xffffff);
         for (int i = 0; i < 6; i++) g.drawString(font, Component.translatable(fieldKey(i)), panel + 8 + (i % 2) * 103, 123+(i / 2)*32 - panelScroll, 0xffffff);
-        g.fill(4, 4, Math.max(4, panel - 4), 47, 0xb0000000);
+        g.fill(4, 4, Math.max(4, panel - 4), 65, 0xb0000000);
         g.drawString(font, Component.translatable("editor.blockzone.drag_controls"), 8, 8, 0xffffff);
         g.drawString(font, Component.translatable("editor.blockzone.colors"), 8, 24, 0xffffff);
+        g.drawString(font, Component.translatable("editor.blockzone.camera_controls"), 8, 40, 0xffffff);
         var c = d.selected();
         String warning = PoisonWorldEditor.message;
         try {
@@ -110,7 +111,7 @@ public final class PoisonEditorScreen extends Screen {
                 warning = Component.translatable("editor.blockzone.adjusted", String.format(java.util.Locale.ROOT, "%.2f", actual.centerX()),
                         String.format(java.util.Locale.ROOT, "%.2f", actual.centerZ())).getString();
         } catch (IllegalArgumentException bad) { warning = Component.translatable("editor.blockzone.too_large").getString(); }
-        if (!warning.isEmpty()) g.drawWordWrap(font, Component.literal(warning), 8, 52, Math.max(80, panel - 16), 0xffc060);
+        if (!warning.isEmpty()) g.drawWordWrap(font, Component.literal(warning), 8, 72, Math.max(80, panel - 16), 0xffc060);
         super.render(g, mouseX, mouseY, partialTick);
     }
     private Vec3 ground(double mouseX, double mouseY) {
@@ -129,8 +130,18 @@ public final class PoisonEditorScreen extends Screen {
         fields.get(0).setValue(Double.toString(next.x())); fields.get(1).setValue(Double.toString(next.z()));
         fields.get(2).setValue(Double.toString(next.radius()));
     }
+    @Override public boolean keyPressed(int key, int scan, int modifiers) {
+        if (key == GLFW.GLFW_KEY_F6) { PoisonEditorCamera.focus(); return true; }
+        if (PoisonEditorCamera.key(key, scan, GLFW.GLFW_PRESS)) return true;
+        return super.keyPressed(key, scan, modifiers);
+    }
+    @Override public boolean keyReleased(int key, int scan, int modifiers) {
+        PoisonEditorCamera.key(key, scan, GLFW.GLFW_RELEASE);
+        return super.keyReleased(key, scan, modifiers);
+    }
+    @Override public void removed() { PoisonEditorCamera.clearMovement(); super.removed(); }
     @Override public boolean mouseClicked(double x, double y, int button) {
-        if (x >= panel) return super.mouseClicked(x,y,button);
+        if (x >= panel) { PoisonEditorCamera.clearMovement(); return super.mouseClicked(x,y,button); }
         setFocused(null);
         if (PoisonWorldEditor.saving) return true;
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && apply()) {
@@ -141,7 +152,7 @@ public final class PoisonEditorScreen extends Screen {
     @Override public boolean mouseDragged(double x, double y, int button, double dx, double dy) {
         if (x < panel && !PoisonWorldEditor.saving) {
             if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT && minecraft.player != null) {
-                minecraft.player.turn(dx*3,dy*3); return true;
+                PoisonEditorCamera.turn(dx,dy); return true;
             }
             if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && moving) { manipulate(x,y); return true; }
         }

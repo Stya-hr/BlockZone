@@ -16,6 +16,7 @@ public final class ClientRenderEvents {
     @SubscribeEvent
     public static void render(RenderLevelStageEvent event) {
         WorldRenderer.renderWorld(event);
+        dev.stya.blockzone.client.editor.PoisonWorldEditor.render(event);
     }
 
     @SubscribeEvent

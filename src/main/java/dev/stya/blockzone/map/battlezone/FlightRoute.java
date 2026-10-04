@@ -8,9 +8,9 @@ public record FlightRoute(double startX, double startY, double startZ,
                                    double endX, double endY, double endZ, double speed) {
     /** A near-central chord: offsets up to 3% of radius keep area difference below 8% of the smaller area. */
     public static Optional<FlightRoute> generateAcrossCircle(ZoneGeometry zone, double minX, double maxX,
-            double minZ, double maxZ, double minimumHeight, double altitude,
+            double minZ, double maxZ, double altitude,
             double speed, double angle, double offsetFraction) {
-        if (!(zone.radius() > 0) || !Double.isFinite(altitude) || altitude >= 2000 || altitude < minimumHeight
+        if (!(zone.radius() > 0) || !Double.isFinite(altitude)
                 || !Double.isFinite(speed) || speed < .1 || speed > 100) {
             return Optional.empty();
         }
@@ -29,7 +29,7 @@ public record FlightRoute(double startX, double startY, double startZ,
         halfLength *= .999;
         var route = new FlightRoute(cx - dx * halfLength, altitude, cz - dz * halfLength,
                 cx + dx * halfLength, altitude, cz + dz * halfLength, speed);
-        return route.isValid(minX, maxX, minZ, maxZ, minimumHeight)
+        return route.isValid(minX, maxX, minZ, maxZ)
                 && zone.containsHorizontal(route.startX(), route.startZ())
                 && zone.containsHorizontal(route.endX(), route.endZ()) ? Optional.of(route) : Optional.empty();
     }
@@ -38,11 +38,11 @@ public record FlightRoute(double startX, double startY, double startZ,
         return Math.hypot(endX - startX, endZ - startZ);
     }
 
-    public boolean isValid(double minX, double maxX, double minZ, double maxZ, double minimumHeight) {
+    public boolean isValid(double minX, double maxX, double minZ, double maxZ) {
         return Double.isFinite(startX) && Double.isFinite(startY) && Double.isFinite(startZ)
                 && Double.isFinite(endX) && Double.isFinite(endY) && Double.isFinite(endZ)
                 && Double.isFinite(speed) && speed >= 0.1 && speed <= 100
-                && startY == endY && startY >= minimumHeight && startY < 2000
+                && startY == endY
                 && length() > 0.001
                 && startX >= minX && startX <= maxX && endX >= minX && endX <= maxX
                 && startZ >= minZ && startZ <= maxZ && endZ >= minZ && endZ <= maxZ;

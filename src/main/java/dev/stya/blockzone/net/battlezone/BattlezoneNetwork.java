@@ -11,7 +11,7 @@ import java.util.WeakHashMap;
 
 public final class BattlezoneNetwork {
     private static final NetworkPacketRegister PACKETS = new NetworkPacketRegister(
-            ResourceLocation.fromNamespaceAndPath(BlockZone.MOD_ID, "main"), "7");
+            ResourceLocation.fromNamespaceAndPath(BlockZone.MOD_ID, "main"), "8");
 
     private static final Map<ServerPlayer, Integer> FLIGHT_STATES = new WeakHashMap<>();
 
@@ -19,12 +19,22 @@ public final class BattlezoneNetwork {
     }
 
     public static void register() {
+        PACKETS.registerPacket(dev.stya.blockzone.net.editor.PoisonEditorS2CPacket.class, NetworkDirection.PLAY_TO_CLIENT);
+        PACKETS.registerPacket(dev.stya.blockzone.net.editor.PoisonEditorResultS2CPacket.class, NetworkDirection.PLAY_TO_CLIENT);
+        PACKETS.registerPacket(dev.stya.blockzone.net.editor.SavePoisonEditorC2SPacket.class, NetworkDirection.PLAY_TO_SERVER);
         PACKETS.registerPacket(ZonePreviewS2CPacket.class, NetworkDirection.PLAY_TO_CLIENT);
         PACKETS.registerPacket(ZoneStateS2CPacket.class, NetworkDirection.PLAY_TO_CLIENT);
         PACKETS.registerPacket(BoundaryPreviewS2CPacket.class, NetworkDirection.PLAY_TO_CLIENT);
         PACKETS.registerPacket(FlightStateS2CPacket.class, NetworkDirection.PLAY_TO_CLIENT);
         PACKETS.registerPacket(ReleaseDeploymentC2SPacket.class, NetworkDirection.PLAY_TO_SERVER);
         PACKETS.registerPacket(ToggleParachuteC2SPacket.class, NetworkDirection.PLAY_TO_SERVER);
+    }
+
+    public static void sendEditor(ServerPlayer player, Object packet) {
+        PACKETS.getChannel().send(PacketDistributor.PLAYER.with(() -> player), packet);
+    }
+    public static void saveEditor(dev.stya.blockzone.net.editor.SavePoisonEditorC2SPacket packet) {
+        PACKETS.getChannel().sendToServer(packet);
     }
 
     public static void toggleParachute() {

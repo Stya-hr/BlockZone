@@ -31,9 +31,9 @@ public final class PoisonEditorCameraMotion {
     public void move(double forward, double sideways, double vertical, boolean fast) {
         previous = position;
         double radians = Math.toRadians(yaw);
-        double elevation = Math.toRadians(pitch);
-        var look = new Vec3(-Math.sin(radians)*Math.cos(elevation), -Math.sin(elevation), Math.cos(radians)*Math.cos(elevation));
-        var right = new Vec3(-Math.cos(radians), 0, -Math.sin(radians));
+        // Keep WASD movement horizontal even while the overview camera looks steeply down.
+        var look = new Vec3(-Math.sin(radians), 0, Math.cos(radians));
+        var right = new Vec3(Math.cos(radians), 0, Math.sin(radians));
         var movement = look.scale(forward).add(right.scale(sideways)).add(0, vertical, 0);
         // Normalize diagonals; partial combinations with look/up cannot make movement faster.
         if (movement.lengthSqr() > 1) movement = movement.normalize();

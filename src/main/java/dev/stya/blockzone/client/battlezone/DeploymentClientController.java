@@ -29,6 +29,13 @@ public final class DeploymentClientController {
     private static final KeyMapping PARACHUTE = new KeyMapping("key.blockzone.toggle_parachute",
             KeyConflictContext.IN_GAME, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_H, "key.categories.blockzone");
     private static int state;
+    private static float cameraDistance = 4;
+    private static float previousCameraDistance = 4;
+
+    public static double cameraDistance(double vanillaDistance, float partialTick) {
+        if (state == 0) return vanillaDistance;
+        return net.minecraft.util.Mth.lerp(partialTick, previousCameraDistance, cameraDistance);
+    }
     private static net.minecraft.client.player.LocalPlayer trackedPlayer;
     private static Pose previousPose;
     private static boolean previousNoGravity;
@@ -92,6 +99,7 @@ public final class DeploymentClientController {
         previousPose = null;
         previousCameraType = null;
         state = 0;
+        cameraDistance = previousCameraDistance = 4;
     }
 
     private static void setCameraType(Minecraft minecraft, CameraType cameraType) {
@@ -104,6 +112,8 @@ public final class DeploymentClientController {
         if (event.phase != TickEvent.Phase.END) {
             return;
         }
+        previousCameraDistance = cameraDistance;
+        cameraDistance = net.minecraft.util.Mth.lerp(.2f, cameraDistance, state == 1 ? 12 : 4);
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.player != trackedPlayer
                 || minecraft.player.isDeadOrDying() || minecraft.player.isSpectator()) {

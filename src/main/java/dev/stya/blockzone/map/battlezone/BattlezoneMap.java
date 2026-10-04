@@ -508,6 +508,7 @@ public final class BattlezoneMap extends BaseMap {
         }
         if (result.isSuccess() && isStart) {
             BattlezoneNetwork.send(player, createVisualStatePacket());
+            BattlezoneNetwork.send(player, deployment.vehicleSnapshot(phase == MatchPhase.DEPLOYMENT));
             if (phase == MatchPhase.DEPLOYMENT) {
                 deployment.board(player);
             }
@@ -693,6 +694,7 @@ public final class BattlezoneMap extends BaseMap {
             deployment.remove(player);
             landing.finish(player);
             BattlezoneNetwork.send(player, createVisualStatePacket(false));
+            BattlezoneNetwork.send(player, deployment.vehicleSnapshot(false));
             PlayerStateSnapshot state = playerStates.remove(player.getUUID());
             if (state != null) {
                 state.restore(player);
@@ -809,8 +811,10 @@ public final class BattlezoneMap extends BaseMap {
         }
         lastVisualStateSync = gameTime;
         ZoneStateS2CPacket packet = createVisualStatePacket();
+        var vehicle = deployment.vehicleSnapshot(isStart && phase == MatchPhase.DEPLOYMENT);
         for (ServerPlayer player : getMapTeams().getOnlineWithSpec()) {
             BattlezoneNetwork.send(player, packet);
+            BattlezoneNetwork.send(player, vehicle);
         }
     }
 

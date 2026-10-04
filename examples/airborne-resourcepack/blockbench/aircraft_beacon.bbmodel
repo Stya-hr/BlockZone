@@ -1,0 +1,331 @@
+{
+  "meta": {
+    "format_version": "5.0",
+    "model_format": "java_block",
+    "box_uv": false
+  },
+  "name": "aircraft_beacon",
+  "parent": "",
+  "java_block_version": "1.9.0",
+  "credit": "Blockzone luminous aircraft lamps",
+  "ambientocclusion": false,
+  "front_gui_light": false,
+  "visible_box": [
+    1,
+    1,
+    0
+  ],
+  "variable_placeholders": "",
+  "multi_file_ruleset": "",
+  "variable_placeholder_buttons": [],
+  "unhandled_root_fields": {},
+  "ai_used": true,
+  "ai_agents": "blockzone-model-editor",
+  "resolution": {
+    "width": 64,
+    "height": 64
+  },
+  "elements": [
+    {
+      "name": "beacon_lamp",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade": false,
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        7.895,
+        10.175,
+        6.895
+      ],
+      "to": [
+        8.105,
+        10.385,
+        7.105
+      ],
+      "autouv": 0,
+      "color": 6,
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.5,
+            0.5,
+            15.5,
+            15.5
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0.5,
+            0.5,
+            15.5,
+            15.5
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0.5,
+            0.5,
+            15.5,
+            15.5
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0.5,
+            0.5,
+            15.5,
+            15.5
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0.5,
+            0.5,
+            15.5,
+            15.5
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0.5,
+            0.5,
+            15.5,
+            15.5
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "d59e2dc4-2379-5023-81fb-a93e42ad9759"
+    },
+    {
+      "name": "beacon_halo_2",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade": false,
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        7.5,
+        9.78,
+        7
+      ],
+      "to": [
+        8.5,
+        10.78,
+        7
+      ],
+      "autouv": 0,
+      "color": 4,
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.5,
+            16.5,
+            15.5,
+            31.5
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "texture": null
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "6a5ae6ba-2a61-afec-688a-5d7e938e5379"
+    },
+    {
+      "name": "beacon_halo_0",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade": false,
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        8,
+        9.78,
+        6.5
+      ],
+      "to": [
+        8,
+        10.78,
+        7.5
+      ],
+      "autouv": 0,
+      "color": 6,
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "texture": null
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "texture": null
+        },
+        "west": {
+          "uv": [
+            0.5,
+            16.5,
+            15.5,
+            31.5
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "7f0c78c6-b31a-fabf-ce9f-a4fa33e93e37"
+    }
+  ],
+  "groups": [],
+  "outliner": [
+    "d59e2dc4-2379-5023-81fb-a93e42ad9759",
+    "6a5ae6ba-2a61-afec-688a-5d7e938e5379",
+    "7f0c78c6-b31a-fabf-ce9f-a4fa33e93e37"
+  ],
+  "textures": [
+    {
+      "name": "aircraft_lights.png",
+      "folder": "block/airborne",
+      "namespace": "blockzone",
+      "id": "texture",
+      "group": "",
+      "scope": 0,
+      "width": 0,
+      "height": 0,
+      "uv_width": 64,
+      "uv_height": 64,
+      "particle": false,
+      "use_as_default": false,
+      "layers_enabled": false,
+      "sync_to_project": "",
+      "file_format": "png",
+      "render_mode": "default",
+      "render_sides": "auto",
+      "wrap_mode": "limited",
+      "pbr_channel": "color",
+      "fps": 7,
+      "frame_time": 1,
+      "frame_order_type": "loop",
+      "frame_order": "",
+      "frame_interpolate": false,
+      "visible": true,
+      "internal": true,
+      "saved": false,
+      "uuid": "2bae120a-550d-1f0f-a98a-4ed3ba320ebc",
+      "source": "data:image/png;base64,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"
+    }
+  ],
+  "display": {}
+}

@@ -122,3 +122,18 @@ tasks.named('processResources', ProcessResources) {
     dependsOn tasks.named('compileJava')
     from(layout.buildDirectory.dir('mixin')) { include 'mixins.blockzone.refmap.json' }
 }
+
+// A ready-to-edit vanilla resource pack for the transport and parachute models.
+tasks.register('airborneResourcePack', Zip) {
+    archiveFileName = 'blockzone-airborne-resourcepack.zip'
+    destinationDirectory = layout.buildDirectory.dir('distributions')
+    from('examples/airborne-resourcepack')
+    from('src/main/resources') {
+        include 'assets/blockzone/models/airborne/**'
+        include 'assets/blockzone/textures/block/airborne/**'
+    }
+}
+
+tasks.named('assemble') {
+    dependsOn tasks.named('airborneResourcePack')
+}

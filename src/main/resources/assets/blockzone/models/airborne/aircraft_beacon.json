@@ -1,0 +1,153 @@
+{
+  "credit": "Blockzone luminous aircraft lamps",
+  "ambientocclusion": false,
+  "texture_size": [
+    64,
+    64
+  ],
+  "textures": {
+    "texture": "blockzone:block/airborne/aircraft_lights",
+    "particle": "#texture"
+  },
+  "display": {
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    }
+  },
+  "elements": [
+    {
+      "name": "beacon_lamp",
+      "shade": false,
+      "from": [
+        7.895,
+        10.174999999999999,
+        6.895
+      ],
+      "to": [
+        8.105,
+        10.385,
+        7.105
+      ],
+      "faces": {
+        "north": {
+          "texture": "#texture",
+          "uv": [
+            0.125,
+            0.125,
+            3.875,
+            3.875
+          ]
+        },
+        "south": {
+          "texture": "#texture",
+          "uv": [
+            0.125,
+            0.125,
+            3.875,
+            3.875
+          ]
+        },
+        "east": {
+          "texture": "#texture",
+          "uv": [
+            0.125,
+            0.125,
+            3.875,
+            3.875
+          ]
+        },
+        "west": {
+          "texture": "#texture",
+          "uv": [
+            0.125,
+            0.125,
+            3.875,
+            3.875
+          ]
+        },
+        "up": {
+          "texture": "#texture",
+          "uv": [
+            0.125,
+            0.125,
+            3.875,
+            3.875
+          ]
+        },
+        "down": {
+          "texture": "#texture",
+          "uv": [
+            0.125,
+            0.125,
+            3.875,
+            3.875
+          ]
+        }
+      }
+    },
+    {
+      "name": "beacon_halo_2",
+      "shade": false,
+      "from": [
+        7.5,
+        9.78,
+        7
+      ],
+      "to": [
+        8.5,
+        10.78,
+        7
+      ],
+      "faces": {
+        "north": {
+          "texture": "#texture",
+          "uv": [
+            0.125,
+            4.125,
+            3.875,
+            7.875
+          ]
+        }
+      }
+    },
+    {
+      "name": "beacon_halo_0",
+      "shade": false,
+      "from": [
+        8,
+        9.78,
+        6.5
+      ],
+      "to": [
+        8,
+        10.78,
+        7.5
+      ],
+      "faces": {
+        "west": {
+          "texture": "#texture",
+          "uv": [
+            0.125,
+            4.125,
+            3.875,
+            7.875
+          ]
+        }
+      }
+    }
+  ]
+}

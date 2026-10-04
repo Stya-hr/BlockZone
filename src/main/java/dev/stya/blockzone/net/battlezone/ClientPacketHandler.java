@@ -17,6 +17,11 @@ final class ClientPacketHandler {
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> DeploymentClientController.apply(packet));
     }
 
+    static void handle(DeploymentVehicleS2CPacket packet) {
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () ->
+                dev.stya.blockzone.client.battlezone.DeploymentVehicleState.apply(packet));
+    }
+
     static void handle(ZoneStateS2CPacket packet) {
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ZoneClientState.apply(packet));
     }

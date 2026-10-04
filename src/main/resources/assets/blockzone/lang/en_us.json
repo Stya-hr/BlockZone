@@ -23,7 +23,7 @@
   "editor.blockzone.discard_hint": "Your draft has not been saved and will be discarded.",
   "editor.blockzone.sequence": "Sequence %s / %s",
   "editor.blockzone.circle": "Circle %s / %s",
-  "editor.blockzone.drag_controls": "Drag: move | Shift drag: radius | Right drag: look | Wheel: radius",
+  "editor.blockzone.drag_controls": "Drag: move | Right drag: look | Wheel: radius",
   "editor.blockzone.colors": "White: selected | Orange: configured | Cyan: actual",
   "editor.blockzone.adjusted": "Outside bounds: actual X=%s Z=%s. Original coordinates will be saved.",
   "editor.blockzone.too_large": "Radius cannot fit inside the map. Reduce it before saving.",

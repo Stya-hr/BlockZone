@@ -19,7 +19,7 @@ public final class PoisonEditorScreen extends Screen {
     private static String fieldKey(int index) { return "setting.battlezone.poisonCircle." + FIELD_KEYS[index]; }
     private final List<EditBox> fields = new ArrayList<>();
     private int panel, panelScroll;
-    private boolean moving, resizing;
+    private boolean moving;
     public PoisonEditorScreen() { super(Component.translatable("editor.blockzone.title")); }
     @Override public boolean isPauseScreen() { return false; }
     @Override protected void init() {
@@ -127,9 +127,7 @@ public final class PoisonEditorScreen extends Screen {
         var point = ground(x,y);
         if (point == null) { PoisonWorldEditor.message = Component.translatable("editor.blockzone.look_down").getString(); return; }
         var c = PoisonWorldEditor.draft.selected();
-        if (resizing) PoisonWorldEditor.setGeometry(c.x(), c.z(), (PoisonWorldEditor.draft.path().shape() == dev.stya.blockzone.util.battlezone.ZoneShape.SQUARE_PRISM
-                ? Math.max(Math.abs(point.x-c.x()), Math.abs(point.z-c.z())) : Math.hypot(point.x-c.x(), point.z-c.z())));
-        else PoisonWorldEditor.setGeometry(point.x, point.z, c.radius());
+        PoisonWorldEditor.setGeometry(point.x, point.z, c.radius());
         var next = PoisonWorldEditor.draft.selected();
         fields.get(0).setValue(Double.toString(next.x())); fields.get(1).setValue(Double.toString(next.z()));
         fields.get(2).setValue(Double.toString(next.radius()));
@@ -149,7 +147,7 @@ public final class PoisonEditorScreen extends Screen {
         setFocused(null);
         if (PoisonWorldEditor.saving) return true;
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && apply()) {
-            moving = true; resizing = hasShiftDown(); manipulate(x,y); return true;
+            moving = true; manipulate(x,y); return true;
         }
         return button == GLFW.GLFW_MOUSE_BUTTON_RIGHT || super.mouseClicked(x,y,button);
     }

@@ -23,7 +23,7 @@
   "editor.blockzone.discard_hint": "草稿尚未保存，退出后将丢弃。",
   "editor.blockzone.sequence": "序列 %s / %s",
   "editor.blockzone.circle": "圈 %s / %s",
-  "editor.blockzone.drag_controls": "左拖移动 · Shift 左拖半径 · 右拖看向 · 滚轮半径",
+  "editor.blockzone.drag_controls": "左拖移动 · 右拖看向 · 滚轮半径",
   "editor.blockzone.colors": "白：选中 · 橙：越界原始圈 · 青：实际圈",
   "editor.blockzone.adjusted": "越界：实际圈心为 X=%s Z=%s，保存原坐标。",
   "editor.blockzone.too_large": "半径无法放入地图，请减小后再保存。",

@@ -66,7 +66,7 @@ final class PoisonEditorCamera {
     private static ZoneGeometry selectedCircle() {
         var c = PoisonWorldEditor.draft.selected();
         return new ZoneGeometry(c.x(), PoisonWorldEditor.y(), c.z(), Math.min(c.radius(), Math.min(PoisonWorldEditor.bounds().maxX()-PoisonWorldEditor.bounds().minX(),
-                        PoisonWorldEditor.bounds().maxZ()-PoisonWorldEditor.bounds().minZ())/2)).fitInside(PoisonWorldEditor.bounds());
+                        PoisonWorldEditor.bounds().maxZ()-PoisonWorldEditor.bounds().minZ())/2), PoisonWorldEditor.draft.path().shape()).fitInside(PoisonWorldEditor.bounds());
     }
     private static double mapTop() { return Math.max(PoisonWorldEditor.session.pos1().getY(), PoisonWorldEditor.session.pos2().getY()); }
     static boolean key(int key, int scan, int action) {

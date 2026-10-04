@@ -9,6 +9,19 @@ class PoisonEditorDraftTest {
     private final PoisonPath.Circle first = new PoisonPath.Circle(10, 20, 30, 0, 0, 1);
     private final PoisonPath.Circle second = new PoisonPath.Circle(20, 30, 40, 5, 10, 2);
     private PoisonEditorDraft draft() { return new PoisonEditorDraft(List.of(new PoisonPath(List.of(first, second)))); }
+    @Test void editsPreserveShapeAndCopiedSequencesCanChangeShapeIndependently() {
+        var draft = draft();
+        draft.setShape(dev.stya.blockzone.util.battlezone.ZoneShape.SQUARE_PRISM);
+        draft.replace(second);
+        draft.addCircle();
+        draft.moveCircle(-1);
+        draft.removeCircle();
+        assertEquals(dev.stya.blockzone.util.battlezone.ZoneShape.SQUARE_PRISM, draft.path().shape());
+        draft.duplicateSequence();
+        draft.setShape(dev.stya.blockzone.util.battlezone.ZoneShape.CYLINDER);
+        assertEquals(dev.stya.blockzone.util.battlezone.ZoneShape.SQUARE_PRISM, draft.paths().get(0).shape());
+        assertEquals(dev.stya.blockzone.util.battlezone.ZoneShape.CYLINDER, draft.paths().get(1).shape());
+    }
     @Test void copiedSequencesEditIndependentlyAndLeaveOriginalUntouched() {
         var source = List.of(new PoisonPath(List.of(first, second)));
         var draft = new PoisonEditorDraft(source); draft.duplicateSequence(); draft.replace(second);

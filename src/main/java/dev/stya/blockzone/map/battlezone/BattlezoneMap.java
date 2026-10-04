@@ -250,11 +250,11 @@ public final class BattlezoneMap extends BaseMap {
                 : resolvePath(poisonSequences.get().get(number - 1), number);
         BattlezoneNetwork.send(player, new dev.stya.blockzone.net.battlezone.ZonePreviewS2CPacket(
                 getServerLevel().dimension().location(), true, circles));
-        player.sendSystemMessage(Component.literal("Sequence " + number + ": " + circles.size() + " circles (sphere grid preview)"));
+        player.sendSystemMessage(Component.literal("Sequence " + number + ": " + circles.size() + " circles (shape grid preview)"));
         for (int i = 0; i < circles.size(); i++) {
             var circle = circles.get(i);
             player.sendSystemMessage(Component.literal("Circle " + (i + 1) + ": X=" + circle.centerX() + ", Z="
-                    + circle.centerZ() + ", radius=" + circle.radius()));
+                    + circle.centerZ() + ", shape=" + circle.shape().id() + ", radius=" + circle.radius()));
         }
         return true;
     }
@@ -322,7 +322,7 @@ public final class BattlezoneMap extends BaseMap {
         AreaData area = getMapArea();
         ZoneGeometry zone = new ZoneGeometry(poisonCurrentCenterX,
                 ZoneGeometry.centerY(area.pos1().getY(), area.pos2().getY()),
-                poisonCurrentCenterZ, poisonCurrentRadius);
+                poisonCurrentCenterZ, poisonCurrentRadius, activePoisonPath.shape());
         DamageSource damageSource = getServerLevel().damageSources().magic();
         for (ServerTeam team : getMapTeams().getNormalTeams()) {
             for (ServerPlayer player : team.getOnline()) {
@@ -749,7 +749,7 @@ public final class BattlezoneMap extends BaseMap {
         AreaData area = getMapArea();
         ZoneGeometry zone = new ZoneGeometry(poisonCurrentCenterX,
                 ZoneGeometry.centerY(area.pos1().getY(), area.pos2().getY()),
-                poisonCurrentCenterZ, poisonCurrentRadius);
+                poisonCurrentCenterZ, poisonCurrentRadius, activePoisonPath.shape());
         if (player.serverLevel() != getServerLevel()
                 || !zone.containsHorizontal(player.getX(), player.getZ())) {
             player.displayClientMessage(Component.translatable("blockzone.deployment.outside_zone"), true);
@@ -830,7 +830,8 @@ public final class BattlezoneMap extends BaseMap {
                 poisonCurrentCenterX,
                 poisonCurrentCenterZ,
                 poisonCurrentRadius,
-                boundaryTexture.get());
+                boundaryTexture.get(),
+                activePoisonPath == null ? dev.stya.blockzone.util.battlezone.ZoneShape.CYLINDER : activePoisonPath.shape());
     }
 
     @Override

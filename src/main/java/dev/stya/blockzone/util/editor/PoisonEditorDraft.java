@@ -22,17 +22,20 @@ public final class PoisonEditorDraft {
     public void selectCircle(int index) { circle = Math.floorMod(index, path().circles().size()); }
     public void replace(PoisonPath.Circle value) {
         var circles = new ArrayList<>(path().circles()); circles.set(circle, value);
-        paths.set(sequence, new PoisonPath(circles));
+        paths.set(sequence, new PoisonPath(circles, path().shape()));
+    }
+    public void setShape(dev.stya.blockzone.util.battlezone.ZoneShape shape) {
+        paths.set(sequence, new PoisonPath(path().circles(), shape));
     }
     public void addCircle() {
         if (path().circles().size() >= 128) throw new IllegalArgumentException("Editor limit: 128 circles per sequence");
         var circles = new ArrayList<>(path().circles()); circles.add(circle + 1, selected());
-        paths.set(sequence, new PoisonPath(circles)); circle++;
+        paths.set(sequence, new PoisonPath(circles, path().shape())); circle++;
     }
     public boolean removeCircle() {
         if (path().circles().size() == 1) return false;
         var circles = new ArrayList<>(path().circles()); circles.remove(circle);
-        paths.set(sequence, new PoisonPath(circles)); circle = Math.min(circle, circles.size() - 1); return true;
+        paths.set(sequence, new PoisonPath(circles, path().shape())); circle = Math.min(circle, circles.size() - 1); return true;
     }
     public void duplicateSequence() { if (paths.size() >= 128) throw new IllegalArgumentException("Editor limit: 128 sequences"); paths.add(sequence + 1, path()); sequence++; }
     public boolean removeSequence() {
@@ -44,6 +47,6 @@ public final class PoisonEditorDraft {
         if (target < 0 || target >= path().circles().size()) return;
         var circles = new ArrayList<>(path().circles());
         java.util.Collections.swap(circles, circle, target);
-        paths.set(sequence, new PoisonPath(circles)); circle = target;
+        paths.set(sequence, new PoisonPath(circles, path().shape())); circle = target;
     }
 }

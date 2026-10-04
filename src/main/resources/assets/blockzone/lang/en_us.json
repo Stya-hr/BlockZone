@@ -49,7 +49,7 @@
   "setting.battlezone.poisonDamagePerSecond": "Base poison damage per second",
   "setting.battlezone.poisonDamagePerSecond.desc": "Outside damage per second equals base damage times the current circle multiplier. Two health points equal one heart; zero disables damage.",
   "setting.battlezone.poisonSequences": "Poison sequences",
-  "setting.battlezone.poisonSequences.desc": "A complete path is randomly selected each match. The initial circle is used for deployment; later circles may shrink or expand. Use settings sequence edit for world editing.",
+  "setting.battlezone.poisonSequences.desc": "Each sequence has shape (cylinder/square_prism; defaults to cylinder) and circles. The first stage is deployment; later stages are shrink targets. Shape stays fixed throughout a sequence.",
   "setting.battlezone.boundaryTexture": "Map boundary texture",
   "setting.battlezone.boundaryTexture.desc": "Texture resource path for the boundary warning fence, e.g. blockzone:textures/effect/battlezone_warning_fence.png.",
   "setting.battlezone.poisonCircle.x": "Center X",
@@ -57,7 +57,7 @@
   "setting.battlezone.poisonCircle.z": "Center Z",
   "setting.battlezone.poisonCircle.z.desc": "Configured horizontal Z. Out-of-bounds values are retained while the runtime center is translated inside the map.",
   "setting.battlezone.poisonCircle.radius": "Radius (blocks)",
-  "setting.battlezone.poisonCircle.radius.desc": "Sphere radius in blocks. Zero and expansion are allowed; the diameter must fit within the horizontal map bounds.",
+  "setting.battlezone.poisonCircle.radius.desc": "Cylinder radius or square prism half side length; height is unbounded. Zero and expansion are allowed; diameter/side length must fit inside the map.",
   "setting.battlezone.poisonCircle.waitSeconds": "Wait (seconds)",
   "setting.battlezone.poisonCircle.waitSeconds.desc": "Wait before transitioning to this circle. The initial circle uses deployment time and ignores this field.",
   "setting.battlezone.poisonCircle.shrinkSeconds": "Transition (seconds)",
@@ -68,5 +68,7 @@
   "editor.blockzone.camera_controls": "WASD fly | Space/Shift rise/drop | Ctrl boost | F6 focus",
   "editor.blockzone.camera_position": "Camera X=%s Y=%s Z=%s",
   "editor.blockzone.camera_busy": "Camera unavailable. Press F6 after the other camera ends to retry.",
-  "editor.blockzone.camera_ended": "Free camera ended; your draft is retained. Press F6 to resume."
+  "editor.blockzone.camera_ended": "Free camera ended; your draft is retained. Press F6 to resume.",
+  "setting.battlezone.poisonShape.cylinder": "Shape: Cylinder (unbounded height)",
+  "setting.battlezone.poisonShape.square_prism": "Shape: Square prism (unbounded height)"
 }

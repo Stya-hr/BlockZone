@@ -48,7 +48,7 @@ public final class WorldRenderer {
             @Override
             protected void apply(Void ignored, ResourceManager resourceManager,
                                  net.minecraft.util.profiling.ProfilerFiller profiler) {
-                SphereRenderer.release();
+                ZoneRenderer.release();
                 cachedFenceTexture = null;
             }
         });
@@ -84,7 +84,7 @@ public final class WorldRenderer {
         if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_PARTICLES && state != null
                 && minecraft.level.dimension().location().equals(state.dimension())) {
             if (state.whiteoutActive()) {
-                SphereRenderer.render(event, state);
+                ZoneRenderer.render(event, state);
             }
             if (minecraft.player != null) {
                 renderWarningFence(state, event.getPoseStack(), event.getCamera().getPosition(),
@@ -209,19 +209,23 @@ public final class WorldRenderer {
         var buffers = Minecraft.getInstance().renderBuffers().bufferSource();
         var type = RenderType.lines();
         var consumer = buffers.getBuffer(type);
-        for (int latitude = -7; latitude <= 7; latitude++) {
-            double phi = latitude * Math.PI / 16;
-            for (int segment = 0; segment < 128; segment++) {
-                gridLine(consumer, stack.last(), camera, zone, color,
-                        gridPoint(phi, segment * Math.PI / 64), gridPoint(phi, (segment + 1) * Math.PI / 64));
+        if (zone.radius() > 0) {
+            double bottom = zone.centerY();
+            double top = bottom + dev.stya.blockzone.util.battlezone.ZoneGeometry.VISUAL_HEIGHT;
+            double low = (bottom - zone.centerY()) / zone.radius();
+            double high = (top - zone.centerY()) / zone.radius();
+            boolean square = zone.shape() == dev.stya.blockzone.util.battlezone.ZoneShape.SQUARE_PRISM;
+            int segments = square ? 4 : 128;
+            for (double y = bottom; y <= top; y += 2) {
+                double localY = (y - zone.centerY()) / zone.radius();
+                for (int segment = 0; segment < segments; segment++) {
+                    gridLine(consumer, stack.last(), camera, zone, color,
+                            gridPoint(square, segment, localY), gridPoint(square, segment + 1, localY));
+                }
             }
-        }
-        for (int longitude = 0; longitude < 32; longitude++) {
-            double theta = longitude * Math.PI / 16;
-            for (int segment = 0; segment < 64; segment++) {
+            for (int segment = 0; segment < segments; segment += square ? 1 : 4) {
                 gridLine(consumer, stack.last(), camera, zone, color,
-                        gridPoint(-Math.PI / 2 + segment * Math.PI / 64, theta),
-                        gridPoint(-Math.PI / 2 + (segment + 1) * Math.PI / 64, theta));
+                        gridPoint(square, segment, low), gridPoint(square, segment, high));
             }
         }
         if (zone.radius() == 0) {
@@ -231,8 +235,17 @@ public final class WorldRenderer {
         buffers.endBatch(type);
     }
 
-    private static Vec3 gridPoint(double phi, double theta) {
-        return new Vec3(Math.cos(phi) * Math.cos(theta), Math.sin(phi), Math.cos(phi) * Math.sin(theta));
+    private static Vec3 gridPoint(boolean square, int segment, double y) {
+        if (square) {
+            return switch (segment % 4) {
+                case 0 -> new Vec3(-1, y, -1);
+                case 1 -> new Vec3(-1, y, 1);
+                case 2 -> new Vec3(1, y, 1);
+                default -> new Vec3(1, y, -1);
+            };
+        }
+        double angle = segment * Math.PI / 64;
+        return new Vec3(Math.cos(angle), y, Math.sin(angle));
     }
 
     private static void gridLine(VertexConsumer consumer, PoseStack.Pose pose, Vec3 camera,

@@ -9,6 +9,25 @@ import static org.junit.jupiter.api.Assertions.*;
 class PoisonPathTest {
     private final BoundaryGeometry bounds = BoundaryGeometry.of(-100, -100, 99, 99);
 
+    @Test void shapeDefaultsToCylinderAndRoundTripsAllSupportedShapes() {
+        var json = JsonParser.parseString("""
+                {"circles":[{"x":0,"z":0,"radius":80,"waitSeconds":0,"shrinkSeconds":0}]}
+                """).getAsJsonObject();
+        assertEquals(ZoneShape.CYLINDER, PoisonPath.CODEC.parse(JsonOps.INSTANCE, json).result().orElseThrow().shape());
+        for (var shape : ZoneShape.values()) {
+            json.addProperty("shape", shape.id());
+            var path = PoisonPath.CODEC.parse(JsonOps.INSTANCE, json).result().orElseThrow();
+            assertEquals(shape, path.shape());
+            assertEquals(shape, path.resolve(bounds, 64).get(0).shape());
+            var encoded = PoisonPath.CODEC.encodeStart(JsonOps.INSTANCE, path).result().orElseThrow();
+            assertEquals(path, PoisonPath.CODEC.parse(JsonOps.INSTANCE, encoded).result().orElseThrow());
+        }
+        for (String invalid : List.of("\"square\"", "\"sphere\"", "\"cube\"", "1", "{}")) {
+            json.add("shape", JsonParser.parseString(invalid));
+            assertTrue(PoisonPath.CODEC.parse(JsonOps.INSTANCE, json).error().isPresent(), invalid);
+        }
+    }
+
     @Test void independentPathsRoundTripWithTheirOwnTimingAndInitialCircle() {
         String json = """
                 [{"circles":[{"x":10,"z":20,"radius":80,"wait_seconds":0,"shrink_seconds":0},

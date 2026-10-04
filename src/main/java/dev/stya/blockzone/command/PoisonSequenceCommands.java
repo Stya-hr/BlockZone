@@ -28,6 +28,12 @@ public final class PoisonSequenceCommands {
                 .then(Commands.literal("add").executes(context -> edit(context, "add")))
                 .then(Commands.argument("sequence", IntegerArgumentType.integer(1))
                         .then(Commands.literal("get").executes(context -> edit(context, "get")))
+                        .then(Commands.literal("shape")
+                                .then(Commands.argument("shape", StringArgumentType.word())
+                                        .suggests((context, builder) -> {
+                                            for (var shape : dev.stya.blockzone.util.battlezone.ZoneShape.values()) builder.suggest(shape.id());
+                                            return builder.buildFuture();
+                                        }).executes(context -> edit(context, "shape"))))
                         .then(Commands.literal("remove").executes(context -> edit(context, "remove")))
                         .then(Commands.literal("circle")
                                 .then(Commands.literal("add").then(circleArguments("circle_add")))
@@ -39,7 +45,7 @@ public final class PoisonSequenceCommands {
                         .then(Commands.argument("map_name", StringArgumentType.string())
                                 .then(Commands.literal("settings").requires(source -> source.hasPermission(2)).then(sequence))))));
         event.registerHelp("fpsm map modify settings sequence", Component.literal(
-                "Edit poison paths: edit opens the world editor; list/add; <sequence> get/remove; <sequence> circle add <x> <z> <radius> <waitSeconds> <shrinkSeconds> <damageMultiplier>; <sequence> circle <circle> set <same fields>/remove. Indices start at 1. Save with settings save."));
+                "Edit poison paths: edit opens the world editor; list/add; <sequence> get/remove; <sequence> shape cylinder|square_prism; <sequence> circle add <x> <z> <radius> <waitSeconds> <shrinkSeconds> <damageMultiplier>; <sequence> circle <circle> set <same fields>/remove. Indices start at 1. Save with settings save."));
         event.registerParameters("fpsm map modify settings sequence", "*game_type", "*map_name", "list|add|<sequence> get|remove|circle ...");
     }
 
@@ -85,7 +91,13 @@ public final class PoisonSequenceCommands {
                     source.sendSuccess(() -> Component.literal(json.toString()), false);
                     return 1;
                 }
-                if (action.equals("remove")) paths.remove(index);
+                if (action.equals("shape")) {
+                    var shape = dev.stya.blockzone.util.battlezone.ZoneShape.CODEC.parse(com.mojang.serialization.JsonOps.INSTANCE,
+                            new com.google.gson.JsonPrimitive(StringArgumentType.getString(context, "shape")))
+                            .getOrThrow(false, message -> {});
+                    paths.set(index, new PoisonPath(paths.get(index).circles(), shape));
+                }
+                else if (action.equals("remove")) paths.remove(index);
                 else {
                     var circles = new ArrayList<>(paths.get(index).circles());
                     int circleIndex = action.equals("circle_add") ? circles.size() : IntegerArgumentType.getInteger(context, "circle") - 1;
@@ -99,7 +111,7 @@ public final class PoisonSequenceCommands {
                                 DoubleArgumentType.getDouble(context, "damageMultiplier"));
                         if (action.equals("circle_add")) circles.add(circle); else circles.set(circleIndex, circle);
                     }
-                    paths.set(index, new PoisonPath(circles));
+                    paths.set(index, new PoisonPath(circles, paths.get(index).shape()));
                 }
             }
             map.setPoisonSequences(paths);

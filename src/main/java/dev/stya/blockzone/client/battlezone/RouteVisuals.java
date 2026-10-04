@@ -6,6 +6,7 @@ import dev.stya.blockzone.BlockZone;
 import dev.stya.blockzone.client.battlezone.model.AirborneModels;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.core.BlockPos;
@@ -74,6 +75,20 @@ public final class RouteVisuals {
             stack.popPose();
         }
         buffers.endBatch(type);
+        if (transport != null) {
+            // Draw the luminous layers after opaque geometry; the pack owns all lamp positions.
+            var glowType = RenderType.entityTranslucent(TextureAtlas.LOCATION_BLOCKS);
+            stack.pushPose();
+            orientModel(stack, transport, camera, DeploymentVehicleState.yaw());
+            AirborneModels.render(AirborneModels.AIRCRAFT_LIGHTS, 8, stack,
+                    buffers.getBuffer(glowType), LightTexture.FULL_BRIGHT);
+            if (animationTime % 20 < 3) {
+                AirborneModels.render(AirborneModels.AIRCRAFT_BEACON, 8, stack,
+                        buffers.getBuffer(glowType), LightTexture.FULL_BRIGHT);
+            }
+            stack.popPose();
+            buffers.endBatch(glowType);
+        }
     }
 
     private static void orientModel(PoseStack stack, Vec3 position, Vec3 camera, float yaw) {

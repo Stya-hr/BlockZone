@@ -1,17 +1,20 @@
 package dev.stya.blockzone.client.battlezone;
 
-import dev.stya.blockzone.net.battlezone.BoundaryPreviewS2CPacket;
-import dev.stya.blockzone.util.battlezone.BoundaryGeometry;
-import dev.stya.blockzone.util.battlezone.WarningRibbonGeometry;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.player.LocalPlayer;
+import dev.stya.blockzone.net.battlezone.BoundaryPreviewS2CPacket;
+import dev.stya.blockzone.zone.BoundaryGeometry;
+import dev.stya.blockzone.zone.WarningRibbonGeometry;
+import dev.stya.blockzone.zone.ZoneGeometry;
+import dev.stya.blockzone.zone.ZoneShape;
+import java.io.IOException;
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.BlockPos;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.phys.Vec3;
@@ -22,7 +25,6 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.io.IOException;
 
 @Mod.EventBusSubscriber(modid = "blockzone", value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class WorldRenderer {
@@ -205,16 +207,16 @@ public final class WorldRenderer {
         }
     }
 
-    public static void renderZoneGrid(dev.stya.blockzone.util.battlezone.ZoneGeometry zone, PoseStack stack, Vec3 camera, int color) {
+    public static void renderZoneGrid(ZoneGeometry zone, PoseStack stack, Vec3 camera, int color) {
         var buffers = Minecraft.getInstance().renderBuffers().bufferSource();
         var type = RenderType.lines();
         var consumer = buffers.getBuffer(type);
         if (zone.radius() > 0) {
             double bottom = zone.centerY();
-            double top = bottom + dev.stya.blockzone.util.battlezone.ZoneGeometry.VISUAL_HEIGHT;
+            double top = bottom + ZoneGeometry.VISUAL_HEIGHT;
             double low = (bottom - zone.centerY()) / zone.radius();
             double high = (top - zone.centerY()) / zone.radius();
-            boolean square = zone.shape() == dev.stya.blockzone.util.battlezone.ZoneShape.SQUARE_PRISM;
+            boolean square = zone.shape() == ZoneShape.SQUARE_PRISM;
             int segments = square ? 4 : 128;
             for (double y = bottom; y <= top; y += 2) {
                 double localY = (y - zone.centerY()) / zone.radius();
@@ -229,7 +231,7 @@ public final class WorldRenderer {
             }
         }
         if (zone.radius() == 0) {
-            gridLine(consumer, stack.last(), camera, new dev.stya.blockzone.util.battlezone.ZoneGeometry(
+            gridLine(consumer, stack.last(), camera, new ZoneGeometry(
                     zone.centerX(), zone.centerY(), zone.centerZ(), 1), color, new Vec3(-1, 0, 0), new Vec3(1, 0, 0));
         }
         buffers.endBatch(type);
@@ -249,7 +251,7 @@ public final class WorldRenderer {
     }
 
     private static void gridLine(VertexConsumer consumer, PoseStack.Pose pose, Vec3 camera,
-                                 dev.stya.blockzone.util.battlezone.ZoneGeometry zone, int color, Vec3 a, Vec3 b) {
+                                 ZoneGeometry zone, int color, Vec3 a, Vec3 b) {
         Vec3 direction = b.subtract(a).normalize();
         for (Vec3 point : new Vec3[]{a, b}) {
             consumer.vertex(pose.pose(), (float)(zone.centerX() + point.x * zone.radius() - camera.x),

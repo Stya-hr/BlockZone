@@ -4,11 +4,11 @@ import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexBuffer;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import dev.stya.blockzone.zone.ZoneShape;
+import java.util.EnumMap;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import org.joml.Matrix4f;
-import dev.stya.blockzone.util.battlezone.ZoneShape;
-import java.util.EnumMap;
 
 final class ZoneRenderer {
     private static final float WALL_HEIGHT = 96f;

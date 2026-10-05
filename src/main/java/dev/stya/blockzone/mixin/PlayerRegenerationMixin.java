@@ -1,6 +1,6 @@
 package dev.stya.blockzone.mixin;
 
-import dev.stya.blockzone.map.battlezone.MatchRegeneration;
+import dev.stya.blockzone.combat.MatchRegeneration;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.GameRules;
 import org.spongepowered.asm.mixin.Mixin;

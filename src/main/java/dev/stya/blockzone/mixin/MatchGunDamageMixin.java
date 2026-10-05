@@ -2,7 +2,7 @@ package dev.stya.blockzone.mixin;
 
 import com.ptcrys.fpsmatch.common.attributes.ammo.GunDamageHandler;
 import com.ptcrys.fpsmatch.common.event.FPSMGunDamageEvent;
-import dev.stya.blockzone.map.battlezone.MatchRegeneration;
+import dev.stya.blockzone.combat.MatchRegeneration;
 import net.minecraft.server.level.ServerPlayer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

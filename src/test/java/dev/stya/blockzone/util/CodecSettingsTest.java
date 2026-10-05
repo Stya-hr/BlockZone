@@ -4,10 +4,10 @@ import com.google.gson.JsonParser;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;
 import com.ptcrys.fpsmatch.common.packet.mapselect.MapRoomSettingInfo;
-import dev.stya.blockzone.util.battlezone.PoisonSettingsMigration;
-import dev.stya.blockzone.util.battlezone.PoisonPath;
-import org.junit.jupiter.api.Test;
+import dev.stya.blockzone.zone.PoisonPath;
+import dev.stya.blockzone.zone.PoisonSettingsMigration;
 import java.util.List;
+import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class CodecSettingsTest {

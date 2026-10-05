@@ -5,12 +5,12 @@ import com.mojang.serialization.JsonOps;
 import com.ptcrys.fpsmatch.core.FPSMCore;
 import dev.stya.blockzone.map.battlezone.BattlezoneMap;
 import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
-import dev.stya.blockzone.util.battlezone.PoisonPath;
-import net.minecraft.server.level.ServerPlayer;
+import dev.stya.blockzone.zone.PoisonPath;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.WeakHashMap;
+import net.minecraft.server.level.ServerPlayer;
 
 public final class PoisonEditorSessions {
     private record Session(UUID token, BattlezoneMap map, List<PoisonPath> original) {}

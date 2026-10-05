@@ -1,6 +1,6 @@
 package dev.stya.blockzone.client.battlezone;
 
-import dev.stya.blockzone.map.battlezone.FlightRoute;
+import dev.stya.blockzone.deployment.FlightRoute;
 import dev.stya.blockzone.net.battlezone.DeploymentVehicleS2CPacket;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.phys.Vec3;

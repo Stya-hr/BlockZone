@@ -1,6 +1,6 @@
 package dev.stya.blockzone.equipment;
 
-import dev.stya.blockzone.map.battlezone.MatchRegeneration;
+import dev.stya.blockzone.combat.MatchRegeneration;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.LivingEntity;
@@ -34,7 +34,7 @@ public final class ArmorPlateItem extends Item {
                 && player.isAlive() && !MatchRegeneration.allowed(player)) {
             MatchRegeneration.map(player).ifPresent(map -> {
                 if (player.getAbsorptionAmount() >= map.getMaxCombatArmor(player)) return;
-                player.setAbsorptionAmount(dev.stya.blockzone.equipment.PlateCapacity.insert(player.getAbsorptionAmount(), map.getArmorPlatePoints(), dev.stya.blockzone.equipment.PlateCapacity.slots(player)));
+                player.setAbsorptionAmount(PlateCapacity.insert(player.getAbsorptionAmount(), map.getArmorPlatePoints(), PlateCapacity.slots(player)));
                 if (!player.getAbilities().instabuild) stack.shrink(1);
                 player.getCooldowns().addCooldown(this, 5);
             });

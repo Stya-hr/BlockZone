@@ -1,16 +1,17 @@
 package dev.stya.blockzone.net.editor;
 
-import dev.stya.blockzone.util.editor.LootCrateEdit;
+import dev.stya.blockzone.client.editor.LootCrateEditorScreen;
+import dev.stya.blockzone.editor.loot.LootCrateEdit;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.function.Supplier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.network.NetworkEvent;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-import java.util.function.Supplier;
 
 public record LootEditorS2CPacket(UUID token, String mapName, ResourceLocation dimension, BlockPos pos1,
                                  BlockPos pos2, List<LootCrateEdit> crates, List<String> tables) {
@@ -53,7 +54,7 @@ public record LootEditorS2CPacket(UUID token, String mapName, ResourceLocation d
     public void handle(Supplier<NetworkEvent.Context> supplier) {
         var context = supplier.get();
         context.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-                () -> () -> dev.stya.blockzone.client.editor.LootCrateEditorScreen.open(this)));
+                () -> () -> LootCrateEditorScreen.open(this)));
         context.setPacketHandled(true);
     }
 }

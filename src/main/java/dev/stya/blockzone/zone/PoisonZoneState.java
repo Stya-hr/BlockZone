@@ -1,8 +1,5 @@
 package dev.stya.blockzone.zone;
 
-import dev.stya.blockzone.util.battlezone.PoisonPath;
-import dev.stya.blockzone.util.battlezone.ZoneGeometry;
-import dev.stya.blockzone.util.battlezone.ZoneShape;
 import java.util.List;
 
 /** Per-match zone progression, independent of players, world ticks and packet transport. */

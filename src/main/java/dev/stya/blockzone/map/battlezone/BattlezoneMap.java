@@ -1,28 +1,37 @@
 package dev.stya.blockzone.map.battlezone;
 
-import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
-import dev.stya.blockzone.net.battlezone.ZoneStateS2CPacket;
-import dev.stya.blockzone.util.battlezone.ZoneGeometry;
-import dev.stya.blockzone.util.battlezone.PoisonPath;
-import dev.stya.blockzone.zone.PoisonZoneController;
 import com.mojang.serialization.Codec;
-import dev.stya.blockzone.util.CodecSettings;
-import dev.stya.blockzone.util.battlezone.PoisonSettingsMigration;
 import com.ptcrys.fpsmatch.core.data.AreaData;
 import com.ptcrys.fpsmatch.core.data.Setting;
 import com.ptcrys.fpsmatch.core.map.BaseMap;
 import com.ptcrys.fpsmatch.core.team.MapTeams;
 import com.ptcrys.fpsmatch.core.team.ServerTeam;
 import com.ptcrys.fpsmatch.core.team.TeamData;
-import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.Player;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import dev.stya.blockzone.combat.CombatHealth;
+import dev.stya.blockzone.combat.MatchCombatController;
+import dev.stya.blockzone.combat.MatchRegeneration;
+import dev.stya.blockzone.data.snapshot.PlayerStateSnapshot;
+import dev.stya.blockzone.data.snapshot.SceneSnapshot;
+import dev.stya.blockzone.deployment.DeploymentController;
+import dev.stya.blockzone.deployment.FlightRoute;
+import dev.stya.blockzone.deployment.LandingController;
+import dev.stya.blockzone.editor.loot.LootCrateEdit;
+import dev.stya.blockzone.equipment.StartingLoadout;
+import dev.stya.blockzone.loot.LootDropEntity;
+import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
+import dev.stya.blockzone.net.battlezone.ZoneStateS2CPacket;
+import dev.stya.blockzone.util.CodecSettings;
+import dev.stya.blockzone.zone.PoisonPath;
+import dev.stya.blockzone.zone.PoisonSettingsMigration;
+import dev.stya.blockzone.zone.PoisonZoneController;
+import dev.stya.blockzone.zone.ZoneGeometry;
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class BattlezoneMap extends BaseMap {
     public static final String GAME_TYPE = "battlezone";
@@ -38,7 +47,7 @@ public final class BattlezoneMap extends BaseMap {
     private final Setting<Double> deploymentHeight;
     private final DeploymentController deployment = new DeploymentController(this);
     private final LandingController landing = new LandingController();
-    private final Setting<List<dev.stya.blockzone.equipment.StartingLoadout.Entry>> startingLoadout;
+    private final Setting<List<StartingLoadout.Entry>> startingLoadout;
     private final Setting<Double> matchHealth;
     private final Setting<Double> armorPlatePoints;
     private final MatchCombatController combat = new MatchCombatController();
@@ -83,7 +92,7 @@ public final class BattlezoneMap extends BaseMap {
                 Math.max(areaData.pos1().getY(), areaData.pos2().getY()) + 64.0));
 
         this.startingLoadout = addSetting(CodecSettings.create("battlezone", "startingLoadout",
-                dev.stya.blockzone.equipment.StartingLoadout.Entry.CODEC.listOf(), dev.stya.blockzone.equipment.StartingLoadout.defaults()));
+                StartingLoadout.Entry.CODEC.listOf(), StartingLoadout.defaults()));
         this.matchHealth = addSetting(CodecSettings.create("battlezone", "matchHealth",
                 Codec.doubleRange(1.0, 1024.0), 100.0));
         this.armorPlatePoints = addSetting(CodecSettings.create("battlezone", "armorPlatePoints",
@@ -291,8 +300,8 @@ public final class BattlezoneMap extends BaseMap {
             broadcast(Component.literal("Battlezone cannot start: deploymentHeight and deploymentSpeed must be valid numbers, and the initial horizontal circle must have room for a route."));
             return false;
         }
-        List<dev.stya.blockzone.equipment.StartingLoadout.Prepared> loadout;
-        try { loadout = dev.stya.blockzone.equipment.StartingLoadout.prepare(startingLoadout.get()); }
+        List<StartingLoadout.Prepared> loadout;
+        try { loadout = StartingLoadout.prepare(startingLoadout.get()); }
         catch (IllegalArgumentException exception) {
             broadcast(Component.literal("Battlezone cannot start: invalid startingLoadout: " + exception.getMessage()));
             return false;
@@ -525,7 +534,7 @@ public final class BattlezoneMap extends BaseMap {
         lootRoundId = null;
         // Drops that escaped the arena bounds must also disappear when this match ends.
         for (var entity : getServerLevel().getAllEntities()) {
-            if (entity instanceof dev.stya.blockzone.loot.LootDropEntity drop && drop.belongsToMap(getMapName())) {
+            if (entity instanceof LootDropEntity drop && drop.belongsToMap(getMapName())) {
                 drop.discard();
             }
         }
@@ -668,7 +677,7 @@ public final class BattlezoneMap extends BaseMap {
         return deployment.release(player);
     }
 
-    void clearAirbornePlayer(ServerPlayer player) {
+    public void clearAirbornePlayer(ServerPlayer player) {
         deployment.remove(player);
         landing.finish(player);
     }
@@ -690,7 +699,7 @@ public final class BattlezoneMap extends BaseMap {
         }
     }
 
-    void tickDeploymentPlayer(ServerPlayer player) {
+    public void tickDeploymentPlayer(ServerPlayer player) {
         deployment.tickPlayer(player);
         if (!isMatchActive() || player.serverLevel() != getServerLevel()
                 || getMapTeams().getTeamByPlayer(player).filter(team -> !team.isSpectator())
@@ -707,7 +716,7 @@ public final class BattlezoneMap extends BaseMap {
 
     public java.util.UUID getLootRoundId() { return lootRoundId; }
 
-    public boolean saveLootCrateEdits(java.util.List<dev.stya.blockzone.util.editor.LootCrateEdit> changes,
+    public boolean saveLootCrateEdits(java.util.List<LootCrateEdit> changes,
                                       java.util.function.Consumer<Boolean> result) {
         return sceneSnapshot.saveLootCrateEdits(changes, result);
     }

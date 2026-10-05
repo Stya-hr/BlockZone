@@ -1,6 +1,8 @@
 package dev.stya.blockzone.client.editor;
 
 import dev.stya.blockzone.BlockZone;
+import dev.stya.blockzone.editor.loot.LootCrateEdit;
+import dev.stya.blockzone.loot.LootCrateBlock;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.RenderType;
@@ -34,14 +36,14 @@ public final class LootWorldEditor {
         if (!hasFreeCamera() || event.getType() != net.minecraft.world.level.material.FogType.NONE) return;
         event.setNearPlaneDistance(4096); event.setFarPlaneDistance(8192); event.setCanceled(true);
     }
-    static AABB bounds(dev.stya.blockzone.util.editor.LootCrateEdit crate) {
+    static AABB bounds(LootCrateEdit crate) {
         var level = Minecraft.getInstance().level;
         var pos = new net.minecraft.core.BlockPos(crate.x(), crate.y(), crate.z());
         if (level != null) {
             var state = level.getBlockState(pos);
-            if (state.getBlock() instanceof dev.stya.blockzone.loot.LootCrateBlock) {
-                return ((dev.stya.blockzone.loot.LootCrateBlock)state.getBlock()).defaultShape(crate.enabled() ? crate.opened() : state.getValue(dev.stya.blockzone.loot.LootCrateBlock.OPEN),
-                        dev.stya.blockzone.loot.LootCrateBlock.rotation(state.getValue(dev.stya.blockzone.loot.LootCrateBlock.FACING))).bounds().move(pos);
+            if (state.getBlock() instanceof LootCrateBlock) {
+                return ((LootCrateBlock)state.getBlock()).defaultShape(crate.enabled() ? crate.opened() : state.getValue(LootCrateBlock.OPEN),
+                        LootCrateBlock.rotation(state.getValue(LootCrateBlock.FACING))).bounds().move(pos);
             }
             var shape=state.getShape(level,pos);
             if(!shape.isEmpty()) return shape.bounds().move(pos);

@@ -1,17 +1,19 @@
 package dev.stya.blockzone.client.editor;
 
-import dev.stya.blockzone.util.battlezone.PoisonPath;
-import dev.stya.blockzone.util.battlezone.ZoneGeometry;
+import dev.stya.blockzone.editor.zone.PoisonEditorGeometry;
+import dev.stya.blockzone.zone.PoisonPath;
+import dev.stya.blockzone.zone.ZoneGeometry;
+import dev.stya.blockzone.zone.ZoneShape;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.ConfirmScreen;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.phys.Vec3;
 import org.lwjgl.glfw.GLFW;
-import java.util.ArrayList;
-import java.util.List;
 
 /** Transparent parameter panel with direct manipulation of the visible world. */
 public final class PoisonEditorScreen extends Screen {
@@ -50,8 +52,8 @@ public final class PoisonEditorScreen extends Screen {
         button(panel + 8, 246, 97, "editor.blockzone.observe", () -> { if (apply()) minecraft.setScreen(null); });
         button(panel + 111, 246, 97, "editor.blockzone.save", () -> { if (apply()) PoisonWorldEditor.save(); });
         button(panel + 8, 270, 200, "setting.battlezone.poisonShape." + draft.path().shape().id(),
-                () -> change(() -> draft.setShape(dev.stya.blockzone.util.battlezone.ZoneShape.values()[
-                        (draft.path().shape().ordinal() + 1) % dev.stya.blockzone.util.battlezone.ZoneShape.values().length])));
+                () -> change(() -> draft.setShape(ZoneShape.values()[
+                        (draft.path().shape().ordinal() + 1) % ZoneShape.values().length])));
         button(panel + 170, 3, 38, "editor.blockzone.exit", this::onClose);
     }
     private void button(int x, int y, int w, String key, Runnable action) {
@@ -119,7 +121,7 @@ public final class PoisonEditorScreen extends Screen {
     }
     private Vec3 ground(double mouseX, double mouseY) {
         var camera = minecraft.gameRenderer.getMainCamera();
-        return dev.stya.blockzone.util.editor.PoisonEditorGeometry.ground(camera.getPosition(), camera.rotation(),
+        return PoisonEditorGeometry.ground(camera.getPosition(), camera.rotation(),
                 minecraft.options.fov().get(), (double) width / height, 2*mouseX/width-1, 1-2*mouseY/height,
                 PoisonWorldEditor.y());
     }

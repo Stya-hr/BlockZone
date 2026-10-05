@@ -1,10 +1,11 @@
 package dev.stya.blockzone.net.battlezone;
 
+import dev.stya.blockzone.zone.ZoneShape;
+import java.util.function.Supplier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.network.NetworkEvent;
-import java.util.function.Supplier;
 
 public record ZoneStateS2CPacket(
         String mapName,
@@ -17,7 +18,7 @@ public record ZoneStateS2CPacket(
         double centerZ,
         float radius,
         String boundaryTexture,
-        dev.stya.blockzone.util.battlezone.ZoneShape shape
+        ZoneShape shape
 ) {
     public static void encode(ZoneStateS2CPacket packet, FriendlyByteBuf buffer) {
         buffer.writeUtf(packet.mapName, 128);
@@ -45,7 +46,7 @@ public record ZoneStateS2CPacket(
                 buffer.readDouble(),
                 buffer.readFloat(),
                 buffer.readUtf(256),
-                buffer.readEnum(dev.stya.blockzone.util.battlezone.ZoneShape.class));
+                buffer.readEnum(ZoneShape.class));
     }
 
     public void handle(Supplier<NetworkEvent.Context> contextSupplier) {

@@ -3,15 +3,12 @@ package dev.stya.blockzone.zone;
 import dev.stya.blockzone.map.battlezone.BattlezoneMap;
 import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
 import dev.stya.blockzone.net.battlezone.ZonePreviewS2CPacket;
-import dev.stya.blockzone.util.battlezone.BoundaryGeometry;
-import dev.stya.blockzone.util.battlezone.PoisonPath;
-import dev.stya.blockzone.util.battlezone.ZoneGeometry;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.util.ArrayList;
-import java.util.List;
 
 /** Resolves map configuration and connects zone progression to server damage and previews. */
 public final class PoisonZoneController {

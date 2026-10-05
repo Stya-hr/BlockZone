@@ -1,13 +1,20 @@
 package dev.stya.blockzone.client.editor;
 
-import dev.stya.blockzone.net.editor.*;
+import dev.stya.blockzone.editor.loot.LootCrateDraft;
+import dev.stya.blockzone.editor.loot.LootCrateEdit;
+import dev.stya.blockzone.editor.loot.LootEditorProjection;
 import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
-import dev.stya.blockzone.util.editor.*;
+import dev.stya.blockzone.net.editor.*;
+import dev.stya.blockzone.net.editor.LootEditorResultS2CPacket;
+import dev.stya.blockzone.net.editor.LootEditorS2CPacket;
+import dev.stya.blockzone.net.editor.SaveLootEditorC2SPacket;
+import dev.stya.blockzone.zone.ZoneGeometry;
+import dev.stya.blockzone.zone.ZoneShape;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.*;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.ConfirmScreen;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
 public final class LootCrateEditorScreen extends Screen {
@@ -80,7 +87,7 @@ public final class LootCrateEditorScreen extends Screen {
     LootEditorS2CPacket packet() { return packet; }
     LootCrateDraft draft() { return draft; }
     double mapTop() { return Math.max(packet.pos1().getY(), packet.pos2().getY()); }
-    dev.stya.blockzone.util.battlezone.ZoneGeometry focusArea() {
+    ZoneGeometry focusArea() {
         var selected = draft.entries().stream().filter(draft::selected).toList();
         var crates = selected.isEmpty() ? draft.entries() : selected;
         double minX = crates.stream().mapToDouble(LootCrateEdit::x).min().orElse(Math.min(packet.pos1().getX(), packet.pos2().getX()));
@@ -94,8 +101,8 @@ public final class LootCrateEditorScreen extends Screen {
         double w = mc.getWindow().getGuiScaledWidth(), h = mc.getWindow().getGuiScaledHeight();
         // Place the focus under the world viewport, leaving room for the parameter panel.
         double offset = (height - y) * Math.tan(Math.toRadians(mc.options.fov().get()) / 2) * w / h * (226 / w);
-        return new dev.stya.blockzone.util.battlezone.ZoneGeometry((minX + maxX) / 2 + .5 + offset, y,
-                (minZ + maxZ) / 2 + .5, radius, dev.stya.blockzone.util.battlezone.ZoneShape.CYLINDER);
+        return new ZoneGeometry((minX + maxX) / 2 + .5 + offset, y,
+                (minZ + maxZ) / 2 + .5, radius, ZoneShape.CYLINDER);
     }
     private LootEditorProjection.Point project(LootCrateEdit entry) {
         var camera = minecraft.gameRenderer.getMainCamera();

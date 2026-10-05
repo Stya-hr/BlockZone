@@ -1,7 +1,5 @@
 package dev.stya.blockzone.zone;
 
-import dev.stya.blockzone.util.battlezone.BoundaryGeometry;
-import dev.stya.blockzone.util.battlezone.PoisonPath;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;

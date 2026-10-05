@@ -20,6 +20,7 @@ public final class BlockZone {
         event.enqueueWork(() -> {
             dev.stya.blockzone.map.battlezone.capability.BattlezoneLoadoutCapability.register();
             dev.stya.blockzone.map.battlezone.capability.BattlezoneCombatCapability.register();
+            dev.stya.blockzone.map.battlezone.capability.BattlezoneZoneCapability.register();
         });
     }
 }

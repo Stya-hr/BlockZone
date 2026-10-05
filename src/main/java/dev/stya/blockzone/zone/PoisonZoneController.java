@@ -16,6 +16,7 @@ public final class PoisonZoneController {
     private final BattlezoneMap map;
     private final PoisonZoneState state = new PoisonZoneState();
     private int sequenceNumber;
+    private List<PoisonPath> activePaths = List.of();
 
     public PoisonZoneController(BattlezoneMap map) { this.map = map; }
 
@@ -44,6 +45,7 @@ public final class PoisonZoneController {
         for (int i = 0; i < paths.size(); i++) resolved.add(resolvePath(paths.get(i), i + 1));
         sequenceNumber = map.getServerLevel().getRandom().nextInt(resolved.size()) + 1;
         state.initialize(paths.get(sequenceNumber - 1), resolved.get(sequenceNumber - 1), baseDamage);
+        activePaths = List.copyOf(paths);
     }
 
     public void tick() {
@@ -62,7 +64,7 @@ public final class PoisonZoneController {
     }
 
     public boolean preview(ServerPlayer player, int number) {
-        var paths = map.configuredPoisonSequences();
+        var paths = map.isMatchActive() ? activePaths : map.configuredPoisonSequences();
         if (number < 1 || number > paths.size()) return false;
         var circles = map.isMatchActive() && number == sequenceNumber ? state.sequence()
                 : resolvePath(paths.get(number - 1), number);
@@ -87,5 +89,5 @@ public final class PoisonZoneController {
     public ZoneGeometry initial() { return state.sequence().get(0); }
     public int sequenceNumber() { return sequenceNumber; }
     public void restart() { state.restart(); }
-    public void reset(ZoneGeometry initial) { state.reset(initial); }
+    public void reset(ZoneGeometry initial) { state.reset(initial); activePaths = List.of(); }
 }

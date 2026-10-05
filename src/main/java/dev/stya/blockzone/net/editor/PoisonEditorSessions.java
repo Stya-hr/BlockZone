@@ -61,7 +61,8 @@ public final class PoisonEditorSessions {
             try {
                 map.saveConfig();
                 // FPSMatch logs I/O errors rather than propagating them. Verify persistence before acknowledging.
-                var stored = JsonParser.parseString(java.nio.file.Files.readString(target)).getAsJsonObject().get("poisonSequences");
+                var stored = JsonParser.parseString(java.nio.file.Files.readString(target)).getAsJsonObject().getAsJsonObject("capabilities").getAsJsonObject("capabilities")
+                        .getAsJsonObject("BattlezoneZoneCapability").get("poisonSequences");
                 var persisted = PoisonPath.CODEC.listOf().parse(JsonOps.INSTANCE, stored).getOrThrow(false, m -> {});
                 if (!persisted.equals(paths)) throw new IllegalArgumentException("Saved settings did not match the draft");
             } catch (Exception failure) {

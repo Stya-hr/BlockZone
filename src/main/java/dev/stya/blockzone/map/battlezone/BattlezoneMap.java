@@ -25,7 +25,8 @@ import dev.stya.blockzone.map.battlezone.capability.BattlezoneCombatCapability;
 import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
 import dev.stya.blockzone.util.CodecSettings;
 import dev.stya.blockzone.zone.PoisonPath;
-import dev.stya.blockzone.zone.PoisonSettingsMigration;
+import dev.stya.blockzone.zone.PoisonPathDefaults;
+import dev.stya.blockzone.map.battlezone.capability.BattlezoneZoneCapability;
 import dev.stya.blockzone.zone.PoisonZoneController;
 import dev.stya.blockzone.zone.ZoneGeometry;
 import java.util.List;
@@ -55,10 +56,10 @@ public final class BattlezoneMap extends BaseMap {
     public float getArmorPlatePoints() { return combat().platePoints(); }
     public float getMaxCombatArmor(ServerPlayer player) { return combat().maxArmor(player); }
 
-    private final Setting<Double> poisonDamage;
-    private final Setting<List<PoisonPath>> poisonSequences;
-    private final PoisonZoneController poison = new PoisonZoneController(this);
-    private final Setting<String> boundaryTexture;
+    public BattlezoneZoneCapability zoneCapability() {
+        return CapabilityMap.getMapCapability(this, BattlezoneZoneCapability.class).orElseThrow();
+    }
+    private PoisonZoneController poison() { return zoneCapability().controller(); }
 
     private final java.util.Map<java.util.UUID, PlayerStateSnapshot> playerStates = new java.util.HashMap<>();
     public void combatHurt(ServerPlayer player) { combat().hurt(player); }
@@ -78,7 +79,7 @@ public final class BattlezoneMap extends BaseMap {
     private final BattlezoneVisualSync visualSync;
 
     public BattlezoneMap(ServerLevel serverLevel, String mapName, AreaData areaData) {
-        super(serverLevel, mapName, areaData, List.of(BattlezoneLoadoutCapability.class, BattlezoneCombatCapability.class));
+        super(serverLevel, mapName, areaData, List.of(BattlezoneLoadoutCapability.class, BattlezoneCombatCapability.class, BattlezoneZoneCapability.class));
         this.teamPlayerLimit = addSetting("battlezone", "teamPlayerLimit", 3);
         this.totalPlayerLimit = addSetting("battlezone", "totalPlayerLimit", 24);
         this.minimumTeamsToStart = addSetting("battlezone", "minimumTeamsToStart", 2);
@@ -90,13 +91,7 @@ public final class BattlezoneMap extends BaseMap {
                 CodecSettings.FINITE_DOUBLE,
                 Math.max(areaData.pos1().getY(), areaData.pos2().getY()) + 64.0));
 
-        this.poisonDamage = addSetting(CodecSettings.create("battlezone", "poisonDamagePerSecond",
-                CodecSettings.NONNEGATIVE_DOUBLE, 1.0));
-        this.poisonSequences = addSetting(CodecSettings.create("battlezone", "poisonSequences", PoisonPath.CODEC.listOf(),
-                List.of(PoisonSettingsMigration.defaults(getMapCenterX(), getMapCenterZ(), getInitialPoisonRadius()))));
-        this.boundaryTexture = addSetting("battlezone", "boundaryTexture",
-                "blockzone:textures/effect/battlezone_warning_fence.png");
-        this.visualSync = new BattlezoneVisualSync(this, deployment, poison, boundaryTexture::get);
+        this.visualSync = new BattlezoneVisualSync(this, deployment);
         this.sceneSnapshot = new SceneSnapshot(this);
         this.snapshotValid = sceneSnapshot.load();
         if (!snapshotValid && !sceneSnapshot.exists()) {
@@ -106,6 +101,7 @@ public final class BattlezoneMap extends BaseMap {
 
         // Use the FPSMatch lobby timer for Battlezone's configured countdown.
         this.readyStartEnabled.set(false);
+        this.readyStartTime.set(600);
         this.autoStart.set(true);
         this.autoStartTime.set(600);
         ensureConfiguredTeams();
@@ -149,7 +145,7 @@ public final class BattlezoneMap extends BaseMap {
     }
 
     private void tickMatch() {
-        poison.tick();
+        poison().tick();
     }
 
     private void tickSettlement() {
@@ -170,20 +166,18 @@ public final class BattlezoneMap extends BaseMap {
         }
     }
 
-    public boolean previewPoisonSequence(ServerPlayer player, int number) { return poison.preview(player, number); }
+    public boolean previewPoisonSequence(ServerPlayer player, int number) { return poison().preview(player, number); }
 
-    public void hidePoisonPreview(ServerPlayer player) { poison.hidePreview(player); }
+    public void hidePoisonPreview(ServerPlayer player) { poison().hidePreview(player); }
 
     public PoisonPath defaultPoisonPath() {
-        return PoisonSettingsMigration.defaults(getMapCenterX(), getMapCenterZ(), getInitialPoisonRadius());
+        return PoisonPathDefaults.create(getMapCenterX(), getMapCenterZ(), getInitialPoisonRadius());
     }
 
-    public List<PoisonPath> configuredPoisonSequences() { return poisonSequences.get(); }
+    public List<PoisonPath> configuredPoisonSequences() { return zoneCapability().read().poisonSequences(); }
 
     public void setPoisonSequences(List<PoisonPath> paths) {
-        if (paths.isEmpty()) throw new IllegalArgumentException("Keep at least one sequence");
-        for (int i = 0; i < paths.size(); i++) poison.resolvePath(paths.get(i), i + 1);
-        poisonSequences.set(List.copyOf(paths));
+        zoneCapability().write(zoneCapability().read().withPaths(paths));
     }
 
     private double getMapCenterX() {
@@ -257,7 +251,7 @@ public final class BattlezoneMap extends BaseMap {
             return false;
         }
         try {
-            poison.initialize(poisonSequences.get(), poisonDamage.get());
+            zoneCapability().begin();
         } catch (IllegalArgumentException exception) {
             broadcast(Component.literal("Battlezone cannot start: invalid poisonSequences: " + exception.getMessage()));
             return false;
@@ -286,7 +280,7 @@ public final class BattlezoneMap extends BaseMap {
         victoryAnnounced = false;
         resetMatchClock();
         deployment.start(route.get());
-        broadcast(Component.literal("Battlezone match started; poison sequence " + poison.sequenceNumber() + "."));
+        broadcast(Component.literal("Battlezone match started; poison sequence " + poison().sequenceNumber() + "."));
         visualSync.sync(true);
         return true;
     }
@@ -527,7 +521,7 @@ public final class BattlezoneMap extends BaseMap {
         playerStates.clear();
         phase = MatchPhase.WAITING;
         phaseTicks = 0;
-        poison.reset(new ZoneGeometry(getMapCenterX(), 0, getMapCenterZ(), getInitialPoisonRadius()));
+        zoneCapability().reset();
         victoryAnnounced = false;
         getMapTeams().getNormalTeams().forEach(ServerTeam::resetLiving);
         if (!cleanupMap()) {
@@ -562,7 +556,7 @@ public final class BattlezoneMap extends BaseMap {
             phase = MatchPhase.MATCH;
             phaseTicks = 0;
             if (!wasDeploying) {
-                poison.restart();
+                poison().restart();
             }
             visualSync.sync(true);
         }
@@ -602,7 +596,7 @@ public final class BattlezoneMap extends BaseMap {
 
     @Override
     public void configFromJson(com.google.gson.JsonElement json) {
-        super.configFromJson(PoisonSettingsMigration.migrate(json, getMapCenterX(), getMapCenterZ(), getInitialPoisonRadius()));
+        super.configFromJson(json);
         var capabilities = json.getAsJsonObject().get("capabilities");
         if (capabilities != null) {
             getCapabilityMap().write(CapabilityMap.Wrapper.CODEC
@@ -636,7 +630,7 @@ public final class BattlezoneMap extends BaseMap {
 
     private java.util.Optional<FlightRoute> generateDeploymentRoute() {
         AreaData area = getMapArea();
-        var zone = poison.initial();
+        var zone = poison().initial();
         var random = getServerLevel().getRandom();
         return FlightRoute.generateAcrossCircle(zone,
                 Math.min(area.pos1().getX(), area.pos2().getX()) + 0.31,
@@ -651,7 +645,7 @@ public final class BattlezoneMap extends BaseMap {
         if (!deployment.protects(player)) {
             return false;
         }
-        var zone = poison.current();
+        var zone = poison().current();
         if (player.serverLevel() != getServerLevel()
                 || !zone.containsHorizontal(player.getX(), player.getZ())) {
             player.displayClientMessage(Component.translatable("blockzone.deployment.outside_zone"), true);

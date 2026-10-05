@@ -9,7 +9,6 @@ import io.netty.buffer.Unpooled;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
@@ -24,7 +23,6 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntArrayTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.FriendlyByteBuf;
@@ -54,7 +52,6 @@ public final class SceneSnapshot {
     private static final int RESTORE_BLOCK_BATCH_SIZE = 1024;
     private static final long RESTORE_NANOS_PER_TICK = 5_000_000L;
     private static final long MAX_BLOCKS = 25_000_000L;
-    private static final String FILE_SUFFIX = ".battlezone-scene.nbt";
 
     private final BattlezoneMap map;
     private CompoundTag data;
@@ -132,7 +129,7 @@ public final class SceneSnapshot {
             return false;
         }
         try {
-            CompoundTag loaded = NbtIo.readCompressed(path.toFile());
+            CompoundTag loaded = SceneSnapshotStorage.read(path);
             if (!matchesCurrentMap(loaded) || loaded.getList("pieces", Tag.TAG_COMPOUND).size() != loaded.getInt("piece_count")) {
                 LOGGER.warn("Battlezone scene snapshot for map {} does not match its dimension or area", map.getMapName());
                 valid = false;
@@ -175,7 +172,7 @@ public final class SceneSnapshot {
             LOGGER.error("Battlezone scene {} failed for map {}", operation.type.description, map.getMapName(), exception);
             if (operation.type == OperationType.CAPTURE) {
                 try {
-                    Files.deleteIfExists(operation.temporaryPath);
+                    SceneSnapshotStorage.discardTemporary(operation.path);
                 } catch (IOException cleanupException) {
                     exception.addSuppressed(cleanupException);
                 }
@@ -219,14 +216,7 @@ public final class SceneSnapshot {
         if (captureValid != null && !captureValid.getAsBoolean()) throw new IOException("Crates or map bounds changed during capture");
         current.data.put("pieces", current.pieces);
         current.data.put("entities", captureEntities(current.level, current.bounds));
-        Path parent = current.path.getParent();
-        Files.createDirectories(parent);
-        NbtIo.writeCompressed(current.data, current.temporaryPath.toFile());
-        try {
-            Files.move(current.temporaryPath, current.path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-        } catch (IOException atomicMoveUnsupported) {
-            Files.move(current.temporaryPath, current.path, StandardCopyOption.REPLACE_EXISTING);
-        }
+        SceneSnapshotStorage.write(current.path, current.data);
         data = current.data;
         valid = true;
         lastOperationSucceeded = true;
@@ -615,11 +605,7 @@ public final class SceneSnapshot {
     }
 
     private Path snapshotPath() {
-        String safeName = map.getMapName().replaceAll("[^A-Za-z0-9._-]", "_");
-        String suffix = Integer.toUnsignedString(map.getMapName().hashCode(), 16);
-        return map.getServerLevel().getServer().getWorldPath(LevelResource.ROOT)
-                .resolve("data/blockzone/battlezone-scenes")
-                .resolve(safeName + "-" + suffix + FILE_SUFFIX);
+        return SceneSnapshotStorage.path(map.getServerLevel().getServer().getWorldPath(LevelResource.ROOT), map.getMapName());
     }
 
     private record Bounds(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
@@ -725,7 +711,6 @@ public final class SceneSnapshot {
         private final Bounds bounds;
         private final int pieceCount;
         private final Path path;
-        private final Path temporaryPath;
         private final CompoundTag data;
         private final ListTag pieces;
         private final Map<Long, Integer> lastPieceByChunk;
@@ -742,7 +727,6 @@ public final class SceneSnapshot {
             this.bounds = bounds;
             this.pieceCount = pieceCount;
             this.path = path;
-            this.temporaryPath = path == null ? null : path.resolveSibling(path.getFileName() + ".tmp");
             this.data = data;
             this.pieces = type == OperationType.CAPTURE ? new ListTag() : data.getList("pieces", Tag.TAG_COMPOUND);
             this.lastPieceByChunk = type == OperationType.RESTORE ? findLastPieceByChunk(this.pieces) : Map.of();

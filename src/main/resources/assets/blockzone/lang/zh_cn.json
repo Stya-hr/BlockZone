@@ -37,8 +37,6 @@
   "setting.battlezone.totalPlayerLimit.desc": "整张地图允许加入的玩家总数；用于创建队伍及限制入场人数。",
   "setting.battlezone.minimumTeamsToStart": "开局所需队伍数",
   "setting.battlezone.minimumTeamsToStart.desc": "至少需要多少支有玩家的队伍才能满足正常比赛的开局条件。",
-  "setting.battlezone.countdownSeconds": "开局倒计时（秒）",
-  "setting.battlezone.countdownSeconds.desc": "满足开局条件后等待的时间，单位为秒。",
   "setting.battlezone.deploymentSeconds": "部署时间（秒）",
   "setting.battlezone.deploymentSeconds.desc": "部署阶段至少持续的时间，且会等待航线结束。首圈立即存在，毒圈过渡计时在部署结束后开始。",
   "setting.battlezone.settlementSeconds": "结算时间（秒）",

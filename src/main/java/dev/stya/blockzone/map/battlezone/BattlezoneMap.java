@@ -42,7 +42,6 @@ public final class BattlezoneMap extends BaseMap {
     private final Setting<Integer> teamPlayerLimit;
     private final Setting<Integer> totalPlayerLimit;
     private final Setting<Integer> minimumTeamsToStart;
-    private final Setting<Integer> countdownSeconds;
     private final Setting<Integer> deploymentSeconds;
     private final Setting<Integer> settlementSeconds;
     private final Setting<Double> deploymentSpeed;
@@ -84,7 +83,6 @@ public final class BattlezoneMap extends BaseMap {
         this.teamPlayerLimit = addSetting("battlezone", "teamPlayerLimit", 3);
         this.totalPlayerLimit = addSetting("battlezone", "totalPlayerLimit", 24);
         this.minimumTeamsToStart = addSetting("battlezone", "minimumTeamsToStart", 2);
-        this.countdownSeconds = addSetting("battlezone", "countdownSeconds", 30);
         this.deploymentSeconds = addSetting("battlezone", "deploymentSeconds", 15);
         this.settlementSeconds = addSetting("battlezone", "settlementSeconds", 10);
         this.deploymentSpeed = addSetting(CodecSettings.create("battlezone", "deploymentSpeed",
@@ -114,7 +112,7 @@ public final class BattlezoneMap extends BaseMap {
         // Use the FPSMatch lobby timer for Battlezone's configured countdown.
         this.readyStartEnabled.set(false);
         this.autoStart.set(true);
-        this.autoStartTime.set(Math.max(0, countdownSeconds.get()) * 20);
+        this.autoStartTime.set(600);
         ensureConfiguredTeams();
     }
 
@@ -136,40 +134,13 @@ public final class BattlezoneMap extends BaseMap {
             deployment.tick();
         }
         switch (phase) {
-            case WAITING -> tickWaiting();
-            case COUNTDOWN -> tickCountdown();
+            case WAITING -> { }
             case DEPLOYMENT -> tickDeployment();
             case MATCH -> tickMatch();
             case SETTLEMENT -> tickSettlement();
             case RESETTING -> tickResetting();
         }
         visualSync.sync(false);
-    }
-
-    private void tickWaiting() {
-        autoStart.set(true);
-        readyStartEnabled.set(false);
-        // Restoration and snapshot capture both run across multiple ticks.
-        // Keep the lobby waiting until the scene is ready for a match.
-        if (isDebug() || sceneSnapshot.isBusy() || !hasMinimumTeams()) {
-            return;
-        }
-        if (!hasValidSnapshot()) {
-            return;
-        }
-        phase = MatchPhase.COUNTDOWN;
-        autoStartTime.set(Math.max(0, countdownSeconds.get()) * 20);
-        broadcast(Component.literal("Battlezone starts in " + countdownSeconds.get() + " seconds."));
-    }
-
-    private void tickCountdown() {
-        autoStart.set(true);
-        readyStartEnabled.set(false);
-        if (sceneSnapshot.isBusy() || !hasMinimumTeams() || !hasValidSnapshot()) {
-            phase = MatchPhase.WAITING;
-            autoStartTime.set(Math.max(0, countdownSeconds.get()) * 20);
-            broadcast(Component.literal("Battlezone countdown cancelled."));
-        }
     }
 
     private void tickDeployment() {
@@ -266,12 +237,12 @@ public final class BattlezoneMap extends BaseMap {
 
     @Override
     protected boolean canAutoStart() {
-        return !isDebug() && (phase == MatchPhase.WAITING || phase == MatchPhase.COUNTDOWN) && hasMinimumTeams() && hasValidSnapshot() && !sceneSnapshot.isBusy();
+        return !isDebug() && phase == MatchPhase.WAITING && hasMinimumTeams() && hasValidSnapshot() && !sceneSnapshot.isBusy();
     }
 
     @Override
     protected boolean canReadyStart() {
-        return false;
+        return canAutoStart() && super.canReadyStart();
     }
 
     @Override
@@ -279,7 +250,7 @@ public final class BattlezoneMap extends BaseMap {
         if (isStart || (!isDebug() && !hasMinimumTeams())) {
             return false;
         }
-        if (phase != MatchPhase.WAITING && phase != MatchPhase.COUNTDOWN) {
+        if (phase != MatchPhase.WAITING) {
             return false;
         }
         if (sceneSnapshot.isBusy()) {
@@ -751,7 +722,6 @@ public final class BattlezoneMap extends BaseMap {
 
     public enum MatchPhase {
         WAITING,
-        COUNTDOWN,
         DEPLOYMENT,
         MATCH,
         SETTLEMENT,

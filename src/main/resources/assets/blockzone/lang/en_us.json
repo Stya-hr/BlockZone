@@ -37,8 +37,6 @@
   "setting.battlezone.totalPlayerLimit.desc": "Maximum players allowed in this map; used to create teams and limit entry.",
   "setting.battlezone.minimumTeamsToStart": "Teams required to start",
   "setting.battlezone.minimumTeamsToStart.desc": "Minimum occupied teams needed to satisfy the normal match start requirements.",
-  "setting.battlezone.countdownSeconds": "Start countdown (seconds)",
-  "setting.battlezone.countdownSeconds.desc": "Delay after the normal start requirements are met, in seconds.",
   "setting.battlezone.deploymentSeconds": "Deployment time (seconds)",
   "setting.battlezone.deploymentSeconds.desc": "Minimum deployment duration; deployment also waits for the flight route to finish. The initial circle exists immediately; transitions start after deployment ends.",
   "setting.battlezone.settlementSeconds": "Settlement time (seconds)",

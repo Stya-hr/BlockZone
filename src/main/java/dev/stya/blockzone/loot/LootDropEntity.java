@@ -8,6 +8,9 @@ import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.network.NetworkHooks;
 
 import java.util.UUID;
@@ -21,6 +24,7 @@ public final class LootDropEntity extends ItemEntity {
         super(type, level);
         // Vanilla also excludes unlimited-lifetime items from merging, preserving the scattered display.
         setUnlimitedLifetime();
+        setGlowingTag(true);
     }
 
     public void bindToMatch(BattlezoneMap map) {
@@ -29,6 +33,22 @@ public final class LootDropEntity extends ItemEntity {
     }
 
     public boolean belongsToMap(String name) { return mapName.equals(name); }
+
+    @Override public boolean isPickable() { return isAlive(); }
+
+    @Override public boolean skipAttackInteraction(net.minecraft.world.entity.Entity attacker) { return true; }
+
+    // Keep vanilla insertion, ownership, pickup delay, statistics and partial-stack handling,
+    // but only invoke them from an explicit interaction, never from walking over the item.
+    @Override public void playerTouch(Player player) { }
+
+    @Override public InteractionResult interact(Player player, InteractionHand hand) {
+        if (player.isSpectator() || !player.isAlive() || hand != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
+        if (!level().isClientSide && player.distanceToSqr(this) <= 9 && player.hasLineOfSight(this)) {
+            super.playerTouch(player);
+        }
+        return InteractionResult.sidedSuccess(level().isClientSide);
+    }
 
     private BattlezoneMap owningMap() {
         return FPSMCore.getInstance().getMapByTypeWithName(BattlezoneMap.GAME_TYPE, mapName)
@@ -64,6 +84,7 @@ public final class LootDropEntity extends ItemEntity {
         mapName = tag.getString("BattlezoneMap");
         roundId = tag.hasUUID("BattlezoneRound") ? tag.getUUID("BattlezoneRound") : null;
         setUnlimitedLifetime();
+        setGlowingTag(true);
     }
 
     @Override

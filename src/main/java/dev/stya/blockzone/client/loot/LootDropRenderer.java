@@ -46,7 +46,12 @@ public final class LootDropRenderer extends EntityRenderer<LootDropEntity> {
             // Respect the item's GROUND transform, including TaCZ's own 3D gun renderer.
             pose.translate(0, model.getTransforms().ground.scale.y() * 0.25F, 0);
         }
-        items.render(stack, ItemDisplayContext.GROUND, false, pose, buffers, light, OverlayTexture.NO_OVERLAY, model);
+        var previous = LootRenderBuffers.set(buffers);
+        try {
+            items.render(stack, ItemDisplayContext.GROUND, false, pose, buffers, light, OverlayTexture.NO_OVERLAY, model);
+        } finally {
+            LootRenderBuffers.set(previous);
+        }
         pose.popPose();
         super.render(entity, yaw, partialTicks, pose, buffers, light);
     }

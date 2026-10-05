@@ -32,6 +32,14 @@ public final class BattlezoneTeamConfiguration {
     }
     public static void restore(BaseMap map, List<Entry> entries) {
         validate(entries);
+        if (!entries.isEmpty()) {
+            var savedNames = entries.stream().map(Entry::name).collect(java.util.stream.Collectors.toSet());
+            for (var team : List.copyOf(map.getMapTeams().getNormalTeams())) {
+                if (team.isEmpty() && team.getName().startsWith("squad_") && !savedNames.contains(team.getName())) {
+                    map.getMapTeams().delTeam(team.getPlayerTeam());
+                }
+            }
+        }
         var data = new LinkedHashMap<String, CapabilityMap.Wrapper>();
         for (var entry : entries) {
             if (map.getMapTeams().getTeamByName(entry.name()).isEmpty()) map.addTeam(new TeamData(entry.name(), entry.playerLimit()));

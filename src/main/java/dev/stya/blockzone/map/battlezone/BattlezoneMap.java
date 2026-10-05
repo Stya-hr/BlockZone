@@ -39,15 +39,13 @@ public final class BattlezoneMap extends BaseMap {
     private final DeploymentController deployment = new DeploymentController(this);
     private final LandingController landing = new LandingController();
     private final Setting<List<dev.stya.blockzone.equipment.StartingLoadout.Entry>> startingLoadout;
-    private List<dev.stya.blockzone.equipment.StartingLoadout.Prepared> activeLoadout = List.of();
     private final Setting<Double> matchHealth;
     private final Setting<Double> armorPlatePoints;
-    private float activeMatchHealth = CombatRecovery.MAX_HEALTH;
-    private float activePlatePoints = CombatRecovery.PLATE_POINTS;
+    private final MatchCombatController combat = new MatchCombatController();
 
-    public float getCombatHealth() { return activeMatchHealth; }
-    public float getArmorPlatePoints() { return activePlatePoints; }
-    public float getMaxCombatArmor(ServerPlayer player) { return activePlatePoints * dev.stya.blockzone.equipment.PlateCapacity.slots(player); }
+    public float getCombatHealth() { return combat.health(); }
+    public float getArmorPlatePoints() { return combat.platePoints(); }
+    public float getMaxCombatArmor(ServerPlayer player) { return combat.maxArmor(player); }
 
     private final Setting<Double> poisonDamage;
     private final Setting<List<PoisonPath>> poisonSequences;
@@ -55,28 +53,12 @@ public final class BattlezoneMap extends BaseMap {
     private final Setting<String> boundaryTexture;
 
     private final java.util.Map<java.util.UUID, PlayerStateSnapshot> playerStates = new java.util.HashMap<>();
-    private final java.util.Map<java.util.UUID, CombatRecovery> recovery = new java.util.HashMap<>();
+    public void combatHurt(ServerPlayer player) { combat.hurt(player); }
 
-    public void combatHurt(ServerPlayer player) {
-        recovery.computeIfAbsent(player.getUUID(), id -> new CombatRecovery()).hurt();
-        if (player.getUseItem().is(dev.stya.blockzone.equipment.EquipmentRegistry.ARMOR_PLATE.get())) {
-            player.stopUsingItem();
-        }
-    }
+    public void tickRecovery(ServerPlayer player) { combat.tickRecovery(player); }
 
-    public void tickRecovery(ServerPlayer player) {
-        if (MatchRegeneration.allowed(player)) return;
-        if (recovery.computeIfAbsent(player.getUUID(), id -> new CombatRecovery()).tick()
-                && player.isAlive() && player.getHealth() < player.getMaxHealth()) {
-            player.heal(activeMatchHealth * 0.05F);
-        }
-    }
+    private void clearCombat(ServerPlayer player) { combat.clear(player); }
 
-    private void clearCombat(ServerPlayer player) {
-        recovery.remove(player.getUUID());
-        player.stopUsingItem();
-        player.setAbsorptionAmount(0);
-    }
     private final SceneSnapshot sceneSnapshot;
     private MatchPhase phase = MatchPhase.WAITING;
     private int phaseTicks;
@@ -321,15 +303,8 @@ public final class BattlezoneMap extends BaseMap {
         isStart = true;
         lootRoundId = java.util.UUID.randomUUID();
         phase = MatchPhase.DEPLOYMENT;
-        activeLoadout = loadout;
-        activeMatchHealth = matchHealth.get().floatValue();
-        activePlatePoints = armorPlatePoints.get().floatValue();
-        recovery.clear();
-        getMapTeams().getNormalTeams().forEach(team -> team.getOnline().forEach(player -> {
-            clearCombat(player);
-            MatchPlayerState.initialize(player, activeMatchHealth);
-            dev.stya.blockzone.equipment.StartingLoadout.apply(player, activeLoadout);
-        }));
+        combat.start(matchHealth.get().floatValue(), armorPlatePoints.get().floatValue(), loadout);
+        getMapTeams().getNormalTeams().forEach(team -> team.getOnline().forEach(combat::initialize));
         phaseTicks = 0;
         victoryAnnounced = false;
         resetMatchClock();
@@ -425,8 +400,7 @@ public final class BattlezoneMap extends BaseMap {
         if (result.isSuccess() && isStart) {
             clearCombat(player);
             if (!MatchRegeneration.allowed(player)) {
-                MatchPlayerState.initialize(player, activeMatchHealth);
-                dev.stya.blockzone.equipment.StartingLoadout.apply(player, activeLoadout);
+                combat.initialize(player);
             }
             BattlezoneNetwork.send(player, createVisualStatePacket(player));
             BattlezoneNetwork.send(player, deployment.vehicleSnapshot(phase == MatchPhase.DEPLOYMENT));
@@ -546,7 +520,7 @@ public final class BattlezoneMap extends BaseMap {
 
     @Override
     public void reset() {
-        recovery.clear();
+        combat.clearRecovery();
         getMapTeams().getOnlineWithSpec().forEach(this::clearCombat);
         lootRoundId = null;
         // Drops that escaped the arena bounds must also disappear when this match ends.

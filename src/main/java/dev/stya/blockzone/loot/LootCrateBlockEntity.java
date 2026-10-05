@@ -1,5 +1,7 @@
 package dev.stya.blockzone.loot;
 
+import dev.stya.blockzone.registry.BlockzoneBlockEntities;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
@@ -26,7 +28,7 @@ public final class LootCrateBlockEntity extends RandomizableContainerBlockEntity
             return player.containerMenu instanceof ChestMenu menu && menu.getContainer()==LootCrateBlockEntity.this;
         }
     };
-    public LootCrateBlockEntity(BlockPos pos,BlockState state) { super(LootCrateRegistry.LOOT_CRATE_ENTITY.get(),pos,state); }
+    public LootCrateBlockEntity(BlockPos pos,BlockState state) { super(BlockzoneBlockEntities.LOOT_CRATE_ENTITY.get(),pos,state); }
     @Override public int getContainerSize() { return 27; }
     @Override protected NonNullList<ItemStack> getItems() { return items; }
     @Override protected void setItems(NonNullList<ItemStack> items) { this.items=items; }

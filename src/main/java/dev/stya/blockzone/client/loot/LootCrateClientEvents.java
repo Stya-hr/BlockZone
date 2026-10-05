@@ -1,7 +1,7 @@
 package dev.stya.blockzone.client.loot;
 
 import dev.stya.blockzone.BlockZone;
-import dev.stya.blockzone.loot.LootCrateRegistry;
+import dev.stya.blockzone.registry.BlockzoneEntities;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -13,6 +13,6 @@ public final class LootCrateClientEvents {
 
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
-        event.registerEntityRenderer(LootCrateRegistry.LOOT_DROP.get(), LootDropRenderer::new);
+        event.registerEntityRenderer(BlockzoneEntities.LOOT_DROP.get(), LootDropRenderer::new);
     }
 }

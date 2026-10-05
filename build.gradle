@@ -124,17 +124,13 @@ tasks.named('processResources', ProcessResources) {
     from(layout.buildDirectory.dir('mixin')) { include 'mixins.blockzone.refmap.json' }
 }
 
-// A ready-to-edit vanilla resource pack for the transport and parachute models.
-tasks.register('airborneResourcePack', Zip) {
-    archiveFileName = 'blockzone-airborne-resourcepack.zip'
+// Export the same complete pack that is bundled inside the mod.
+tasks.register('resourcePack', Zip) {
+    archiveFileName = 'blockzone-resourcepack.zip'
     destinationDirectory = layout.buildDirectory.dir('distributions')
-    from('examples/airborne-resourcepack')
-    from('src/main/resources') {
-        include 'assets/blockzone/models/airborne/**'
-        include 'assets/blockzone/textures/block/airborne/**'
-    }
+    from('src/main/resources/resourcepacks/blockzone')
 }
 
 tasks.named('assemble') {
-    dependsOn tasks.named('airborneResourcePack')
+    dependsOn tasks.named('resourcePack')
 }

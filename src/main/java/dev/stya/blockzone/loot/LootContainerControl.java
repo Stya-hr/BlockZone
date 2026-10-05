@@ -1,5 +1,7 @@
 package dev.stya.blockzone.loot;
 
+import dev.stya.blockzone.registry.BlockzoneEntities;
+
 import com.mojang.logging.LogUtils;
 import dev.stya.blockzone.editor.loot.LootCrateEdit;
 import dev.stya.blockzone.map.battlezone.BattlezoneMap;
@@ -78,7 +80,7 @@ public final class LootContainerControl {
         var pos=container.getBlockPos();
         for(int i=0;i<rewards.size();i++) {
             if(rewards.get(i).isEmpty()) continue;
-            var drop=new LootDropEntity(LootCrateRegistry.LOOT_DROP.get(),level); drop.setItem(rewards.get(i).copy());
+            var drop=new LootDropEntity(BlockzoneEntities.LOOT_DROP.get(),level); drop.setItem(rewards.get(i).copy());
             drop.setPos(pos.getX()+.5+facing.getStepX()*.25,pos.getY()+height,pos.getZ()+.5+facing.getStepZ()*.25);
             double angle=forward+(rewards.size()==1?0:(double)i/(rewards.size()-1)-.5)*Math.PI*.8;
             drop.setDeltaMovement(Math.cos(angle)*.22,.28+level.random.nextDouble()*.08,Math.sin(angle)*.22);

@@ -1,0 +1,38 @@
+{
+  "loader": "forge:separate_transforms",
+  "gui_light": "front",
+  "textures": {
+    "particle": "blockzone:item/icons/plate_carrier"
+  },
+  "base": {
+    "parent": "blockzone:item/held/plate_carrier"
+  },
+  "perspectives": {
+    "gui": {
+      "parent": "minecraft:item/generated",
+      "textures": {
+        "layer0": "blockzone:item/icons/plate_carrier"
+      },
+      "gui_light": "front",
+      "display": {
+        "gui": {
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "translation": [
+            0.0,
+            -0.25,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        }
+      }
+    }
+  }
+}

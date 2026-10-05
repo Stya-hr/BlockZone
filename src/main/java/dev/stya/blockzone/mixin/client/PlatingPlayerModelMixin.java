@@ -14,7 +14,7 @@ public abstract class PlatingPlayerModelMixin<T extends LivingEntity> extends Hu
     protected PlatingPlayerModelMixin(ModelPart root) { super(root); }
     @Inject(method = "setupAnim", at = @At("TAIL"))
     private void blockzone$plating(T entity, float swing, float amount, float age, float yaw, float pitch, CallbackInfo ci) {
-        if (!entity.isUsingItem() || !entity.getUseItem().is(dev.stya.blockzone.equipment.EquipmentRegistry.ARMOR_PLATE.get())
+        if (!entity.isUsingItem() || !entity.getUseItem().is(dev.stya.blockzone.registry.BlockzoneItems.ARMOR_PLATE.get())
                 || dev.stya.blockzone.client.battlezone.FlightVisualPose.get(entity) != null) return;
         float progress = (entity.getTicksUsingItem() + net.minecraft.client.Minecraft.getInstance().getFrameTime()) / 40F;
         float insert = net.minecraft.util.Mth.clamp((progress - .5F) / .3F, 0, 1);

@@ -1,6 +1,6 @@
 package dev.stya.blockzone.combat;
 
-import dev.stya.blockzone.equipment.EquipmentRegistry;
+import dev.stya.blockzone.registry.BlockzoneItems;
 import dev.stya.blockzone.equipment.PlateCapacity;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,7 +26,7 @@ public final class MatchCombatController {
 
     public void hurt(ServerPlayer player) {
         recovery.computeIfAbsent(player.getUUID(), id -> new CombatRecovery()).hurt();
-        if (player.getUseItem().is(EquipmentRegistry.ARMOR_PLATE.get())) player.stopUsingItem();
+        if (player.getUseItem().is(BlockzoneItems.ARMOR_PLATE.get())) player.stopUsingItem();
     }
 
     public void tickRecovery(ServerPlayer player) {

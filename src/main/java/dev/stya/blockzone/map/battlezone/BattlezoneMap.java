@@ -48,6 +48,28 @@ public final class BattlezoneMap extends BaseMap {
     private final Setting<String> boundaryTexture;
 
     private final java.util.Map<java.util.UUID, PlayerStateSnapshot> playerStates = new java.util.HashMap<>();
+    private final java.util.Map<java.util.UUID, CombatRecovery> recovery = new java.util.HashMap<>();
+
+    public void combatHurt(ServerPlayer player) {
+        recovery.computeIfAbsent(player.getUUID(), id -> new CombatRecovery()).hurt();
+        if (player.getUseItem().is(dev.stya.blockzone.loot.LootCrateRegistry.ARMOR_PLATE.get())) {
+            player.stopUsingItem();
+        }
+    }
+
+    public void tickRecovery(ServerPlayer player) {
+        if (MatchRegeneration.allowed(player)) return;
+        if (recovery.computeIfAbsent(player.getUUID(), id -> new CombatRecovery()).tick()
+                && player.isAlive() && player.getHealth() < player.getMaxHealth()) {
+            player.heal(1.0F);
+        }
+    }
+
+    private void clearCombat(ServerPlayer player) {
+        recovery.remove(player.getUUID());
+        player.stopUsingItem();
+        player.setAbsorptionAmount(0);
+    }
     private final SceneSnapshot sceneSnapshot;
     private MatchPhase phase = MatchPhase.WAITING;
     private int phaseTicks;
@@ -414,6 +436,11 @@ public final class BattlezoneMap extends BaseMap {
         isStart = true;
         lootRoundId = java.util.UUID.randomUUID();
         phase = MatchPhase.DEPLOYMENT;
+        recovery.clear();
+        getMapTeams().getNormalTeams().forEach(team -> team.getOnline().forEach(player -> {
+            clearCombat(player);
+            player.setHealth(player.getMaxHealth());
+        }));
         phaseTicks = 0;
         victoryAnnounced = false;
         resetMatchClock();
@@ -509,6 +536,8 @@ public final class BattlezoneMap extends BaseMap {
             playerStates.putIfAbsent(player.getUUID(), beforeJoin);
         }
         if (result.isSuccess() && isStart) {
+            clearCombat(player);
+            player.setHealth(player.getMaxHealth());
             BattlezoneNetwork.send(player, createVisualStatePacket(player));
             BattlezoneNetwork.send(player, deployment.vehicleSnapshot(phase == MatchPhase.DEPLOYMENT));
             if (phase == MatchPhase.DEPLOYMENT) {
@@ -568,8 +597,12 @@ public final class BattlezoneMap extends BaseMap {
 
     @Override
     public void handleDeath(com.ptcrys.fpsmatch.core.map.DeathContext context) {
+        ServerPlayer dead = context.getDeadPlayer();
+        if (getMapTeams().getTeamByPlayer(dead).flatMap(team -> team.getPlayerData(dead.getUUID()))
+                .map(data -> !data.isLiving()).orElse(true)) return;
         super.handleDeath(context);
         ServerPlayer player = context.getDeadPlayer();
+        clearCombat(player);
         clearAirbornePlayer(player);
         // FPSMatch records elimination and restores entity health; the game type owns spectator mode.
         player.setGameMode(net.minecraft.world.level.GameType.SPECTATOR);
@@ -623,6 +656,8 @@ public final class BattlezoneMap extends BaseMap {
 
     @Override
     public void reset() {
+        recovery.clear();
+        getMapTeams().getOnlineWithSpec().forEach(this::clearCombat);
         lootRoundId = null;
         // Drops that escaped the arena bounds must also disappear when this match ends.
         for (var entity : getServerLevel().getAllEntities()) {
@@ -677,6 +712,7 @@ public final class BattlezoneMap extends BaseMap {
 
     @Override
     public void handlePlayerDisconnect(ServerPlayer player) {
+        clearCombat(player);
         deployment.remove(player);
         landing.finish(player);
         super.handlePlayerDisconnect(player);
@@ -712,6 +748,7 @@ public final class BattlezoneMap extends BaseMap {
         super.leave(player);
         if (getMapTeams().getTeamByPlayer(player).isEmpty()) {
             deployment.remove(player);
+            clearCombat(player);
             landing.finish(player);
             BattlezoneNetwork.send(player, createVisualStatePacket(player, false));
             BattlezoneNetwork.send(player, deployment.vehicleSnapshot(false));

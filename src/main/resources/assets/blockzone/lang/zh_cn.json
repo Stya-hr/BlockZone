@@ -115,5 +115,6 @@
   "block.blockzone.tactical_loot_crate": "战术装备箱",
   "block.blockzone.weathered_loot_crate": "战地旧物资箱",
   "block.blockzone.medical_loot_crate": "医疗补给箱",
-  "editor.blockzone.loot.enabled": "启用战利品箱特性"
+  "editor.blockzone.loot.enabled": "启用战利品箱特性",
+  "item.blockzone.armor_plate": "护甲插板"
 }

@@ -115,5 +115,6 @@
   "block.blockzone.tactical_loot_crate": "Tactical Equipment Case",
   "block.blockzone.weathered_loot_crate": "Weathered Field Crate",
   "block.blockzone.medical_loot_crate": "Medical Supply Case",
-  "editor.blockzone.loot.enabled": "Enable loot behavior"
+  "editor.blockzone.loot.enabled": "Enable loot behavior",
+  "item.blockzone.armor_plate": "Armor Plate"
 }

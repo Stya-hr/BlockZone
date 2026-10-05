@@ -19,13 +19,19 @@ class PoisonEditorCameraMotionTest {
         camera.focus(new ZoneGeometry(10, 10, 20, 0), 100);
         assertTrue(camera.position().y > 100);
     }
-    @Test void forwardFlightAndVerticalFlightAreIndependentOfGravityAndTerrain() {
+    @Test void horizontalFlightKeepsAltitudeWhileVerticalInputControlsHeight() {
         var camera = camera(); var start = camera.position();
         for (int i = 0; i < 20; i++) camera.move(1, 0, 0, false);
         assertEquals(30, start.distanceTo(camera.position()), .001);
-        assertTrue(camera.position().y < start.y);
+        assertEquals(start.y, camera.position().y, .001);
+        start = camera.position(); camera.move(0, 1, 0, false);
+        assertEquals(1.5, start.distanceTo(camera.position()), .001);
+        assertEquals(start.y, camera.position().y, .001);
         start = camera.position(); camera.move(0, 0, 1, false);
         assertEquals(start.y + 1.5, camera.position().y, .001);
+        assertEquals(start.x, camera.position().x); assertEquals(start.z, camera.position().z);
+        start = camera.position(); camera.move(0, 0, -1, false);
+        assertEquals(start.y - 1.5, camera.position().y, .001);
         assertEquals(start.x, camera.position().x); assertEquals(start.z, camera.position().z);
     }
     @Test void diagonalBoostIsBoundedAndPitchCannotFlipTheView() {

@@ -1,3 +1,22 @@
 {
-  "parent": "blockzone:block/loot_crates/tactical"
+  "parent": "blockzone:block/loot_crates/tactical",
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        -135,
+        0
+      ],
+      "translation": [
+        0,
+        1.3749,
+        0
+      ],
+      "scale": [
+        0.4035,
+        0.4035,
+        0.4035
+      ]
+    }
+  }
 }

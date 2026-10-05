@@ -1,3 +1,22 @@
 {
-  "parent": "blockzone:block/loot_crates/weathered"
+  "parent": "blockzone:block/loot_crates/weathered",
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        -135,
+        0
+      ],
+      "translation": [
+        -0.0283,
+        1.3288,
+        0
+      ],
+      "scale": [
+        0.491,
+        0.491,
+        0.491
+      ]
+    }
+  }
 }

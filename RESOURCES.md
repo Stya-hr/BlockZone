@@ -6,6 +6,8 @@
 
 只维护游戏实际读取的 JSON 模型、PNG 材质等资源，不依赖 Blockbench 工程或模型生成器。动画由模组代码驱动。修改资源后使用 F3+T 重载。
 
+装备的物品栏图标使用在 Blockbench 绘制的 32×32 透明像素贴图（`textures/item/icons/`）。`forge:separate_transforms` 仅在 GUI 中选择平面图标，手持、掉落物和展示框继续使用 `models/item/held/` 中的原模型。场景箱只在物品模型中覆盖 GUI 缩放与居中变换，不改变世界中的箱体。
+
 运行 `./gradlew resourcePack` 导出 `build/distributions/blockzone-resourcepack.zip`；`assemble` 同时构建此完整包。导出的包与模组内置包使用同一份文件。
 
 内置包中的 `data/blockzone/loot_tables/chests/weapons.json` 提供 TaCZ 枪械与弹药战利品，表 ID 为 `blockzone:chests/weapons`。仅安装 TaCZ 时加载该内置服务端数据；客户端材质包始终加载。通用战利品表仍为 `blockzone:chests/common`。

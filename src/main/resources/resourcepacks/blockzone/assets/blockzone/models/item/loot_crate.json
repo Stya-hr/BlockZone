@@ -1,3 +1,22 @@
 {
-  "parent": "blockzone:block/loot_crates/military"
+  "parent": "blockzone:block/loot_crates/military",
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        -135,
+        0
+      ],
+      "translation": [
+        0,
+        1.0821,
+        0
+      ],
+      "scale": [
+        0.4645,
+        0.4645,
+        0.4645
+      ]
+    }
+  }
 }

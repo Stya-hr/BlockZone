@@ -1,346 +1,38 @@
 {
+  "loader": "forge:separate_transforms",
+  "gui_light": "front",
   "textures": {
-    "cloth": "blockzone:item/tactical",
-    "particle": "blockzone:item/tactical"
+    "particle": "blockzone:item/icons/armor_expansion"
   },
-  "elements": [
-    {
-      "name": "plate_sleeve",
-      "from": [
-        5.34,
-        7.800000000000001,
-        7.51
-      ],
-      "to": [
-        10.66,
-        12.0,
-        8.49
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            8.0,
-            0,
-            9.0,
-            1
-          ],
-          "texture": "#cloth"
-        },
-        "south": {
-          "uv": [
-            8.0,
-            0,
-            9.0,
-            1
-          ],
-          "texture": "#cloth"
-        },
-        "east": {
-          "uv": [
-            8.0,
-            0,
-            9.0,
-            1
-          ],
-          "texture": "#cloth"
-        },
-        "west": {
-          "uv": [
-            8.0,
-            0,
-            9.0,
-            1
-          ],
-          "texture": "#cloth"
-        },
-        "up": {
-          "uv": [
-            8.0,
-            0,
-            9.0,
-            1
-          ],
-          "texture": "#cloth"
-        },
-        "down": {
-          "uv": [
-            8.0,
-            0,
-            9.0,
-            1
-          ],
-          "texture": "#cloth"
-        }
-      }
-    },
-    {
-      "name": "locking_strap",
-      "from": [
-        6.6,
-        7.1000000000000005,
-        7.3
-      ],
-      "to": [
-        9.399999999999999,
-        8.15,
-        8.7
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            12.0,
-            0,
-            13.0,
-            1
-          ],
-          "texture": "#cloth"
-        },
-        "south": {
-          "uv": [
-            12.0,
-            0,
-            13.0,
-            1
-          ],
-          "texture": "#cloth"
-        },
-        "east": {
-          "uv": [
-            12.0,
-            0,
-            13.0,
-            1
-          ],
-          "texture": "#cloth"
-        },
-        "west": {
-          "uv": [
-            12.0,
-            0,
-            13.0,
-            1
-          ],
-          "texture": "#cloth"
-        },
-        "up": {
-          "uv": [
-            12.0,
-            0,
-            13.0,
-            1
-          ],
-          "texture": "#cloth"
-        },
-        "down": {
-          "uv": [
-            12.0,
-            0,
-            13.0,
-            1
-          ],
-          "texture": "#cloth"
-        }
-      }
-    },
-    {
-      "name": "left_clip",
-      "from": [
-        5.0600000000000005,
-        9.2,
-        7.44
-      ],
-      "to": [
-        5.62,
-        11.299999999999999,
-        8.56
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            4.0,
-            0,
-            5.0,
-            1
-          ],
-          "texture": "#cloth"
-        },
-        "south": {
-          "uv": [
-            4.0,
-            0,
-            5.0,
-            1
-          ],
-          "texture": "#cloth"
-        },
-        "east": {
-          "uv": [
-            4.0,
-            0,
-            5.0,
-            1
-          ],
-          "texture": "#cloth"
-        },
-        "west": {
-          "uv": [
-            4.0,
-            0,
-            5.0,
-            1
-          ],
-          "texture": "#cloth"
-        },
-        "up": {
-          "uv": [
-            4.0,
-            0,
-            5.0,
-            1
-          ],
-          "texture": "#cloth"
-        },
-        "down": {
-          "uv": [
-            4.0,
-            0,
-            5.0,
-            1
-          ],
-          "texture": "#cloth"
-        }
-      }
-    },
-    {
-      "name": "right_clip",
-      "from": [
-        10.379999999999999,
-        9.2,
-        7.44
-      ],
-      "to": [
-        10.94,
-        11.299999999999999,
-        8.56
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            4.0,
-            0,
-            5.0,
-            1
-          ],
-          "texture": "#cloth"
-        },
-        "south": {
-          "uv": [
-            4.0,
-            0,
-            5.0,
-            1
-          ],
-          "texture": "#cloth"
-        },
-        "east": {
-          "uv": [
-            4.0,
-            0,
-            5.0,
-            1
-          ],
-          "texture": "#cloth"
-        },
-        "west": {
-          "uv": [
-            4.0,
-            0,
-            5.0,
-            1
-          ],
-          "texture": "#cloth"
-        },
-        "up": {
-          "uv": [
-            4.0,
-            0,
-            5.0,
-            1
-          ],
-          "texture": "#cloth"
-        },
-        "down": {
-          "uv": [
-            4.0,
-            0,
-            5.0,
-            1
-          ],
-          "texture": "#cloth"
-        }
-      }
-    }
-  ],
-  "display": {
+  "base": {
+    "parent": "blockzone:item/held/armor_expansion"
+  },
+  "perspectives": {
     "gui": {
-      "rotation": [
-        20,
-        -35,
-        0
-      ],
-      "scale": [
-        1.1,
-        1.1,
-        1.1
-      ]
-    },
-    "ground": {
-      "scale": [
-        0.5,
-        0.5,
-        0.5
-      ]
-    },
-    "fixed": {
-      "scale": [
-        1,
-        1,
-        1
-      ]
-    },
-    "thirdperson_righthand": {
-      "rotation": [
-        0,
-        0,
-        0
-      ],
-      "translation": [
-        0,
-        1,
-        0
-      ],
-      "scale": [
-        0.7,
-        0.7,
-        0.7
-      ]
-    },
-    "firstperson_righthand": {
-      "rotation": [
-        0,
-        -20,
-        0
-      ],
-      "translation": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        0.7,
-        0.7,
-        0.7
-      ]
+      "parent": "minecraft:item/generated",
+      "textures": {
+        "layer0": "blockzone:item/icons/armor_expansion"
+      },
+      "gui_light": "front",
+      "display": {
+        "gui": {
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "translation": [
+            0.0,
+            0.0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        }
+      }
     }
   }
 }

@@ -1,3 +1,22 @@
 {
-  "parent": "blockzone:block/loot_crates/medical"
+  "parent": "blockzone:block/loot_crates/medical",
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        -135,
+        0
+      ],
+      "translation": [
+        0,
+        0.9765,
+        0
+      ],
+      "scale": [
+        0.5806,
+        0.5806,
+        0.5806
+      ]
+    }
+  }
 }

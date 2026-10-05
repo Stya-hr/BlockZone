@@ -19,12 +19,12 @@ import java.util.UUID;
 public final class LootDropEntity extends ItemEntity {
     private String mapName = "";
     private UUID roundId;
+    private boolean clientHighlighted;
 
     public LootDropEntity(EntityType<? extends LootDropEntity> type, Level level) {
         super(type, level);
         // Vanilla also excludes unlimited-lifetime items from merging, preserving the scattered display.
         setUnlimitedLifetime();
-        setGlowingTag(true);
     }
 
     public void bindToMatch(BattlezoneMap map) {
@@ -33,6 +33,14 @@ public final class LootDropEntity extends ItemEntity {
     }
 
     public boolean belongsToMap(String name) { return mapName.equals(name); }
+
+    public void setClientHighlighted(boolean highlighted) {
+        if (level().isClientSide) clientHighlighted = highlighted;
+    }
+
+    @Override public boolean isCurrentlyGlowing() {
+        return level().isClientSide ? clientHighlighted : super.isCurrentlyGlowing();
+    }
 
     @Override public boolean isPickable() { return isAlive(); }
 
@@ -84,7 +92,8 @@ public final class LootDropEntity extends ItemEntity {
         mapName = tag.getString("BattlezoneMap");
         roundId = tag.hasUUID("BattlezoneRound") ? tag.getUUID("BattlezoneRound") : null;
         setUnlimitedLifetime();
-        setGlowingTag(true);
+        // Older saves used a global glow flag; highlighting is now per viewing client.
+        setGlowingTag(false);
     }
 
     @Override

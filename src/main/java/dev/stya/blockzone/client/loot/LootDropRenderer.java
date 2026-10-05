@@ -4,6 +4,9 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import dev.stya.blockzone.loot.LootDropEntity;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.OutlineBufferSource;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.ItemRenderer;
@@ -28,6 +31,10 @@ public final class LootDropRenderer extends EntityRenderer<LootDropEntity> {
                        MultiBufferSource buffers, int light) {
         var stack = entity.getItem();
         if (stack.isEmpty()) return;
+        if (buffers instanceof OutlineBufferSource outline) {
+            boolean pointed = Minecraft.getInstance().hitResult instanceof EntityHitResult hit && hit.getEntity() == entity;
+            outline.setColor(255, pointed ? 200 : 255, pointed ? 60 : 255, 255);
+        }
         var model = items.getModel(stack, entity.level(), null, entity.getId());
         pose.pushPose();
         pose.mulPose(Axis.YP.rotation(entity.getSpin(partialTicks)));

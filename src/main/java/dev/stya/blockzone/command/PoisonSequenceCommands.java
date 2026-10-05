@@ -45,10 +45,17 @@ public final class PoisonSequenceCommands {
         event.addChild(Commands.literal("map").then(Commands.literal("modify")
                 .then(Commands.argument("game_type", StringArgumentType.string())
                         .then(Commands.argument("map_name", StringArgumentType.string())
-                                .then(Commands.literal("settings").requires(source -> source.hasPermission(2)).then(sequence))))));
-        event.registerHelp("fpsm map modify settings sequence", Component.literal(
-                "Edit poison paths: edit opens the world editor; list/add; <sequence> get/remove; <sequence> shape cylinder|square_prism; <sequence> circle add <x> <z> <radius> <waitSeconds> <shrinkSeconds> <damageMultiplier>; <sequence> circle <circle> set <same fields>/remove. Indices start at 1. Save with settings save."));
-        event.registerParameters("fpsm map modify settings sequence", "*game_type", "*map_name", "list|add|<sequence> get|remove|circle ...");
+                                .then(Commands.literal("capability").requires(source -> source.hasPermission(2)).then(Commands.literal("zone").then(sequence)))))));
+        // Keep the established editor entry point; only configuration commands move.
+        event.addChild(Commands.literal("map").then(Commands.literal("modify")
+                .then(Commands.argument("game_type", StringArgumentType.string())
+                        .then(Commands.argument("map_name", StringArgumentType.string())
+                                .then(Commands.literal("settings").requires(source -> source.hasPermission(2))
+                                        .then(Commands.literal("sequence").then(Commands.literal("edit")
+                                                .executes(context -> edit(context, "open_editor")))))))));
+        event.registerHelp("fpsm map modify capability zone sequence", Component.literal(
+                "Edit poison paths: edit opens the world editor; list/add; <sequence> get/remove; <sequence> shape cylinder|square_prism; <sequence> circle add <x> <z> <radius> <waitSeconds> <shrinkSeconds> <damageMultiplier>; <sequence> circle <circle> set <same fields>/remove. Indices start at 1. Changes are saved automatically."));
+        event.registerParameters("fpsm map modify capability zone sequence", "*game_type", "*map_name", "list|add|<sequence> get|remove|circle ...");
     }
 
     private static ArgumentBuilder<CommandSourceStack, ?> circleArguments(String action) {
@@ -116,8 +123,8 @@ public final class PoisonSequenceCommands {
                     paths.set(index, new PoisonPath(circles, paths.get(index).shape()));
                 }
             }
-            map.setPoisonSequences(paths);
-            source.sendSuccess(() -> Component.literal("Updated poison sequences. Active matches keep their original path. Use settings save to persist."), false);
+            dev.stya.blockzone.data.persistence.CapabilityConfiguration.save(map.zoneCapability(), map.zoneCapability().read().withPaths(paths));
+            source.sendSuccess(() -> Component.literal("Updated poison sequences. Active matches keep their original path. Configuration saved."), false);
             return 1;
         } catch (IllegalArgumentException exception) {
             source.sendFailure(Component.literal(exception.getMessage()));

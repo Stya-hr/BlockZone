@@ -14,5 +14,13 @@ public final class BlockZone {
         LootCrateRegistry.register(context.getModEventBus());
         EquipmentRegistry.register(context.getModEventBus());
         BattlezoneNetwork.register();
+        context.getModEventBus().addListener(this::commonSetup);
+    }
+    private void commonSetup(net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent event) {
+        event.enqueueWork(() -> {
+            dev.stya.blockzone.map.battlezone.capability.BattlezoneLoadoutCapability.register();
+            dev.stya.blockzone.map.battlezone.capability.BattlezoneCombatCapability.register();
+            dev.stya.blockzone.map.battlezone.capability.BattlezoneZoneCapability.register();
+        });
     }
 }

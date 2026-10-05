@@ -5,7 +5,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;
 import com.ptcrys.fpsmatch.common.packet.mapselect.MapRoomSettingInfo;
 import dev.stya.blockzone.zone.PoisonPath;
-import dev.stya.blockzone.zone.PoisonSettingsMigration;
+import dev.stya.blockzone.zone.PoisonPathDefaults;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
@@ -24,7 +24,7 @@ class CodecSettingsTest {
 
     @Test void nativeUiReceivesEditableJsonAndCodecDefaultInsteadOfJavaRecordText() {
         var codec = PoisonPath.CODEC.listOf();
-        var initial = List.of(PoisonSettingsMigration.defaults(80, 80, 80));
+        var initial = List.of(PoisonPathDefaults.create(80, 80, 80));
         var setting = CodecSettings.create("battlezone", "poisonSequences", codec, initial);
         var changed = List.of(new PoisonPath(List.of(new PoisonPath.Circle(1, 2, 30, 0, 0, 3))));
         setting.set(changed);

@@ -2,31 +2,26 @@ package dev.stya.blockzone.combat;
 
 import dev.stya.blockzone.equipment.EquipmentRegistry;
 import dev.stya.blockzone.equipment.PlateCapacity;
-import dev.stya.blockzone.equipment.StartingLoadout;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import net.minecraft.server.level.ServerPlayer;
 
-/** Frozen match loadout, health values and per-player recovery timers. */
+/** Frozen match health values and per-player recovery timers. */
 public final class MatchCombatController {
     private float health = CombatRecovery.MAX_HEALTH;
     private float platePoints = CombatRecovery.PLATE_POINTS;
-    private List<StartingLoadout.Prepared> loadout = List.of();
     private final Map<UUID, CombatRecovery> recovery = new HashMap<>();
 
-    public void start(float health, float platePoints, List<StartingLoadout.Prepared> loadout) {
+    public void start(float health, float platePoints) {
         this.health = health;
         this.platePoints = platePoints;
-        this.loadout = List.copyOf(loadout);
         clearRecovery();
     }
 
     public void initialize(ServerPlayer player) {
         clear(player);
         MatchPlayerState.initialize(player, health);
-        StartingLoadout.apply(player, loadout);
     }
 
     public void hurt(ServerPlayer player) {

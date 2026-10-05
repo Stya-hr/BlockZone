@@ -115,5 +115,13 @@
   "block.blockzone.tactical_loot_crate": "Tactical Equipment Case",
   "block.blockzone.weathered_loot_crate": "Weathered Field Crate",
   "block.blockzone.medical_loot_crate": "Medical Supply Case",
-  "editor.blockzone.loot.enabled": "Enable loot behavior"
+  "editor.blockzone.loot.enabled": "Enable loot behavior",
+  "item.blockzone.armor_plate": "Armor Plate",
+  "hud.blockzone.health": "HEALTH",
+  "hud.blockzone.armor": "ARMOR",
+  "hud.blockzone.plating": "INSERTING PLATE",
+  "setting.battlezone.matchHealth": "Match health",
+  "setting.battlezone.matchHealth.desc": "Range 1–1024. Applies next match; recovery restores 5% of maximum health per interval.",
+  "setting.battlezone.armorPlatePoints": "Armor per plate",
+  "setting.battlezone.armorPlatePoints.desc": "Range 1–1024. Applies next match; maximum armor is three plates."
 }

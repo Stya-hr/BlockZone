@@ -89,6 +89,7 @@ final class PlayerStateSnapshot {
     }
 
     void restore(ServerPlayer player) {
+        CombatHealth.remove(player);
         player.stopRiding();
         player.setNoGravity(noGravity);
         player.setForcedPose(forcedPose);

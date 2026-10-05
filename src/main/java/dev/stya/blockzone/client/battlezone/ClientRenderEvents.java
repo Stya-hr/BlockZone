@@ -21,6 +21,7 @@ public final class ClientRenderEvents {
 
     @SubscribeEvent
     public static void onLogout(ClientPlayerNetworkEvent.LoggingOut event) {
+        CombatHud.setActive(false);
         ZoneClientState.clear();
         DeploymentVehicleState.clear();
         MaterialRenderState.end();

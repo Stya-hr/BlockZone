@@ -23,6 +23,7 @@ public final class LootCrateRegistry {
             DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, BlockZone.MOD_ID);
 
     public static final RegistryObject<LootCrateBlock> LOOT_CRATE = BLOCKS.register("loot_crate", LootCrateBlock::new);
+    public static final RegistryObject<Item> ARMOR_PLATE = ITEMS.register("armor_plate", ArmorPlateItem::new);
     public static final RegistryObject<LootCrateBlock> TACTICAL_LOOT_CRATE = BLOCKS.register("tactical_loot_crate",
             () -> new LootCrateBlock(-8, 24, 1, 15, 6, 2, .54));
     public static final RegistryObject<LootCrateBlock> MEDICAL_LOOT_CRATE = BLOCKS.register("medical_loot_crate",
@@ -57,6 +58,7 @@ public final class LootCrateRegistry {
     }
 
     private static void creativeTab(BuildCreativeModeTabContentsEvent event) {
+        if (event.getTabKey() == CreativeModeTabs.COMBAT) event.accept(ARMOR_PLATE);
         if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
             event.accept(LOOT_CRATE_ITEM);
             event.accept(TACTICAL_LOOT_CRATE_ITEM);

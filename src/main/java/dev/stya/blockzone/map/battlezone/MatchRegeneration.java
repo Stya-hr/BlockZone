@@ -4,9 +4,14 @@ import com.ptcrys.fpsmatch.core.FPSMCore;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 
-/** Disable vanilla automatic healing for living participants without changing world gamerules. */
+/** Suppress vanilla healing while the match's recovery clock owns health regeneration. */
 public final class MatchRegeneration {
     private MatchRegeneration() { }
+
+    public static java.util.Optional<BattlezoneMap> map(ServerPlayer player) {
+        return FPSMCore.getInstance().getMapByPlayerWithSpec(player)
+                .filter(BattlezoneMap.class::isInstance).map(BattlezoneMap.class::cast);
+    }
 
     public static boolean allowed(Player player) {
         if (!(player instanceof ServerPlayer serverPlayer)) return true;

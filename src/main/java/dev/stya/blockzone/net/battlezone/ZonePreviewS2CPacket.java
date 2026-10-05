@@ -1,11 +1,12 @@
 package dev.stya.blockzone.net.battlezone;
 
-import dev.stya.blockzone.util.battlezone.ZoneGeometry;
+import dev.stya.blockzone.zone.ZoneGeometry;
+import dev.stya.blockzone.zone.ZoneShape;
+import java.util.List;
+import java.util.function.Supplier;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.network.NetworkEvent;
-import java.util.function.Supplier;
-import java.util.List;
 
 public record ZonePreviewS2CPacket(ResourceLocation dimension, boolean visible, List<ZoneGeometry> zones) {
     public ZonePreviewS2CPacket { zones = List.copyOf(zones); }
@@ -22,7 +23,7 @@ public record ZonePreviewS2CPacket(ResourceLocation dimension, boolean visible, 
     }
     public static ZonePreviewS2CPacket decode(FriendlyByteBuf buffer) {
         return new ZonePreviewS2CPacket(buffer.readResourceLocation(), buffer.readBoolean(),
-                buffer.readList(in -> new ZoneGeometry(in.readDouble(), in.readDouble(), in.readDouble(), in.readDouble(), in.readEnum(dev.stya.blockzone.util.battlezone.ZoneShape.class))));
+                buffer.readList(in -> new ZoneGeometry(in.readDouble(), in.readDouble(), in.readDouble(), in.readDouble(), in.readEnum(ZoneShape.class))));
     }
     public void handle(Supplier<NetworkEvent.Context> supplier) {
         var context = supplier.get();

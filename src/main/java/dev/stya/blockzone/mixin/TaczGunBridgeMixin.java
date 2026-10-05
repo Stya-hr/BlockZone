@@ -2,7 +2,7 @@ package dev.stya.blockzone.mixin;
 
 import com.ptcrys.fpsmatch.common.event.FPSMGunDamageEvent;
 import com.tacz.guns.api.event.common.EntityHurtByGunEvent;
-import dev.stya.blockzone.map.battlezone.MatchRegeneration;
+import dev.stya.blockzone.combat.MatchRegeneration;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.IEventBus;

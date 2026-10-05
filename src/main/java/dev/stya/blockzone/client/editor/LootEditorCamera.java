@@ -2,13 +2,13 @@ package dev.stya.blockzone.client.editor;
 
 import com.ptcrys.fpsmatch.common.camera.SequenceClock;
 import com.ptcrys.fpsmatch.common.client.camera.*;
-import dev.stya.blockzone.util.battlezone.ZoneGeometry;
-import dev.stya.blockzone.util.editor.PoisonEditorCameraMotion;
+import dev.stya.blockzone.editor.zone.PoisonEditorCameraMotion;
+import dev.stya.blockzone.zone.ZoneGeometry;
+import java.util.HashSet;
+import java.util.Set;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.EditBox;
-import java.util.HashSet;
-import java.util.Set;
 
 /** Uses FPSMatch ownership and input policy so editor navigation cannot move the player. */
 final class LootEditorCamera {

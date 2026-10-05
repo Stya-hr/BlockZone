@@ -1,29 +1,36 @@
 package dev.stya.blockzone.map.battlezone;
 
-import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
-import dev.stya.blockzone.net.battlezone.ZoneStateS2CPacket;
-import dev.stya.blockzone.util.battlezone.ZoneGeometry;
-import dev.stya.blockzone.util.battlezone.PoisonPath;
-import dev.stya.blockzone.util.battlezone.BoundaryGeometry;
 import com.mojang.serialization.Codec;
-import dev.stya.blockzone.util.CodecSettings;
-import dev.stya.blockzone.util.battlezone.PoisonSettingsMigration;
 import com.ptcrys.fpsmatch.core.data.AreaData;
 import com.ptcrys.fpsmatch.core.data.Setting;
 import com.ptcrys.fpsmatch.core.map.BaseMap;
 import com.ptcrys.fpsmatch.core.team.MapTeams;
 import com.ptcrys.fpsmatch.core.team.ServerTeam;
 import com.ptcrys.fpsmatch.core.team.TeamData;
-import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.entity.player.Player;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import dev.stya.blockzone.combat.CombatHealth;
+import dev.stya.blockzone.combat.MatchCombatController;
+import dev.stya.blockzone.combat.MatchRegeneration;
+import dev.stya.blockzone.data.snapshot.PlayerStateSnapshot;
+import dev.stya.blockzone.data.snapshot.SceneSnapshot;
+import dev.stya.blockzone.deployment.DeploymentController;
+import dev.stya.blockzone.deployment.FlightRoute;
+import dev.stya.blockzone.deployment.LandingController;
+import dev.stya.blockzone.editor.loot.LootCrateEdit;
+import dev.stya.blockzone.equipment.StartingLoadout;
+import dev.stya.blockzone.loot.LootDropEntity;
+import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
+import dev.stya.blockzone.util.CodecSettings;
+import dev.stya.blockzone.zone.PoisonPath;
+import dev.stya.blockzone.zone.PoisonSettingsMigration;
+import dev.stya.blockzone.zone.PoisonZoneController;
+import dev.stya.blockzone.zone.ZoneGeometry;
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class BattlezoneMap extends BaseMap {
     public static final String GAME_TYPE = "battlezone";
@@ -39,68 +46,36 @@ public final class BattlezoneMap extends BaseMap {
     private final Setting<Double> deploymentHeight;
     private final DeploymentController deployment = new DeploymentController(this);
     private final LandingController landing = new LandingController();
-    private final Setting<List<dev.stya.blockzone.equipment.StartingLoadout.Entry>> startingLoadout;
-    private List<dev.stya.blockzone.equipment.StartingLoadout.Prepared> activeLoadout = List.of();
+    private final Setting<List<StartingLoadout.Entry>> startingLoadout;
     private final Setting<Double> matchHealth;
     private final Setting<Double> armorPlatePoints;
-    private float activeMatchHealth = CombatRecovery.MAX_HEALTH;
-    private float activePlatePoints = CombatRecovery.PLATE_POINTS;
+    private final MatchCombatController combat = new MatchCombatController();
 
-    public float getCombatHealth() { return activeMatchHealth; }
-    public float getArmorPlatePoints() { return activePlatePoints; }
-    public float getMaxCombatArmor(ServerPlayer player) { return activePlatePoints * dev.stya.blockzone.equipment.PlateCapacity.slots(player); }
+    public float getCombatHealth() { return combat.health(); }
+    public float getArmorPlatePoints() { return combat.platePoints(); }
+    public float getMaxCombatArmor(ServerPlayer player) { return combat.maxArmor(player); }
 
     private final Setting<Double> poisonDamage;
     private final Setting<List<PoisonPath>> poisonSequences;
-    private List<PoisonPath.Circle> activePoisonPhases = List.of();
-    private PoisonPath activePoisonPath;
-    private double activeBaseDamage;
-    private int activeSequenceNumber;
+    private final PoisonZoneController poison = new PoisonZoneController(this);
     private final Setting<String> boundaryTexture;
 
     private final java.util.Map<java.util.UUID, PlayerStateSnapshot> playerStates = new java.util.HashMap<>();
-    private final java.util.Map<java.util.UUID, CombatRecovery> recovery = new java.util.HashMap<>();
+    public void combatHurt(ServerPlayer player) { combat.hurt(player); }
 
-    public void combatHurt(ServerPlayer player) {
-        recovery.computeIfAbsent(player.getUUID(), id -> new CombatRecovery()).hurt();
-        if (player.getUseItem().is(dev.stya.blockzone.equipment.EquipmentRegistry.ARMOR_PLATE.get())) {
-            player.stopUsingItem();
-        }
-    }
+    public void tickRecovery(ServerPlayer player) { combat.tickRecovery(player); }
 
-    public void tickRecovery(ServerPlayer player) {
-        if (MatchRegeneration.allowed(player)) return;
-        if (recovery.computeIfAbsent(player.getUUID(), id -> new CombatRecovery()).tick()
-                && player.isAlive() && player.getHealth() < player.getMaxHealth()) {
-            player.heal(activeMatchHealth * 0.05F);
-        }
-    }
+    private void clearCombat(ServerPlayer player) { combat.clear(player); }
 
-    private void clearCombat(ServerPlayer player) {
-        recovery.remove(player.getUUID());
-        player.stopUsingItem();
-        player.setAbsorptionAmount(0);
-    }
     private final SceneSnapshot sceneSnapshot;
     private MatchPhase phase = MatchPhase.WAITING;
     private int phaseTicks;
-    private int poisonPhaseIndex;
-    private int poisonPhaseTicks;
-    private float poisonCurrentRadius;
-    private double poisonCurrentCenterX;
-    private double poisonCurrentCenterZ;
-    private double poisonStageStartCenterX;
-    private double poisonStageStartCenterZ;
-    private double poisonStageTargetCenterX;
-    private double poisonStageTargetCenterZ;
-    private float poisonStageStartRadius;
-    private float poisonStageTargetRadius;
-    private boolean poisonStageInitialized;
     private boolean snapshotValid;
     private boolean snapshotSavePending;
     private boolean victoryAnnounced;
     private java.util.UUID lootRoundId;
-    private long lastVisualStateSync = Long.MIN_VALUE;
+    private final BattlezoneEliminationRule eliminationRule = new BattlezoneEliminationRule();
+    private final BattlezoneVisualSync visualSync;
 
     public BattlezoneMap(ServerLevel serverLevel, String mapName, AreaData areaData) {
         super(serverLevel, mapName, areaData);
@@ -117,7 +92,7 @@ public final class BattlezoneMap extends BaseMap {
                 Math.max(areaData.pos1().getY(), areaData.pos2().getY()) + 64.0));
 
         this.startingLoadout = addSetting(CodecSettings.create("battlezone", "startingLoadout",
-                dev.stya.blockzone.equipment.StartingLoadout.Entry.CODEC.listOf(), dev.stya.blockzone.equipment.StartingLoadout.defaults()));
+                StartingLoadout.Entry.CODEC.listOf(), StartingLoadout.defaults()));
         this.matchHealth = addSetting(CodecSettings.create("battlezone", "matchHealth",
                 Codec.doubleRange(1.0, 1024.0), 100.0));
         this.armorPlatePoints = addSetting(CodecSettings.create("battlezone", "armorPlatePoints",
@@ -128,6 +103,7 @@ public final class BattlezoneMap extends BaseMap {
                 List.of(PoisonSettingsMigration.defaults(getMapCenterX(), getMapCenterZ(), getInitialPoisonRadius()))));
         this.boundaryTexture = addSetting("battlezone", "boundaryTexture",
                 "blockzone:textures/effect/battlezone_warning_fence.png");
+        this.visualSync = new BattlezoneVisualSync(this, deployment, poison, boundaryTexture::get);
         this.sceneSnapshot = new SceneSnapshot(this);
         this.snapshotValid = sceneSnapshot.load();
         if (!snapshotValid && !sceneSnapshot.exists()) {
@@ -167,7 +143,7 @@ public final class BattlezoneMap extends BaseMap {
             case SETTLEMENT -> tickSettlement();
             case RESETTING -> tickResetting();
         }
-        syncVisualState(false);
+        visualSync.sync(false);
     }
 
     private void tickWaiting() {
@@ -202,12 +178,12 @@ public final class BattlezoneMap extends BaseMap {
             phase = MatchPhase.MATCH;
             phaseTicks = 0;
             broadcast(Component.literal("Battlezone deployment completed."));
-            syncVisualState(true);
+            visualSync.sync(true);
         }
     }
 
     private void tickMatch() {
-        tickPoisonZone();
+        poison.tick();
     }
 
     private void tickSettlement() {
@@ -224,85 +200,13 @@ public final class BattlezoneMap extends BaseMap {
             }
             phase = MatchPhase.WAITING;
             phaseTicks = 0;
-            syncVisualState(true);
+            visualSync.sync(true);
         }
     }
 
-    private void tickPoisonZone() {
-        List<PoisonPath.Circle> phases = activePoisonPhases;
-        if (poisonPhaseIndex >= phases.size()) {
-            damagePlayersOutsideZone();
-            return;
-        }
+    public boolean previewPoisonSequence(ServerPlayer player, int number) { return poison.preview(player, number); }
 
-        PoisonPath.Circle stage = phases.get(poisonPhaseIndex);
-        if (!poisonStageInitialized) {
-            initializePoisonStage();
-        }
-        int waitTicks = Math.max(0, stage.waitSeconds()) * 20;
-        int shrinkTicks = Math.max(0, stage.shrinkSeconds()) * 20;
-        poisonPhaseTicks++;
-
-        if (poisonPhaseTicks <= waitTicks) {
-            poisonCurrentRadius = poisonStageStartRadius;
-            poisonCurrentCenterX = poisonStageStartCenterX;
-            poisonCurrentCenterZ = poisonStageStartCenterZ;
-        } else if (shrinkTicks == 0 || poisonPhaseTicks >= waitTicks + shrinkTicks) {
-            poisonCurrentRadius = poisonStageTargetRadius;
-            poisonCurrentCenterX = poisonStageTargetCenterX;
-            poisonCurrentCenterZ = poisonStageTargetCenterZ;
-            poisonPhaseIndex++;
-            poisonPhaseTicks = 0;
-            poisonStageInitialized = false;
-        } else {
-            float progress = (float) (poisonPhaseTicks - waitTicks) / shrinkTicks;
-            poisonCurrentRadius = poisonStageStartRadius + (poisonStageTargetRadius - poisonStageStartRadius) * progress;
-            poisonCurrentCenterX = poisonStageStartCenterX + (poisonStageTargetCenterX - poisonStageStartCenterX) * progress;
-            poisonCurrentCenterZ = poisonStageStartCenterZ + (poisonStageTargetCenterZ - poisonStageStartCenterZ) * progress;
-        }
-
-        damagePlayersOutsideZone();
-    }
-
-    private List<ZoneGeometry> poisonSequence = List.of();
-    private List<ZoneGeometry> resolvePath(PoisonPath path, int number) {
-        var area = getMapArea();
-        var bounds = BoundaryGeometry.of(area.pos1().getX(), area.pos1().getZ(), area.pos2().getX(), area.pos2().getZ());
-        var result = path.resolve(bounds, ZoneGeometry.centerY(area.pos1().getY(), area.pos2().getY()));
-        for (int i = 0; i < result.size(); i++) {
-            var configured = path.circles().get(i);
-            var actual = result.get(i);
-            if (configured.x() != actual.centerX() || configured.z() != actual.centerZ()) {
-                var warning = "Battlezone " + getMapName() + " sequence " + number + " circle " + i
-                        + " exceeds map bounds; runtime center=(" + actual.centerX() + ", " + actual.centerZ()
-                        + "). Radius and saved configuration unchanged.";
-                LOGGER.warn(warning);
-                getServerLevel().players().stream().filter(player -> player.hasPermissions(2))
-                        .forEach(player -> player.sendSystemMessage(Component.literal(warning)));
-            }
-        }
-        return result;
-    }
-
-    public boolean previewPoisonSequence(ServerPlayer player, int number) {
-        if (number < 1 || number > poisonSequences.get().size()) return false;
-        List<ZoneGeometry> circles = isMatchActive() && number == activeSequenceNumber ? poisonSequence
-                : resolvePath(poisonSequences.get().get(number - 1), number);
-        BattlezoneNetwork.send(player, new dev.stya.blockzone.net.battlezone.ZonePreviewS2CPacket(
-                getServerLevel().dimension().location(), true, circles));
-        player.sendSystemMessage(Component.literal("Sequence " + number + ": " + circles.size() + " circles (shape grid preview)"));
-        for (int i = 0; i < circles.size(); i++) {
-            var circle = circles.get(i);
-            player.sendSystemMessage(Component.literal("Circle " + (i + 1) + ": X=" + circle.centerX() + ", Z="
-                    + circle.centerZ() + ", shape=" + circle.shape().id() + ", radius=" + circle.radius()));
-        }
-        return true;
-    }
-
-    public void hidePoisonPreview(ServerPlayer player) {
-        BattlezoneNetwork.send(player, new dev.stya.blockzone.net.battlezone.ZonePreviewS2CPacket(
-                getServerLevel().dimension().location(), false, List.of()));
-    }
+    public void hidePoisonPreview(ServerPlayer player) { poison.hidePreview(player); }
 
     public PoisonPath defaultPoisonPath() {
         return PoisonSettingsMigration.defaults(getMapCenterX(), getMapCenterZ(), getInitialPoisonRadius());
@@ -312,36 +216,8 @@ public final class BattlezoneMap extends BaseMap {
 
     public void setPoisonSequences(List<PoisonPath> paths) {
         if (paths.isEmpty()) throw new IllegalArgumentException("Keep at least one sequence");
-        for (int i = 0; i < paths.size(); i++) resolvePath(paths.get(i), i + 1);
+        for (int i = 0; i < paths.size(); i++) poison.resolvePath(paths.get(i), i + 1);
         poisonSequences.set(List.copyOf(paths));
-    }
-
-    private void initializePoisonZone() {
-        if (poisonSequences.get().isEmpty()) throw new IllegalArgumentException("Configure at least one poison sequence");
-        var resolved = new java.util.ArrayList<List<ZoneGeometry>>();
-        for (int i = 0; i < poisonSequences.get().size(); i++) resolved.add(resolvePath(poisonSequences.get().get(i), i + 1));
-        activeSequenceNumber = getServerLevel().getRandom().nextInt(resolved.size()) + 1;
-        poisonSequence = resolved.get(activeSequenceNumber - 1);
-        activePoisonPath = poisonSequences.get().get(activeSequenceNumber - 1);
-        activePoisonPhases = activePoisonPath.circles().stream().skip(1).toList();
-        activeBaseDamage = poisonDamage.get();
-        var initial = poisonSequence.get(0);
-        poisonCurrentRadius = (float) initial.radius();
-        poisonCurrentCenterX = initial.centerX();
-        poisonCurrentCenterZ = initial.centerZ();
-        poisonStageInitialized = false;
-    }
-
-    private void initializePoisonStage() {
-        if (poisonPhaseIndex + 1 >= poisonSequence.size()) return;
-        var target = poisonSequence.get(poisonPhaseIndex + 1);
-        poisonStageStartRadius = poisonCurrentRadius;
-        poisonStageStartCenterX = poisonCurrentCenterX;
-        poisonStageStartCenterZ = poisonCurrentCenterZ;
-        poisonStageTargetRadius = (float) target.radius();
-        poisonStageTargetCenterX = target.centerX();
-        poisonStageTargetCenterZ = target.centerZ();
-        poisonStageInitialized = true;
     }
 
     private double getMapCenterX() {
@@ -352,28 +228,6 @@ public final class BattlezoneMap extends BaseMap {
     private double getMapCenterZ() {
         AreaData area = getMapArea();
         return (area.pos1().getZ() + area.pos2().getZ() + 1.0) / 2.0;
-    }
-
-    private void damagePlayersOutsideZone() {
-        double damage = activePoisonPath.damageAt(poisonPhaseIndex, activeBaseDamage);
-        if (damage <= 0 || getServerLevel().getGameTime() % 20 != 0) {
-            return;
-        }
-        AreaData area = getMapArea();
-        ZoneGeometry zone = new ZoneGeometry(poisonCurrentCenterX,
-                ZoneGeometry.centerY(area.pos1().getY(), area.pos2().getY()),
-                poisonCurrentCenterZ, poisonCurrentRadius, activePoisonPath.shape());
-        DamageSource damageSource = getServerLevel().damageSources().magic();
-        for (ServerTeam team : getMapTeams().getNormalTeams()) {
-            for (ServerPlayer player : team.getOnline()) {
-                if (team.getPlayerData(player.getUUID()).map(data -> !data.isLiving()).orElse(true)) {
-                    continue;
-                }
-                if (!hasDeploymentProtection(player) && !zone.contains(player.getX(), player.getY(), player.getZ())) {
-                    player.hurt(damageSource, (float) damage);
-                }
-            }
-        }
     }
 
     private float getInitialPoisonRadius() {
@@ -437,7 +291,7 @@ public final class BattlezoneMap extends BaseMap {
             return false;
         }
         try {
-            initializePoisonZone();
+            poison.initialize(poisonSequences.get(), poisonDamage.get());
         } catch (IllegalArgumentException exception) {
             broadcast(Component.literal("Battlezone cannot start: invalid poisonSequences: " + exception.getMessage()));
             return false;
@@ -447,8 +301,8 @@ public final class BattlezoneMap extends BaseMap {
             broadcast(Component.literal("Battlezone cannot start: deploymentHeight and deploymentSpeed must be valid numbers, and the initial horizontal circle must have room for a route."));
             return false;
         }
-        List<dev.stya.blockzone.equipment.StartingLoadout.Prepared> loadout;
-        try { loadout = dev.stya.blockzone.equipment.StartingLoadout.prepare(startingLoadout.get()); }
+        List<StartingLoadout.Prepared> loadout;
+        try { loadout = StartingLoadout.prepare(startingLoadout.get()); }
         catch (IllegalArgumentException exception) {
             broadcast(Component.literal("Battlezone cannot start: invalid startingLoadout: " + exception.getMessage()));
             return false;
@@ -459,23 +313,14 @@ public final class BattlezoneMap extends BaseMap {
         isStart = true;
         lootRoundId = java.util.UUID.randomUUID();
         phase = MatchPhase.DEPLOYMENT;
-        activeLoadout = loadout;
-        activeMatchHealth = matchHealth.get().floatValue();
-        activePlatePoints = armorPlatePoints.get().floatValue();
-        recovery.clear();
-        getMapTeams().getNormalTeams().forEach(team -> team.getOnline().forEach(player -> {
-            clearCombat(player);
-            MatchPlayerState.initialize(player, activeMatchHealth);
-            dev.stya.blockzone.equipment.StartingLoadout.apply(player, activeLoadout);
-        }));
+        combat.start(matchHealth.get().floatValue(), armorPlatePoints.get().floatValue(), loadout);
+        getMapTeams().getNormalTeams().forEach(team -> team.getOnline().forEach(combat::initialize));
         phaseTicks = 0;
         victoryAnnounced = false;
         resetMatchClock();
-        poisonPhaseIndex = 0;
-        poisonPhaseTicks = 0;
         deployment.start(route.get());
-        broadcast(Component.literal("Battlezone match started; poison sequence " + activeSequenceNumber + "."));
-        syncVisualState(true);
+        broadcast(Component.literal("Battlezone match started; poison sequence " + poison.sequenceNumber() + "."));
+        visualSync.sync(true);
         return true;
     }
 
@@ -565,10 +410,9 @@ public final class BattlezoneMap extends BaseMap {
         if (result.isSuccess() && isStart) {
             clearCombat(player);
             if (!MatchRegeneration.allowed(player)) {
-                MatchPlayerState.initialize(player, activeMatchHealth);
-                dev.stya.blockzone.equipment.StartingLoadout.apply(player, activeLoadout);
+                combat.initialize(player);
             }
-            BattlezoneNetwork.send(player, createVisualStatePacket(player));
+            visualSync.send(player);
             BattlezoneNetwork.send(player, deployment.vehicleSnapshot(phase == MatchPhase.DEPLOYMENT));
             if (phase == MatchPhase.DEPLOYMENT) {
                 deployment.board(player);
@@ -637,7 +481,7 @@ public final class BattlezoneMap extends BaseMap {
         // FPSMatch records elimination and restores entity health; the game type owns spectator mode.
         player.setGameMode(net.minecraft.world.level.GameType.SPECTATOR);
         player.displayClientMessage(Component.translatable("blockzone.match.eliminated"), false);
-        BattlezoneNetwork.send(player, createVisualStatePacket(player));
+        visualSync.send(player);
     }
 
     @Override
@@ -646,34 +490,27 @@ public final class BattlezoneMap extends BaseMap {
             return;
         }
         victoryAnnounced = true;
-        List<ServerTeam> livingTeams = getMapTeams().getNormalTeams().stream()
-                .filter(team -> !team.getLivingPlayers().isEmpty())
-                .toList();
-        if (livingTeams.isEmpty()) {
-            broadcast(Component.literal("Battlezone ended in a draw."));
-        } else if (livingTeams.size() == 1) {
-            livingTeams.get(0).sendMessage(Component.literal("Your team won the Battlezone."));
-            for (ServerTeam team : getMapTeams().getNormalTeams()) {
-                if (team != livingTeams.get(0)) {
-                    team.sendMessage(Component.literal("Your team was eliminated from the Battlezone."));
-                }
+        eliminationRule.resolve(BattlezoneMatchContext.capture(this).livingTeams()).ifPresent(result -> {
+            if (result.reason() == BattlezoneResultReason.DRAW) {
+                broadcast(Component.literal("Battlezone ended in a draw."));
+            } else {
+                getMapTeams().getTeamByName(result.winner()).ifPresent(winner -> {
+                    winner.sendMessage(Component.literal("Your team won the Battlezone."));
+                    for (ServerTeam team : getMapTeams().getNormalTeams()) {
+                        if (team != winner) team.sendMessage(Component.literal("Your team was eliminated from the Battlezone."));
+                    }
+                });
             }
-        }
+        });
         super.victory();
         phase = MatchPhase.SETTLEMENT;
         phaseTicks = 0;
-        syncVisualState(true);
+        visualSync.sync(true);
     }
 
     @Override
     public boolean victoryGoal() {
-        if (isDebug() || phase != MatchPhase.MATCH) {
-            return false;
-        }
-        long teamsAlive = getMapTeams().getNormalTeams().stream()
-                .filter(team -> !team.getLivingPlayers().isEmpty())
-                .count();
-        return teamsAlive <= 1;
+        return eliminationRule.evaluate(BattlezoneMatchContext.capture(this)).isPresent();
     }
 
     @Override
@@ -686,12 +523,12 @@ public final class BattlezoneMap extends BaseMap {
 
     @Override
     public void reset() {
-        recovery.clear();
+        combat.clearRecovery();
         getMapTeams().getOnlineWithSpec().forEach(this::clearCombat);
         lootRoundId = null;
         // Drops that escaped the arena bounds must also disappear when this match ends.
         for (var entity : getServerLevel().getAllEntities()) {
-            if (entity instanceof dev.stya.blockzone.loot.LootDropEntity drop && drop.belongsToMap(getMapName())) {
+            if (entity instanceof LootDropEntity drop && drop.belongsToMap(getMapName())) {
                 drop.discard();
             }
         }
@@ -699,7 +536,7 @@ public final class BattlezoneMap extends BaseMap {
         landing.clear();
         super.reset();
         isStart = false;
-        syncVisualState(true);
+        visualSync.sync(true);
         for (ServerPlayer player : List.copyOf(getMapTeams().getOnlineWithSpec())) {
             leave(player);
             // A cancelled leave event must not keep a finished match populated.
@@ -722,22 +559,17 @@ public final class BattlezoneMap extends BaseMap {
         playerStates.clear();
         phase = MatchPhase.WAITING;
         phaseTicks = 0;
-        poisonPhaseIndex = 0;
-        poisonPhaseTicks = 0;
-        poisonCurrentRadius = getInitialPoisonRadius();
-        poisonCurrentCenterX = getMapCenterX();
-        poisonCurrentCenterZ = getMapCenterZ();
-        poisonStageInitialized = false;
+        poison.reset(new ZoneGeometry(getMapCenterX(), 0, getMapCenterZ(), getInitialPoisonRadius()));
         victoryAnnounced = false;
         getMapTeams().getNormalTeams().forEach(ServerTeam::resetLiving);
         if (!cleanupMap()) {
             phase = MatchPhase.WAITING;
             broadcast(Component.literal("Battlezone scene restore could not start; save a valid snapshot first."));
-            syncVisualState(true);
+            visualSync.sync(true);
             return;
         }
         phase = MatchPhase.RESETTING;
-        syncVisualState(true);
+        visualSync.sync(true);
     }
 
     @Override
@@ -762,15 +594,9 @@ public final class BattlezoneMap extends BaseMap {
             phase = MatchPhase.MATCH;
             phaseTicks = 0;
             if (!wasDeploying) {
-                poisonPhaseIndex = 0;
-                poisonPhaseTicks = 0;
-                var initial = poisonSequence.get(0);
-                poisonCurrentRadius = (float) initial.radius();
-                poisonCurrentCenterX = initial.centerX();
-                poisonCurrentCenterZ = initial.centerZ();
-                poisonStageInitialized = false;
+                poison.restart();
             }
-            syncVisualState(true);
+            visualSync.sync(true);
         }
     }
 
@@ -781,7 +607,7 @@ public final class BattlezoneMap extends BaseMap {
             deployment.remove(player);
             clearCombat(player);
             landing.finish(player);
-            BattlezoneNetwork.send(player, createVisualStatePacket(player, false));
+            visualSync.send(player, false);
             BattlezoneNetwork.send(player, deployment.vehicleSnapshot(false));
             PlayerStateSnapshot state = playerStates.remove(player.getUUID());
             if (state != null) {
@@ -821,7 +647,7 @@ public final class BattlezoneMap extends BaseMap {
 
     private java.util.Optional<FlightRoute> generateDeploymentRoute() {
         AreaData area = getMapArea();
-        var zone = poisonSequence.get(0);
+        var zone = poison.initial();
         var random = getServerLevel().getRandom();
         return FlightRoute.generateAcrossCircle(zone,
                 Math.min(area.pos1().getX(), area.pos2().getX()) + 0.31,
@@ -836,10 +662,7 @@ public final class BattlezoneMap extends BaseMap {
         if (!deployment.protects(player)) {
             return false;
         }
-        AreaData area = getMapArea();
-        ZoneGeometry zone = new ZoneGeometry(poisonCurrentCenterX,
-                ZoneGeometry.centerY(area.pos1().getY(), area.pos2().getY()),
-                poisonCurrentCenterZ, poisonCurrentRadius, activePoisonPath.shape());
+        var zone = poison.current();
         if (player.serverLevel() != getServerLevel()
                 || !zone.containsHorizontal(player.getX(), player.getZ())) {
             player.displayClientMessage(Component.translatable("blockzone.deployment.outside_zone"), true);
@@ -848,7 +671,7 @@ public final class BattlezoneMap extends BaseMap {
         return deployment.release(player);
     }
 
-    void clearAirbornePlayer(ServerPlayer player) {
+    public void clearAirbornePlayer(ServerPlayer player) {
         deployment.remove(player);
         landing.finish(player);
     }
@@ -870,7 +693,7 @@ public final class BattlezoneMap extends BaseMap {
         }
     }
 
-    void tickDeploymentPlayer(ServerPlayer player) {
+    public void tickDeploymentPlayer(ServerPlayer player) {
         deployment.tickPlayer(player);
         if (!isMatchActive() || player.serverLevel() != getServerLevel()
                 || getMapTeams().getTeamByPlayer(player).filter(team -> !team.isSpectator())
@@ -887,7 +710,7 @@ public final class BattlezoneMap extends BaseMap {
 
     public java.util.UUID getLootRoundId() { return lootRoundId; }
 
-    public boolean saveLootCrateEdits(java.util.List<dev.stya.blockzone.util.editor.LootCrateEdit> changes,
+    public boolean saveLootCrateEdits(java.util.List<LootCrateEdit> changes,
                                       java.util.function.Consumer<Boolean> result) {
         return sceneSnapshot.saveLootCrateEdits(changes, result);
     }
@@ -896,47 +719,6 @@ public final class BattlezoneMap extends BaseMap {
 
     public boolean isMatchActive() {
         return isStart && phase != MatchPhase.RESETTING;
-    }
-
-    private void syncVisualState(boolean force) {
-        if (!force && !isStart) {
-            return;
-        }
-        long gameTime = getServerLevel().getGameTime();
-        if (!force && (lastVisualStateSync == Long.MIN_VALUE || gameTime - lastVisualStateSync < 5)) {
-            return;
-        }
-        lastVisualStateSync = gameTime;
-        var vehicle = deployment.vehicleSnapshot(isStart && phase == MatchPhase.DEPLOYMENT);
-        for (ServerPlayer player : getMapTeams().getOnlineWithSpec()) {
-            BattlezoneNetwork.send(player, createVisualStatePacket(player));
-            BattlezoneNetwork.send(player, vehicle);
-        }
-    }
-
-    private ZoneStateS2CPacket createVisualStatePacket(ServerPlayer player) {
-        return createVisualStatePacket(player, isStart && phase != MatchPhase.RESETTING);
-    }
-
-    private ZoneStateS2CPacket createVisualStatePacket(ServerPlayer player, boolean boundaryVisible) {
-        AreaData area = getMapArea();
-        boolean participant = player.serverLevel() == getServerLevel() && !player.isSpectator()
-                && getMapTeams().getTeamByPlayer(player)
-                .filter(team -> !team.isSpectator())
-                .flatMap(team -> team.getPlayerData(player.getUUID()))
-                .map(data -> data.isLiving()).orElse(false);
-        return new ZoneStateS2CPacket(
-                getMapName(),
-                getServerLevel().dimension().location(),
-                boundaryVisible,
-                boundaryVisible && participant && (phase == MatchPhase.DEPLOYMENT || phase == MatchPhase.MATCH),
-                area.pos1(),
-                area.pos2(),
-                poisonCurrentCenterX,
-                poisonCurrentCenterZ,
-                poisonCurrentRadius,
-                boundaryTexture.get(),
-                activePoisonPath == null ? dev.stya.blockzone.util.battlezone.ZoneShape.CYLINDER : activePoisonPath.shape());
     }
 
     @Override

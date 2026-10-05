@@ -1,11 +1,11 @@
 package dev.stya.blockzone.client.battlezone;
 
-import dev.stya.blockzone.map.battlezone.ParachuteMotion;
-import dev.stya.blockzone.mixin.client.OptionsCameraTypeAccessor;
-import dev.stya.blockzone.net.battlezone.FlightStateS2CPacket;
-import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.stya.blockzone.BlockZone;
+import dev.stya.blockzone.deployment.ParachuteMotion;
+import dev.stya.blockzone.mixin.client.OptionsCameraTypeAccessor;
+import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
+import dev.stya.blockzone.net.battlezone.FlightStateS2CPacket;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;

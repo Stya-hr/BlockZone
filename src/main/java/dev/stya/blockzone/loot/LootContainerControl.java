@@ -1,8 +1,9 @@
 package dev.stya.blockzone.loot;
 
 import com.mojang.logging.LogUtils;
+import dev.stya.blockzone.editor.loot.LootCrateEdit;
 import dev.stya.blockzone.map.battlezone.BattlezoneMap;
-import dev.stya.blockzone.util.editor.LootCrateEdit;
+import java.util.List;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -17,7 +18,6 @@ import net.minecraft.world.level.storage.loot.*;
 import net.minecraft.world.level.storage.loot.parameters.*;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.registries.ForgeRegistries;
-import java.util.List;
 
 /** Map-assigned behavior on an existing container, independent of the container's inventory/model. */
 public final class LootContainerControl {

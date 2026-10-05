@@ -1,11 +1,11 @@
 package dev.stya.blockzone.net.editor;
 
-import dev.stya.blockzone.util.editor.LootCrateEdit;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import dev.stya.blockzone.editor.loot.LootCrateEdit;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraftforge.network.NetworkEvent;
 
 public record SaveLootEditorC2SPacket(UUID token, List<LootCrateEdit> changes) {
     public static void encode(SaveLootEditorC2SPacket packet, FriendlyByteBuf buffer) {

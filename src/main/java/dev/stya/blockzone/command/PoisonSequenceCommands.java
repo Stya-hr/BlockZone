@@ -9,13 +9,15 @@ import com.ptcrys.fpsmatch.common.event.register.RegisterFPSMCommandEvent;
 import com.ptcrys.fpsmatch.core.FPSMCore;
 import dev.stya.blockzone.BlockZone;
 import dev.stya.blockzone.map.battlezone.BattlezoneMap;
-import dev.stya.blockzone.util.battlezone.PoisonPath;
+import dev.stya.blockzone.net.editor.PoisonEditorSessions;
+import dev.stya.blockzone.zone.PoisonPath;
+import dev.stya.blockzone.zone.ZoneShape;
+import java.util.ArrayList;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import java.util.ArrayList;
 
 @Mod.EventBusSubscriber(modid = BlockZone.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class PoisonSequenceCommands {
@@ -31,7 +33,7 @@ public final class PoisonSequenceCommands {
                         .then(Commands.literal("shape")
                                 .then(Commands.argument("shape", StringArgumentType.word())
                                         .suggests((context, builder) -> {
-                                            for (var shape : dev.stya.blockzone.util.battlezone.ZoneShape.values()) builder.suggest(shape.id());
+                                            for (var shape : ZoneShape.values()) builder.suggest(shape.id());
                                             return builder.buildFuture();
                                         }).executes(context -> edit(context, "shape"))))
                         .then(Commands.literal("remove").executes(context -> edit(context, "remove")))
@@ -70,7 +72,7 @@ public final class PoisonSequenceCommands {
         try {
             if (action.equals("open_editor")) {
                 if (source.getPlayer() == null) throw new IllegalArgumentException("Open the editor in-game");
-                dev.stya.blockzone.net.editor.PoisonEditorSessions.open(source.getPlayer(), map);
+                PoisonEditorSessions.open(source.getPlayer(), map);
                 return 1;
             }
             var paths = new ArrayList<>(map.configuredPoisonSequences());
@@ -92,7 +94,7 @@ public final class PoisonSequenceCommands {
                     return 1;
                 }
                 if (action.equals("shape")) {
-                    var shape = dev.stya.blockzone.util.battlezone.ZoneShape.CODEC.parse(com.mojang.serialization.JsonOps.INSTANCE,
+                    var shape = ZoneShape.CODEC.parse(com.mojang.serialization.JsonOps.INSTANCE,
                             new com.google.gson.JsonPrimitive(StringArgumentType.getString(context, "shape")))
                             .getOrThrow(false, message -> {});
                     paths.set(index, new PoisonPath(paths.get(index).circles(), shape));

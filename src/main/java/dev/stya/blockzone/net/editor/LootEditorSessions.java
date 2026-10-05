@@ -2,12 +2,13 @@ package dev.stya.blockzone.net.editor;
 
 import com.ptcrys.fpsmatch.core.FPSMCore;
 import dev.stya.blockzone.BlockZone;
-import dev.stya.blockzone.loot.LootContainerControl;
+import dev.stya.blockzone.editor.loot.LootCrateEdit;
 import dev.stya.blockzone.loot.LootContainerAdapters;
+import dev.stya.blockzone.loot.LootContainerControl;
 import dev.stya.blockzone.loot.LootCrateAccess;
 import dev.stya.blockzone.map.battlezone.BattlezoneMap;
 import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
-import dev.stya.blockzone.util.editor.LootCrateEdit;
+import java.util.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -17,7 +18,6 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import java.util.*;
 
 @Mod.EventBusSubscriber(modid = BlockZone.MOD_ID)
 public final class LootEditorSessions {

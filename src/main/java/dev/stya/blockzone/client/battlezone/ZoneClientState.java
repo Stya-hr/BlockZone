@@ -1,18 +1,20 @@
 package dev.stya.blockzone.client.battlezone;
 
 import dev.stya.blockzone.net.battlezone.BoundaryPreviewS2CPacket;
+import dev.stya.blockzone.net.battlezone.ZonePreviewS2CPacket;
 import dev.stya.blockzone.net.battlezone.ZoneStateS2CPacket;
-import dev.stya.blockzone.util.battlezone.ZoneGeometry;
+import dev.stya.blockzone.zone.ZoneGeometry;
+import dev.stya.blockzone.zone.ZoneShape;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 
 public final class ZoneClientState {
-    private static volatile dev.stya.blockzone.net.battlezone.ZonePreviewS2CPacket zonePreview;
-    public static void applyZonePreview(dev.stya.blockzone.net.battlezone.ZonePreviewS2CPacket packet) {
+    private static volatile ZonePreviewS2CPacket zonePreview;
+    public static void applyZonePreview(ZonePreviewS2CPacket packet) {
         zonePreview = packet.visible() ? packet : null;
     }
-    static dev.stya.blockzone.net.battlezone.ZonePreviewS2CPacket zonePreview() { return zonePreview; }
+    static ZonePreviewS2CPacket zonePreview() { return zonePreview; }
     private static volatile BoundaryPreviewS2CPacket preview;
     private static volatile Snapshot snapshot;
     private static volatile Snapshot previousSnapshot;
@@ -78,7 +80,7 @@ public final class ZoneClientState {
 
     record Snapshot(String mapName, ResourceLocation dimension, boolean whiteoutActive,
                     int x1, int y1, int z1, int x2, int y2, int z2,
-                    double centerX, double centerZ, float radius, String boundaryTexture, dev.stya.blockzone.util.battlezone.ZoneShape shape) {
+                    double centerX, double centerZ, float radius, String boundaryTexture, ZoneShape shape) {
         double centerY() {
             return ZoneGeometry.centerY(y1, y2);
         }

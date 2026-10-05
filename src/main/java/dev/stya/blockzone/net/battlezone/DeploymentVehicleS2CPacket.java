@@ -1,10 +1,10 @@
 package dev.stya.blockzone.net.battlezone;
 
-import dev.stya.blockzone.map.battlezone.FlightRoute;
+import dev.stya.blockzone.deployment.FlightRoute;
+import java.util.function.Supplier;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.network.NetworkEvent;
-import java.util.function.Supplier;
 
 /** A map-owned transport snapshot. A null route removes the vehicle. */
 public record DeploymentVehicleS2CPacket(ResourceLocation dimension, FlightRoute route, long elapsedTicks) {

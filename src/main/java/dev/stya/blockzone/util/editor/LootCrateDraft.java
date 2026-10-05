@@ -27,7 +27,7 @@ public final class LootCrateDraft {
         return entries.values().stream().filter(this::visible).toList();
     }
     private boolean visible(LootCrateEdit entry) {
-        return filter.isBlank() || (entry.x() + " " + entry.y() + " " + entry.z() + " " + entry.table())
+        return filter.isBlank() || (entry.x() + " " + entry.y() + " " + entry.z() + " " + entry.table() + " " + entry.block())
                 .toLowerCase(Locale.ROOT).contains(filter);
     }
     public void filter(String value) {
@@ -59,7 +59,8 @@ public final class LootCrateDraft {
         if (!add) selected.clear();
         for (var entry : visible()) if (positions.contains(entry.position())) selected.add(entry.position());
     }
-    public void apply(String table, long seed, boolean close) {
+    public void apply(String table,long seed,boolean close) { apply(table,seed,close,true); }
+    public void apply(String table, long seed, boolean close, boolean enabled) {
         String normalized = table.strip();
         if (!normalized.contains(":")) normalized = "minecraft:" + normalized;
         if (normalized.length() > 256 || !normalized.matches("[a-z0-9_.-]+:[a-z0-9/._-]+"))
@@ -67,7 +68,7 @@ public final class LootCrateDraft {
         if (selected.isEmpty()) throw new IllegalArgumentException("Select crates first");
         for (var pos : selected) {
             var entry = entries.get(pos);
-            entries.put(pos, new LootCrateEdit(entry.x(), entry.y(), entry.z(), normalized, seed, close ? false : entry.opened()));
+            entries.put(pos, new LootCrateEdit(entry.x(), entry.y(), entry.z(), normalized, seed, enabled && !close && entry.opened(), enabled, entry.block()));
         }
     }
     public List<LootCrateEdit> changes() {

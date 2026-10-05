@@ -6,7 +6,7 @@
       "entries": [
         {
           "type": "minecraft:item",
-          "name": "blockzone:loot_crate"
+          "name": "blockzone:weathered_loot_crate"
         }
       ],
       "conditions": [

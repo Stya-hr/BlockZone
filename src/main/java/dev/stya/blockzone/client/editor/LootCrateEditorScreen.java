@@ -14,12 +14,12 @@ public final class LootCrateEditorScreen extends Screen {
     private final LootEditorS2CPacket packet;
     private final LootCrateDraft draft;
     private EditBox table, seed;
-    private Checkbox close;
+    private Checkbox close, enabled;
     private Button save;
     private String filterValue = "";
     private String tableValue = "blockzone:chests/common", seedValue = "0";
     String message = "";
-    private boolean closeValue = true, list, saving, dragging;
+    private boolean closeValue = true, enabledValue, list, saving, dragging;
     private int right, paneWidth, paneHeight, scroll;
     private double startX, startY, endX, endY;
     private boolean add;
@@ -53,20 +53,21 @@ public final class LootCrateEditorScreen extends Screen {
         button(96, 52, 80, "list", () -> list = true);
         table = addRenderableWidget(new EditBox(font, right, 42, 156, 18, text("table")));
         table.setMaxLength(256); table.setValue(tableValue); table.setResponder(value -> tableValue = value);
-        button(right + 160, 41, 30, "choose", () -> { closeValue = close.selected(); minecraft.setScreen(new LootTablePickerScreen(this, packet.tables())); });
+        button(right + 160, 41, 30, "choose", () -> { closeValue = close.selected(); enabledValue=enabled.selected(); minecraft.setScreen(new LootTablePickerScreen(this, packet.tables())); });
         seed = addRenderableWidget(new EditBox(font, right, 78, 190, 18, text("seed")));
         seed.setMaxLength(20); seed.setValue(seedValue); seed.setResponder(value -> seedValue = value);
-        close = addRenderableWidget(new Checkbox(right, 102, 190, 20, text("close"), closeValue));
-        button(right, 127, 190, "apply", () -> {
+        enabled=addRenderableWidget(new Checkbox(right,102,190,20,text("enabled"),enabledValue));
+        close = addRenderableWidget(new Checkbox(right, 124, 190, 20, text("close"), closeValue));
+        button(right, 146, 190, "apply", () -> {
             try {
                 if (!packet.tables().contains(tableValue.strip())) throw new IllegalArgumentException(text("invalid_table").getString());
-                draft.apply(tableValue, Long.parseLong(seedValue.strip()), close.selected());
-                closeValue = close.selected(); message = text("draft_applied").getString();
+                draft.apply(tableValue, Long.parseLong(seedValue.strip()), close.selected(), enabled.selected());
+                closeValue = close.selected(); enabledValue=enabled.selected(); message = text("draft_applied").getString();
             } catch (NumberFormatException failure) { message = text("invalid_seed").getString(); }
             catch (IllegalArgumentException failure) { message = failure.getMessage(); }
         });
-        button(right, 153, 92, "all", draft::selectAll);
-        button(right + 98, 153, 92, "clear", draft::clearSelection);
+        button(right, 172, 92, "all", draft::selectAll);
+        button(right + 98, 172, 92, "clear", draft::clearSelection);
         save = button(right, height - 29, 92, "save", () -> {
             if (!draft.dirty()) return;
             saving = true; message = text("saving").getString();
@@ -117,7 +118,7 @@ public final class LootCrateEditorScreen extends Screen {
             for (int i = scroll; i < Math.min(visible.size(), scroll + rows); i++) {
                 var entry = visible.get(i); int y = 80 + (i - scroll) * 25;
                 if (draft.selected(entry)) graphics.fill(12, y, 12 + paneWidth, y + 24, 0xff355d46);
-                graphics.drawString(font, entry.x() + ", " + entry.y() + ", " + entry.z() + (entry.opened() ? " [open]" : ""), 16, y + 2, 0xffffff);
+                graphics.drawString(font, entry.x() + ", " + entry.y() + ", " + entry.z() + (entry.enabled() ? (entry.opened()?" [open]":" [loot]"):" [normal]"), 16, y + 2, 0xffffff);
                 graphics.drawString(font, font.plainSubstrByWidth(entry.table(), paneWidth - 8), 16, y + 13, 0xb0b8c0);
             }
         } else {
@@ -127,16 +128,16 @@ public final class LootCrateEditorScreen extends Screen {
                 int x = (int)point.x(), y = (int)point.y();
                 graphics.renderOutline(x - 4, y - 4, 9, 9, draft.selected(entry) ? 0xff65e096 : 0xffd2ac61);
                 if (Math.abs(mouseX - x) <= 5 && Math.abs(mouseY - y) <= 5)
-                    graphics.renderTooltip(font, Component.literal(entry.x() + ", " + entry.y() + ", " + entry.z() + " | " + entry.table()), mouseX, mouseY);
+                    graphics.renderTooltip(font, Component.literal(entry.x() + ", " + entry.y() + ", " + entry.z() + " | " + entry.block() + " | " + entry.table()), mouseX, mouseY);
             }
             if (dragging) graphics.renderOutline((int)Math.min(startX, endX), (int)Math.min(startY, endY),
                     (int)Math.abs(endX - startX) + 1, (int)Math.abs(endY - startY) + 1, 0xff65e096);
         }
         graphics.drawString(font, text("table"), right, 30, 0xffffff);
         graphics.drawString(font, text("seed"), right, 66, 0xffffff);
-        graphics.drawString(font, Component.translatable("editor.blockzone.loot.selected", draft.selectedCount(), draft.entries().size()), right, 180, 0xffffff);
-        graphics.drawString(font, Component.translatable("editor.blockzone.loot.changed", draft.changes().size()), right, 196, 0xffffff);
-        graphics.drawWordWrap(font, Component.literal(message), right, 210, 190, 0xffd2ac61);
+        graphics.drawString(font, Component.translatable("editor.blockzone.loot.selected", draft.selectedCount(), draft.entries().size()), right, 202, 0xffffff);
+        graphics.drawString(font, Component.translatable("editor.blockzone.loot.changed", draft.changes().size()), right, 214, 0xffffff);
+        graphics.drawString(font,font.plainSubstrByWidth(message,190),right,226,0xffd2ac61);
         graphics.fill(4, height - 46, right - 12, height, 0xa0182028);
         graphics.drawString(font, text("camera_hint"), 12, height - 45, 0xb0b8c0);
         graphics.drawString(font, text("hint"), 12, height - 32, 0xb0b8c0);
@@ -170,12 +171,9 @@ public final class LootCrateEditorScreen extends Screen {
                 var origin = camera.getPosition();
                 var end = origin.add(LootEditorProjection.ray(camera.rotation(), minecraft.options.fov().get(),
                         width, height, startX, startY).scale(4096));
-                var hit = draft.visible().stream().filter(entry -> new net.minecraft.world.phys.AABB(
-                        entry.x(), entry.y(), entry.z(), entry.x() + 1, entry.y() + (entry.opened() ? 1.45 : 1), entry.z() + 1)
+                var hit = draft.visible().stream().filter(entry -> LootWorldEditor.bounds(entry)
                         .clip(origin, end).isPresent()).min(java.util.Comparator.comparingDouble(entry ->
-                                new net.minecraft.world.phys.AABB(entry.x(), entry.y(), entry.z(), entry.x() + 1,
-                                        entry.y() + (entry.opened() ? 1.45 : 1), entry.z() + 1)
-                                        .clip(origin, end).orElseThrow().distanceToSqr(origin)));
+                                LootWorldEditor.bounds(entry).clip(origin, end).orElseThrow().distanceToSqr(origin)));
                 if (hit.isPresent()) draft.toggle(hit.get());
                 else draft.visible().stream().filter(entry -> {
                     var point = project(entry);

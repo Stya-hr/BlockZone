@@ -23,11 +23,24 @@ public final class LootCrateRegistry {
             DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, BlockZone.MOD_ID);
 
     public static final RegistryObject<LootCrateBlock> LOOT_CRATE = BLOCKS.register("loot_crate", LootCrateBlock::new);
+    public static final RegistryObject<LootCrateBlock> TACTICAL_LOOT_CRATE = BLOCKS.register("tactical_loot_crate",
+            () -> new LootCrateBlock(-8, 24, 1, 15, 6, 2, .54));
+    public static final RegistryObject<LootCrateBlock> MEDICAL_LOOT_CRATE = BLOCKS.register("medical_loot_crate",
+            () -> new LootCrateBlock(-1, 17, 1, 15, 9, 3, .3));
+    public static final RegistryObject<LootCrateBlock> WEATHERED_LOOT_CRATE = BLOCKS.register("weathered_loot_crate",
+            () -> new LootCrateBlock(-3, 19, 0, 16, 7, 2.5, .3));
+    public static final RegistryObject<Item> TACTICAL_LOOT_CRATE_ITEM = ITEMS.register("tactical_loot_crate",
+            () -> new BlockItem(TACTICAL_LOOT_CRATE.get(), new Item.Properties()));
+    public static final RegistryObject<Item> MEDICAL_LOOT_CRATE_ITEM = ITEMS.register("medical_loot_crate",
+            () -> new BlockItem(MEDICAL_LOOT_CRATE.get(), new Item.Properties()));
+    public static final RegistryObject<Item> WEATHERED_LOOT_CRATE_ITEM = ITEMS.register("weathered_loot_crate",
+            () -> new BlockItem(WEATHERED_LOOT_CRATE.get(), new Item.Properties()));
     public static final RegistryObject<Item> LOOT_CRATE_ITEM = ITEMS.register("loot_crate",
             () -> new BlockItem(LOOT_CRATE.get(), new Item.Properties()));
     public static final RegistryObject<BlockEntityType<LootCrateBlockEntity>> LOOT_CRATE_ENTITY =
             BLOCK_ENTITIES.register("loot_crate", () -> BlockEntityType.Builder
-                    .of(LootCrateBlockEntity::new, LOOT_CRATE.get()).build(null));
+                    .of(LootCrateBlockEntity::new, LOOT_CRATE.get(), TACTICAL_LOOT_CRATE.get(),
+                            MEDICAL_LOOT_CRATE.get(), WEATHERED_LOOT_CRATE.get()).build(null));
     public static final RegistryObject<EntityType<LootDropEntity>> LOOT_DROP = ENTITIES.register("loot_drop",
             () -> EntityType.Builder.<LootDropEntity>of(LootDropEntity::new, MobCategory.MISC)
                     .sized(0.25F, 0.25F).clientTrackingRange(8).updateInterval(2)
@@ -44,6 +57,11 @@ public final class LootCrateRegistry {
     }
 
     private static void creativeTab(BuildCreativeModeTabContentsEvent event) {
-        if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) event.accept(LOOT_CRATE_ITEM);
+        if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
+            event.accept(LOOT_CRATE_ITEM);
+            event.accept(TACTICAL_LOOT_CRATE_ITEM);
+            event.accept(MEDICAL_LOOT_CRATE_ITEM);
+            event.accept(WEATHERED_LOOT_CRATE_ITEM);
+        }
     }
 }

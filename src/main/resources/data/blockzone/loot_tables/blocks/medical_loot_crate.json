@@ -6,7 +6,7 @@
       "entries": [
         {
           "type": "minecraft:item",
-          "name": "blockzone:loot_crate"
+          "name": "blockzone:medical_loot_crate"
         }
       ],
       "conditions": [

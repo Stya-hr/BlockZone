@@ -5,10 +5,8 @@ import dev.stya.blockzone.map.battlezone.BattlezoneMap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.network.NetworkHooks;
 
@@ -48,18 +46,6 @@ public final class LootDropEntity extends ItemEntity {
             }
         }
         super.tick();
-    }
-
-    @Override
-    public void playerTouch(Player player) {
-        if (player.isSpectator()) return;
-        if (!level().isClientSide && !mapName.isEmpty()) {
-            var map = owningMap();
-            if (!(player instanceof ServerPlayer serverPlayer) || map == null
-                    || roundId == null || !roundId.equals(map.getLootRoundId())
-                    || !LootCrateAccess.mayLoot(map, serverPlayer)) return;
-        }
-        super.playerTouch(player);
     }
 
     @Override

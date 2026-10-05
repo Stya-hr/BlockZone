@@ -31,17 +31,35 @@ import net.minecraft.world.phys.shapes.Shapes;
 public final class LootCrateBlock extends BaseEntityBlock {
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
     public static final BooleanProperty OPEN = BlockStateProperties.OPEN;
-    private static final VoxelShape SHAPE = Block.box(1, 0, 1, 15, 12, 15);
-    private static final VoxelShape BASE = Block.box(1, 0, 1, 15, 9, 15);
-    private static final VoxelShape OPEN_NORTH = Shapes.or(BASE, Block.box(1, 9, 12, 15, 23, 15));
-    private static final VoxelShape OPEN_EAST = Shapes.or(BASE, Block.box(1, 9, 1, 4, 23, 15));
-    private static final VoxelShape OPEN_SOUTH = Shapes.or(BASE, Block.box(1, 9, 1, 15, 23, 4));
-    private static final VoxelShape OPEN_WEST = Shapes.or(BASE, Block.box(12, 9, 1, 15, 23, 15));
+    private final VoxelShape[] closed = new VoxelShape[4];
+    private final VoxelShape[] opened = new VoxelShape[4];
 
-    public LootCrateBlock() {
+    public LootCrateBlock() { this(-4, 20, 0, 16, 8, 2.5, .5); }
+
+    public LootCrateBlock(double minX, double maxX, double minZ, double maxZ,
+                          double bodyHeight, double lidThickness, double relief) {
         super(BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_GRAY).strength(3.0F, 3_600_000.0F)
                 .sound(SoundType.METAL).noOcclusion().pushReaction(PushReaction.BLOCK));
+        double handle=(maxX-minX)/28+.05;
+        closed[0] = Block.box(minX-handle, 0, minZ-.2, maxX+handle, bodyHeight+lidThickness+relief, maxZ+.2);
+        var base = Block.box(minX-handle, 0, minZ-.2, maxX+handle, bodyHeight+lidThickness/3, maxZ+.2);
+        var lid = Block.box(minX-.08, bodyHeight-.08, maxZ-lidThickness,
+                maxX+.08, bodyHeight+maxZ-minZ+.08, maxZ+relief+.08);
+        opened[0] = Shapes.or(base, lid);
+        for (int i = 1; i < 4; i++) {
+            closed[i] = rotateShape(closed[i-1]);
+            opened[i] = rotateShape(opened[i-1]);
+        }
         registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(OPEN, false));
+    }
+
+    public static VoxelShape rotateShape(VoxelShape shape) {
+        VoxelShape rotated = Shapes.empty();
+        for (var box : shape.toAabbs()) {
+            rotated = Shapes.or(rotated, Shapes.box(1-box.maxZ, box.minY, box.minX,
+                    1-box.minZ, box.maxY, box.maxX));
+        }
+        return rotated;
     }
 
     @Override
@@ -59,15 +77,15 @@ public final class LootCrateBlock extends BaseEntityBlock {
 
     @Override
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        if (!state.getValue(OPEN)) return SHAPE;
-        return switch (state.getValue(FACING)) {
-            case EAST -> OPEN_EAST;
-            case SOUTH -> OPEN_SOUTH;
-            case WEST -> OPEN_WEST;
-            default -> OPEN_NORTH;
-        };
+        int rotation = rotation(state.getValue(FACING));
+        return defaultShape(state.getValue(OPEN),rotation);
     }
 
+    public VoxelShape defaultShape(boolean open,int rotation) { return (open?opened:closed)[rotation]; }
+
+    public static int rotation(Direction direction) {
+        return switch(direction) { case EAST -> 1; case SOUTH -> 2; case WEST -> 3; default -> 0; };
+    }
     @Override
     public BlockState rotate(BlockState state, Rotation rotation) {
         return state.setValue(FACING, rotation.rotate(state.getValue(FACING)));
@@ -86,9 +104,27 @@ public final class LootCrateBlock extends BaseEntityBlock {
     @Override
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player,
                                  InteractionHand hand, BlockHitResult hit) {
-        if (!level.isClientSide && level.getBlockEntity(pos) instanceof LootCrateBlockEntity crate) {
-            crate.open(player);
+        if (!level.isClientSide) {
+            var container=level.getBlockEntity(pos);
+            if(player instanceof net.minecraft.server.level.ServerPlayer serverPlayer && LootContainerControl.interact(container,serverPlayer))
+                return InteractionResult.CONSUME;
+            if(container instanceof LootCrateBlockEntity crate) player.openMenu(crate);
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
+    }
+
+    @Override
+    public void tick(BlockState state,net.minecraft.server.level.ServerLevel level,BlockPos pos,net.minecraft.util.RandomSource random) {
+        if(level.getBlockEntity(pos) instanceof LootCrateBlockEntity crate) crate.recheckOpen();
+    }
+
+    @Override
+    public void onRemove(BlockState state,Level level,BlockPos pos,BlockState next,boolean moving) {
+        if(!state.is(next.getBlock())) {
+            if(level.getBlockEntity(pos) instanceof LootCrateBlockEntity crate) {
+                net.minecraft.world.Containers.dropContents(level,pos,crate); level.updateNeighbourForOutputSignal(pos,this);
+            }
+            super.onRemove(state,level,pos,next,moving);
+        }
     }
 }

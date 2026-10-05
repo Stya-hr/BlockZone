@@ -72,7 +72,7 @@
   "editor.blockzone.camera_ended": "自由镜头已结束，草稿保留；按 F6 重新启用。",
   "setting.battlezone.poisonShape.cylinder": "形状：圆柱（高度不限）",
   "setting.battlezone.poisonShape.square_prism": "形状：方柱（高度不限）",
-  "block.blockzone.loot_crate": "战利品补给箱",
+  "block.blockzone.loot_crate": "军用补给箱",
   "entity.blockzone.loot_drop": "地面战利品",
   "blockzone.loot_crate.unavailable": "只有对局中的存活玩家可以打开补给箱。",
   "blockzone.loot_crate.missing_table": "找不到战利品表：%s",
@@ -88,7 +88,7 @@
   "editor.blockzone.loot.saved": "箱子与地图场景快照已保存。",
   "editor.blockzone.loot.failed": "快照保存失败，箱子配置已回滚。",
   "editor.blockzone.loot.conflict": "保存被拒绝：箱子被修改、地图忙碌或编辑会话已过期，请重新打开编辑器。",
-  "editor.blockzone.loot.filter": "搜索坐标或 Loot Table",
+  "editor.blockzone.loot.filter": "搜索坐标、方块 ID 或 Loot Table",
   "editor.blockzone.loot.overview": "地图场景",
   "editor.blockzone.loot.list": "箱子列表",
   "editor.blockzone.loot.table": "Loot Table",
@@ -111,5 +111,9 @@
   "editor.blockzone.loot.discard": "放弃未保存的修改？",
   "editor.blockzone.loot.discard_hint": "世界中的箱子尚未应用这些草稿修改。",
   "editor.blockzone.loot.choose_title": "选择已加载的 Loot Table",
-  "editor.blockzone.loot.camera_hint": "WASD 移动 / 空格升 / Shift 降 / 右拖转向"
+  "editor.blockzone.loot.camera_hint": "WASD 移动 / 空格升 / Shift 降 / 右拖转向",
+  "block.blockzone.tactical_loot_crate": "战术装备箱",
+  "block.blockzone.weathered_loot_crate": "战地旧物资箱",
+  "block.blockzone.medical_loot_crate": "医疗补给箱",
+  "editor.blockzone.loot.enabled": "启用战利品箱特性"
 }

@@ -33,6 +33,7 @@ public record LootEditorS2CPacket(UUID token, String mapName, ResourceLocation d
         for (var crate : crates) {
             buffer.writeBlockPos(new BlockPos(crate.x(), crate.y(), crate.z()));
             buffer.writeUtf(crate.table(), 256); buffer.writeLong(crate.seed()); buffer.writeBoolean(crate.opened());
+            buffer.writeBoolean(crate.enabled()); buffer.writeUtf(crate.block(),256);
         }
     }
     static List<LootCrateEdit> readCrates(FriendlyByteBuf buffer) {
@@ -40,7 +41,7 @@ public record LootEditorS2CPacket(UUID token, String mapName, ResourceLocation d
         var crates = new ArrayList<LootCrateEdit>();
         for (int i = 0; i < count; i++) {
             var pos = buffer.readBlockPos();
-            crates.add(new LootCrateEdit(pos.getX(), pos.getY(), pos.getZ(), buffer.readUtf(256), buffer.readLong(), buffer.readBoolean()));
+            crates.add(new LootCrateEdit(pos.getX(), pos.getY(), pos.getZ(), buffer.readUtf(256), buffer.readLong(), buffer.readBoolean(), buffer.readBoolean(), buffer.readUtf(256)));
         }
         return List.copyOf(crates);
     }

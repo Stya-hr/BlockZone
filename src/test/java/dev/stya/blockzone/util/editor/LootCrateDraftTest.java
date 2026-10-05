@@ -31,4 +31,27 @@ class LootCrateDraftTest {
         assertThrows(IllegalArgumentException.class, () -> new LootCrateDraft(List.of(a, a)));
         var draft = new LootCrateDraft(List.of(a)); assertThrows(UnsupportedOperationException.class, () -> draft.entries().clear());
     }
+    @Test void ordinaryContainersRequireExplicitEnableAndDisablingClearsConsumption() {
+        var normal=new LootCrateEdit(10,2,20,"demo:a",4,false,false,"demo:storage_box");
+        var draft=new LootCrateDraft(List.of(normal)); draft.selectAll();
+        draft.apply("demo:a",4,true,false); assertFalse(draft.dirty());
+        draft.apply("demo:weapons",42,true,true);
+        var enabled=draft.changes().get(0);
+        assertTrue(enabled.enabled()); assertFalse(enabled.opened());
+        assertEquals("demo:storage_box",enabled.block()); assertEquals(42,enabled.seed());
+        draft.markSaved(); draft.apply("demo:weapons",42,false,false);
+        assertFalse(draft.changes().get(0).enabled()); assertFalse(draft.changes().get(0).opened());
+    }
+    @Test void blockIdsCanBeFilteredAndBulkConversionLeavesOtherContainersUntouched() {
+        var normal=new LootCrateEdit(10,2,20,"demo:a",4,false,false,"demo:storage_box");
+        var draft=new LootCrateDraft(List.of(a,normal)); draft.filter("demo:storage_box"); draft.selectAll();
+        draft.apply("demo:weapons",42,true,true);
+        assertEquals(a,draft.entries().get(0)); assertEquals(1,draft.changes().size());
+        assertEquals(normal.position(),draft.changes().get(0).position());
+    }
+    @Test void consumedContainersCanReturnToNormalWithoutKeepingOpenedState() {
+        var consumed=new LootCrateEdit(10,2,20,"demo:a",4,true,true,"demo:storage_box");
+        var draft=new LootCrateDraft(List.of(consumed)); draft.selectAll(); draft.apply("demo:a",4,false,false);
+        assertFalse(draft.changes().get(0).enabled()); assertFalse(draft.changes().get(0).opened());
+    }
 }

@@ -2,7 +2,8 @@ package dev.stya.blockzone.net.editor;
 
 import com.ptcrys.fpsmatch.core.FPSMCore;
 import dev.stya.blockzone.BlockZone;
-import dev.stya.blockzone.loot.LootCrateBlockEntity;
+import dev.stya.blockzone.loot.LootContainerControl;
+import dev.stya.blockzone.loot.LootContainerAdapters;
 import dev.stya.blockzone.loot.LootCrateAccess;
 import dev.stya.blockzone.map.battlezone.BattlezoneMap;
 import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
@@ -57,6 +58,7 @@ public final class LootEditorSessions {
         long chunks = (long)((Math.max(session.first.getX(), session.second.getX()) >> 4) - session.x + 1)
                 * ((Math.max(session.first.getZ(), session.second.getZ()) >> 4) - session.z + 1);
         if (chunks > 4096) { player.sendSystemMessage(Component.translatable("editor.blockzone.loot.too_large")); return false; }
+        player.closeContainer();
         SESSIONS.put(player, session);
         player.sendSystemMessage(Component.translatable("editor.blockzone.loot.scanning"));
         return true;
@@ -75,8 +77,8 @@ public final class LootEditorSessions {
                 var level = session.map.getServerLevel();
                 var chunk = level.getChunk(session.x, session.z);
                 for (var pos : new ArrayList<>(chunk.getBlockEntitiesPos())) {
-                    if (session.contains(pos) && level.getBlockEntity(pos) instanceof LootCrateBlockEntity crate) {
-                        var data = crate.editorData(); session.original.put(data.position(), data);
+                    if (session.contains(pos) && LootContainerAdapters.find(level.getBlockEntity(pos)) != null) {
+                        var data = LootContainerControl.data(level.getBlockEntity(pos)); session.original.put(data.position(), data);
                     }
                 }
                 if (session.original.size() > LootCrateEdit.MAX_CRATES) {
@@ -114,8 +116,9 @@ public final class LootEditorSessions {
                 if (!seen.add(entry.position()) || original == null || !session.contains(pos)
                         || table == null || !tables.contains(table) || !LootCrateAccess.mayEdit(player.serverLevel(), pos)
                         || entry.opened() && !original.opened()
-                        || !(player.serverLevel().getBlockEntity(pos) instanceof LootCrateBlockEntity crate)
-                        || !crate.editorData().equals(original)) throw new IllegalArgumentException();
+                        || LootContainerAdapters.find(player.serverLevel().getBlockEntity(pos)) == null
+                        || !LootContainerControl.data(player.serverLevel().getBlockEntity(pos)).equals(original)
+                        || entry.enabled() && LootCrateAccess.mapsAt(player.serverLevel(),pos).size()!=1) throw new IllegalArgumentException();
             }
             session.saving = true;
             boolean started = session.map.saveLootCrateEdits(packet.changes(), success -> {

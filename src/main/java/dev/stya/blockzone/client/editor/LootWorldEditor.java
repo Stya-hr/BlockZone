@@ -34,6 +34,20 @@ public final class LootWorldEditor {
         if (!hasFreeCamera() || event.getType() != net.minecraft.world.level.material.FogType.NONE) return;
         event.setNearPlaneDistance(4096); event.setFarPlaneDistance(8192); event.setCanceled(true);
     }
+    static AABB bounds(dev.stya.blockzone.util.editor.LootCrateEdit crate) {
+        var level = Minecraft.getInstance().level;
+        var pos = new net.minecraft.core.BlockPos(crate.x(), crate.y(), crate.z());
+        if (level != null) {
+            var state = level.getBlockState(pos);
+            if (state.getBlock() instanceof dev.stya.blockzone.loot.LootCrateBlock) {
+                return ((dev.stya.blockzone.loot.LootCrateBlock)state.getBlock()).defaultShape(crate.enabled() ? crate.opened() : state.getValue(dev.stya.blockzone.loot.LootCrateBlock.OPEN),
+                        dev.stya.blockzone.loot.LootCrateBlock.rotation(state.getValue(dev.stya.blockzone.loot.LootCrateBlock.FACING))).bounds().move(pos);
+            }
+            var shape=state.getShape(level,pos);
+            if(!shape.isEmpty()) return shape.bounds().move(pos);
+        }
+        return new AABB(crate.x(), crate.y(), crate.z(), crate.x()+1, crate.y()+(crate.opened()?1.6:1), crate.z()+1);
+    }
     @SubscribeEvent public static void render(RenderLevelStageEvent event) {
         if (screen == null || event.getStage() != RenderLevelStageEvent.Stage.AFTER_SOLID_BLOCKS) return;
         var mc = Minecraft.getInstance();
@@ -44,8 +58,7 @@ public final class LootWorldEditor {
         var stack = event.getPoseStack();
         for (var crate : screen.draft().visible()) {
             boolean selected = screen.draft().selected(crate);
-            LevelRenderer.renderLineBox(stack, lines, new AABB(crate.x() - .02, crate.y() - .02, crate.z() - .02,
-                    crate.x() + 1.02, crate.y() + 1.45, crate.z() + 1.02).move(-camera.x, -camera.y, -camera.z),
+            LevelRenderer.renderLineBox(stack, lines, bounds(crate).inflate(.02).move(-camera.x, -camera.y, -camera.z),
                     selected ? .3f : 1f, selected ? 1f : .7f, selected ? .55f : .25f, 1f);
         }
         buffers.endBatch(RenderType.lines());

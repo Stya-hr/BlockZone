@@ -89,19 +89,19 @@ final class SceneSnapshot {
         var originals = new java.util.ArrayList<dev.stya.blockzone.util.editor.LootCrateEdit>();
         for (var entry : changes) {
             var be = map.getServerLevel().getBlockEntity(new BlockPos(entry.x(), entry.y(), entry.z()));
-            if (!(be instanceof dev.stya.blockzone.loot.LootCrateBlockEntity crate)) return false;
-            originals.add(crate.editorData());
+            if (dev.stya.blockzone.loot.LootContainerAdapters.find(be)==null) return false;
+            originals.add(dev.stya.blockzone.loot.LootContainerControl.data(be));
         }
         if (!beginSave()) { data = previous; valid = previousValid; return false; }
         for (var entry : changes) {
-            ((dev.stya.blockzone.loot.LootCrateBlockEntity) map.getServerLevel().getBlockEntity(
-                    new BlockPos(entry.x(), entry.y(), entry.z()))).applyEditorData(entry);
+            dev.stya.blockzone.loot.LootContainerControl.apply(map.getServerLevel().getBlockEntity(
+                    new BlockPos(entry.x(), entry.y(), entry.z())),entry,map.getMapName());
         }
         captureValid = () -> {
             if (!operation.bounds.equals(currentBounds())) return false;
             for (var entry : changes) {
                 var be = map.getServerLevel().getBlockEntity(new BlockPos(entry.x(), entry.y(), entry.z()));
-                if (!(be instanceof dev.stya.blockzone.loot.LootCrateBlockEntity crate) || !crate.editorData().equals(entry)) return false;
+                if (dev.stya.blockzone.loot.LootContainerAdapters.find(be)==null || !dev.stya.blockzone.loot.LootContainerControl.data(be).equals(entry)) return false;
             }
             return true;
         };
@@ -110,8 +110,9 @@ final class SceneSnapshot {
                 for (int i = 0; i < changes.size(); i++) {
                     var entry = changes.get(i);
                     var be = map.getServerLevel().getBlockEntity(new BlockPos(entry.x(), entry.y(), entry.z()));
-                    if (be instanceof dev.stya.blockzone.loot.LootCrateBlockEntity crate
-                            && crate.editorData().equals(entry)) crate.applyEditorData(originals.get(i));
+                    if (dev.stya.blockzone.loot.LootContainerAdapters.find(be)!=null
+                            && dev.stya.blockzone.loot.LootContainerControl.data(be).equals(entry))
+                        dev.stya.blockzone.loot.LootContainerControl.apply(be,originals.get(i),map.getMapName());
                 }
                 data = previous; valid = previousValid;
             }

@@ -72,7 +72,7 @@
   "editor.blockzone.camera_ended": "Free camera ended; your draft is retained. Press F6 to resume.",
   "setting.battlezone.poisonShape.cylinder": "Shape: Cylinder (unbounded height)",
   "setting.battlezone.poisonShape.square_prism": "Shape: Square prism (unbounded height)",
-  "block.blockzone.loot_crate": "Loot Crate",
+  "block.blockzone.loot_crate": "Military Supply Crate",
   "entity.blockzone.loot_drop": "Ground Loot",
   "blockzone.loot_crate.unavailable": "Loot crates are only available to living players during a match.",
   "blockzone.loot_crate.missing_table": "Missing loot table: %s",
@@ -88,7 +88,7 @@
   "editor.blockzone.loot.saved": "Crates and map scene snapshot saved.",
   "editor.blockzone.loot.failed": "Snapshot save failed. Crate changes rolled back.",
   "editor.blockzone.loot.conflict": "Save rejected: crates changed, map busy, or session expired. Reopen the editor.",
-  "editor.blockzone.loot.filter": "Search coordinates or Loot Table",
+  "editor.blockzone.loot.filter": "Search position, block ID or loot table",
   "editor.blockzone.loot.overview": "World view",
   "editor.blockzone.loot.list": "Crate list",
   "editor.blockzone.loot.table": "Loot Table",
@@ -111,5 +111,9 @@
   "editor.blockzone.loot.discard": "Discard unsaved changes?",
   "editor.blockzone.loot.discard_hint": "Draft changes have not been applied to the world.",
   "editor.blockzone.loot.choose_title": "Choose a loaded Loot Table",
-  "editor.blockzone.loot.camera_hint": "WASD / Space up / Shift down / Right drag"
+  "editor.blockzone.loot.camera_hint": "WASD / Space up / Shift down / Right drag",
+  "block.blockzone.tactical_loot_crate": "Tactical Equipment Case",
+  "block.blockzone.weathered_loot_crate": "Weathered Field Crate",
+  "block.blockzone.medical_loot_crate": "Medical Supply Case",
+  "editor.blockzone.loot.enabled": "Enable loot behavior"
 }

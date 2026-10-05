@@ -2,7 +2,7 @@ package dev.stya.blockzone.client.battlezone;
 
 import dev.stya.blockzone.BlockZone;
 import dev.stya.blockzone.combat.CombatRecovery;
-import dev.stya.blockzone.equipment.EquipmentRegistry;
+import dev.stya.blockzone.registry.BlockzoneItems;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
@@ -67,7 +67,7 @@ public final class CombatHud {
                     / platePoints, 0, 1));
             gui.fill(left, y + 36, left + filled, y + 42, 0xFF55B9F3);
         }
-        if (mc.player.isUsingItem() && mc.player.getUseItem().is(EquipmentRegistry.ARMOR_PLATE.get())) {
+        if (mc.player.isUsingItem() && mc.player.getUseItem().is(BlockzoneItems.ARMOR_PLATE.get())) {
             gui.fill(x, y - 18, x + width, y - 8, 0xB018202A);
             int filled = Mth.clamp(mc.player.getTicksUsingItem() * width / 40, 0, width);
             gui.fill(x, y - 10, x + filled, y - 8, 0xFF55B9F3);

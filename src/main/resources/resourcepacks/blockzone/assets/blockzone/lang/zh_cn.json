@@ -119,5 +119,8 @@
   "item.blockzone.armor_expansion": "护甲扩容配件",
   "key.blockzone.detach_armor": "拆下护甲扩容配件",
   "message.blockzone.expansion_installed": "已安装扩容配件：3 个插板槽",
-  "message.blockzone.expansion_removed": "已拆下扩容配件：2 个插板槽"
+  "message.blockzone.expansion_removed": "已拆下扩容配件：2 个插板槽",
+  "itemGroup.blockzone": "BlockZone",
+  "pack.blockzone.description": "BlockZone 默认资源：装备、场景箱、运输机与伞具",
+  "pack.blockzone.title": "BlockZone 默认资源"
 }

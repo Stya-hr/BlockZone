@@ -1,5 +1,7 @@
 package dev.stya.blockzone.equipment;
 
+import dev.stya.blockzone.registry.BlockzoneItems;
+
 import dev.stya.blockzone.combat.MatchRegeneration;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
@@ -35,7 +37,7 @@ public final class ArmorExpansionItem extends Item {
         MatchRegeneration.map(player).filter(map -> map.isMatchActive())
                 .ifPresent(map -> player.setAbsorptionAmount(Math.min(player.getAbsorptionAmount(),
                         map.getArmorPlatePoints() * carrier.plateSlots())));
-        var attachment = new ItemStack(EquipmentRegistry.ARMOR_EXPANSION.get());
+        var attachment = new ItemStack(BlockzoneItems.ARMOR_EXPANSION.get());
         if (!player.getInventory().add(attachment)) player.drop(attachment, false);
         player.displayClientMessage(Component.translatable("message.blockzone.expansion_removed"), true);
         player.playSound(net.minecraft.sounds.SoundEvents.ARMOR_EQUIP_LEATHER, 1, .8F);

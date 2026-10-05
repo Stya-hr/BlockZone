@@ -123,5 +123,15 @@
   "setting.battlezone.matchHealth": "Match health",
   "setting.battlezone.matchHealth.desc": "Range 1–1024. Applies next match; recovery restores 5% of maximum health per interval.",
   "setting.battlezone.armorPlatePoints": "Armor per plate",
-  "setting.battlezone.armorPlatePoints.desc": "Range 1–1024. Applies next match; maximum armor is three plates."
+  "setting.battlezone.armorPlatePoints.desc": "Range 1–1024. Applies next match; maximum armor is three plates.",
+  "item.blockzone.tactical_helmet": "Tactical Helmet",
+  "item.blockzone.plate_carrier": "Plate Carrier",
+  "item.blockzone.tactical_leggings": "Tactical Leggings",
+  "item.blockzone.tactical_boots": "Tactical Boots",
+  "item.blockzone.armor_expansion": "Armor Expansion Module",
+  "key.blockzone.detach_armor": "Detach Armor Expansion",
+  "message.blockzone.expansion_installed": "Expansion installed: 3 plate slots",
+  "message.blockzone.expansion_removed": "Expansion removed: 2 plate slots",
+  "setting.battlezone.startingLoadout": "Starting Loadout",
+  "setting.battlezone.startingLoadout.desc": "Applies next match. JSON entries contain slot, item, count and nbt."
 }

@@ -11,7 +11,7 @@ final class ClientPacketHandler {
 
     static void handle(CombatStateS2CPacket packet) {
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () ->
-                dev.stya.blockzone.client.battlezone.CombatHud.setCombatState(packet.active(), packet.platePoints()));
+                dev.stya.blockzone.client.battlezone.CombatHud.setCombatState(packet.active(), packet.platePoints(), packet.plateSlots()));
     }
 
     static void handle(ZonePreviewS2CPacket packet) {

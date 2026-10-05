@@ -13,6 +13,7 @@ import dev.stya.blockzone.combat.CombatHealth;
 import dev.stya.blockzone.combat.MatchCombatController;
 import dev.stya.blockzone.combat.MatchRegeneration;
 import dev.stya.blockzone.data.snapshot.PlayerStateSnapshot;
+import dev.stya.blockzone.data.persistence.BattlezoneTeamConfiguration;
 import dev.stya.blockzone.data.snapshot.SceneSnapshot;
 import dev.stya.blockzone.deployment.DeploymentController;
 import dev.stya.blockzone.deployment.FlightRoute;
@@ -591,11 +592,18 @@ public final class BattlezoneMap extends BaseMap {
     public com.google.gson.JsonElement configToJson() {
         var json = super.configToJson().getAsJsonObject();
         json.add("capabilities", getCapabilityMap().getData().encode());
+        json.add("teams", BattlezoneTeamConfiguration.Entry.CODEC.listOf().encodeStart(JsonOps.INSTANCE,
+                BattlezoneTeamConfiguration.capture(this)).getOrThrow(false, message -> {}));
         return json;
     }
 
     @Override
     public void configFromJson(com.google.gson.JsonElement json) {
+        var teamJson = json.getAsJsonObject().get("teams");
+        var teams = teamJson == null ? List.<BattlezoneTeamConfiguration.Entry>of()
+                : BattlezoneTeamConfiguration.Entry.CODEC.listOf().parse(JsonOps.INSTANCE, teamJson)
+                        .getOrThrow(false, message -> {});
+        BattlezoneTeamConfiguration.validate(teams);
         super.configFromJson(json);
         var capabilities = json.getAsJsonObject().get("capabilities");
         if (capabilities != null) {
@@ -603,6 +611,7 @@ public final class BattlezoneMap extends BaseMap {
                     .parse(JsonOps.INSTANCE, capabilities).getOrThrow(false, message -> {}));
         }
         if (!isStart) {
+            BattlezoneTeamConfiguration.restore(this, teams);
             ensureConfiguredTeams();
         }
     }

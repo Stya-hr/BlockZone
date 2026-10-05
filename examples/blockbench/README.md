@@ -14,10 +14,12 @@
 
 手持 `blockzone:armor_expansion` 使用，安装到正在穿戴的插板背心上，扩容为三槽。按 N 拆卸（可在按键设置中修改），配件返回背包，背包满时掉落。安装不补充护甲；拆卸将护甲上限和当前超额护甲降至两槽。背心被脱下后，对局中的护甲归零。
 
-通过地图设置指定穿戴和初始物品，例如：
+通过地图的 `BattlezoneLoadoutCapability` 指定穿戴和初始物品，例如：
 
 ```mcfunction
-fpsm map modify battlezone flat160 settings set startingLoadout [{"slot":"head","item":"blockzone:tactical_helmet"},{"slot":"chest","item":"blockzone:plate_carrier"},{"slot":"legs","item":"blockzone:tactical_leggings"},{"slot":"feet","item":"blockzone:tactical_boots"},{"slot":"hotbar.0","item":"blockzone:armor_plate","count":2},{"slot":"hotbar.1","item":"blockzone:armor_expansion"}]
+fpsm map modify battlezone flat160 capability loadout set [{"slot":"head","item":"blockzone:tactical_helmet"},{"slot":"chest","item":"blockzone:plate_carrier"},{"slot":"legs","item":"blockzone:tactical_leggings"},{"slot":"feet","item":"blockzone:tactical_boots"},{"slot":"hotbar.0","item":"blockzone:armor_plate","count":2},{"slot":"hotbar.1","item":"blockzone:armor_expansion"}]
 ```
 
-槽位支持 `head/chest/legs/feet/offhand`、`hotbar.0` 至 `hotbar.8`、`inventory.0` 至 `inventory.26`。`count` 默认为 1，`nbt` 为可选 SNBT 字符串，可配置 TaCZ 枪械等模组物品。预装扩容的背心可使用 `"nbt":"{BlockzoneArmorExpansion:1b}"`。配置在下一局开始时生效，中途加入使用该局同一份配置；非法物品、重复槽位和错误 NBT 会阻止开局，不会发放部分装备。结算后仍恢复入场前的玩家状态和物品。
+槽位支持 `head/chest/legs/feet/offhand`、`hotbar.0` 至 `hotbar.8`、`inventory.0` 至 `inventory.26`。`count` 默认为 1，`nbt` 为可选 SNBT 字符串，可配置 TaCZ 枪械等模组物品。预装扩容的背心可使用 `"nbt":"{BlockzoneArmorExpansion:1b}"`。配置在下一局开始时生效，中途加入使用该局同一份配置；非法物品、重复槽位和错误 NBT 会拒绝保存，开局也会再次校验，不会发放部分装备。结算后仍恢复入场前的玩家状态和物品。
+
+使用 `capability loadout get` 查看配置，`clear` 清空初始装备，`reset` 恢复默认装备（前缀同上）。命令自动保存到该地图配置的 `capabilities` 字段。旧 `settings startingLoadout` 已移除，旧装备配置不会迁移，需要重新配置。

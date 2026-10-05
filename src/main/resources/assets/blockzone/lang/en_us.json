@@ -131,7 +131,5 @@
   "item.blockzone.armor_expansion": "Armor Expansion Module",
   "key.blockzone.detach_armor": "Detach Armor Expansion",
   "message.blockzone.expansion_installed": "Expansion installed: 3 plate slots",
-  "message.blockzone.expansion_removed": "Expansion removed: 2 plate slots",
-  "setting.battlezone.startingLoadout": "Starting Loadout",
-  "setting.battlezone.startingLoadout.desc": "Applies next match. JSON entries contain slot, item, count and nbt."
+  "message.blockzone.expansion_removed": "Expansion removed: 2 plate slots"
 }

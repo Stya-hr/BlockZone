@@ -1,6 +1,8 @@
 package dev.stya.blockzone.map.battlezone;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.JsonOps;
+import com.ptcrys.fpsmatch.core.capability.CapabilityMap;
 import com.ptcrys.fpsmatch.core.data.AreaData;
 import com.ptcrys.fpsmatch.core.data.Setting;
 import com.ptcrys.fpsmatch.core.map.BaseMap;
@@ -18,6 +20,7 @@ import dev.stya.blockzone.deployment.LandingController;
 import dev.stya.blockzone.editor.loot.LootCrateEdit;
 import dev.stya.blockzone.equipment.StartingLoadout;
 import dev.stya.blockzone.loot.LootDropEntity;
+import dev.stya.blockzone.map.battlezone.capability.BattlezoneLoadoutCapability;
 import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
 import dev.stya.blockzone.util.CodecSettings;
 import dev.stya.blockzone.zone.PoisonPath;
@@ -46,7 +49,6 @@ public final class BattlezoneMap extends BaseMap {
     private final Setting<Double> deploymentHeight;
     private final DeploymentController deployment = new DeploymentController(this);
     private final LandingController landing = new LandingController();
-    private final Setting<List<StartingLoadout.Entry>> startingLoadout;
     private final Setting<Double> matchHealth;
     private final Setting<Double> armorPlatePoints;
     private final MatchCombatController combat = new MatchCombatController();
@@ -78,7 +80,7 @@ public final class BattlezoneMap extends BaseMap {
     private final BattlezoneVisualSync visualSync;
 
     public BattlezoneMap(ServerLevel serverLevel, String mapName, AreaData areaData) {
-        super(serverLevel, mapName, areaData);
+        super(serverLevel, mapName, areaData, List.of(BattlezoneLoadoutCapability.class));
         this.teamPlayerLimit = addSetting("battlezone", "teamPlayerLimit", 3);
         this.totalPlayerLimit = addSetting("battlezone", "totalPlayerLimit", 24);
         this.minimumTeamsToStart = addSetting("battlezone", "minimumTeamsToStart", 2);
@@ -91,8 +93,6 @@ public final class BattlezoneMap extends BaseMap {
                 CodecSettings.FINITE_DOUBLE,
                 Math.max(areaData.pos1().getY(), areaData.pos2().getY()) + 64.0));
 
-        this.startingLoadout = addSetting(CodecSettings.create("battlezone", "startingLoadout",
-                StartingLoadout.Entry.CODEC.listOf(), StartingLoadout.defaults()));
         this.matchHealth = addSetting(CodecSettings.create("battlezone", "matchHealth",
                 Codec.doubleRange(1.0, 1024.0), 100.0));
         this.armorPlatePoints = addSetting(CodecSettings.create("battlezone", "armorPlatePoints",
@@ -302,9 +302,9 @@ public final class BattlezoneMap extends BaseMap {
             return false;
         }
         List<StartingLoadout.Prepared> loadout;
-        try { loadout = StartingLoadout.prepare(startingLoadout.get()); }
+        try { loadout = loadout().prepare(); }
         catch (IllegalArgumentException exception) {
-            broadcast(Component.literal("Battlezone cannot start: invalid startingLoadout: " + exception.getMessage()));
+            broadcast(Component.literal("Battlezone cannot start: invalid loadout capability: " + exception.getMessage()));
             return false;
         }
         if (!super.start()) {
@@ -313,8 +313,9 @@ public final class BattlezoneMap extends BaseMap {
         isStart = true;
         lootRoundId = java.util.UUID.randomUUID();
         phase = MatchPhase.DEPLOYMENT;
-        combat.start(matchHealth.get().floatValue(), armorPlatePoints.get().floatValue(), loadout);
-        getMapTeams().getNormalTeams().forEach(team -> team.getOnline().forEach(combat::initialize));
+        loadout().begin(loadout);
+        combat.start(matchHealth.get().floatValue(), armorPlatePoints.get().floatValue());
+        getMapTeams().getNormalTeams().forEach(team -> team.getOnline().forEach(this::initializeParticipant));
         phaseTicks = 0;
         victoryAnnounced = false;
         resetMatchClock();
@@ -410,7 +411,7 @@ public final class BattlezoneMap extends BaseMap {
         if (result.isSuccess() && isStart) {
             clearCombat(player);
             if (!MatchRegeneration.allowed(player)) {
-                combat.initialize(player);
+                initializeParticipant(player);
             }
             visualSync.send(player);
             BattlezoneNetwork.send(player, deployment.vehicleSnapshot(phase == MatchPhase.DEPLOYMENT));
@@ -523,6 +524,7 @@ public final class BattlezoneMap extends BaseMap {
 
     @Override
     public void reset() {
+        loadout().reset();
         combat.clearRecovery();
         getMapTeams().getOnlineWithSpec().forEach(this::clearCombat);
         lootRoundId = null;
@@ -616,9 +618,30 @@ public final class BattlezoneMap extends BaseMap {
         }
     }
 
+    private BattlezoneLoadoutCapability loadout() {
+        return CapabilityMap.getMapCapability(this, BattlezoneLoadoutCapability.class).orElseThrow();
+    }
+
+    private void initializeParticipant(ServerPlayer player) {
+        combat.initialize(player);
+        loadout().give(player);
+    }
+
+    @Override
+    public com.google.gson.JsonElement configToJson() {
+        var json = super.configToJson().getAsJsonObject();
+        json.add("capabilities", getCapabilityMap().getData().encode());
+        return json;
+    }
+
     @Override
     public void configFromJson(com.google.gson.JsonElement json) {
         super.configFromJson(PoisonSettingsMigration.migrate(json, getMapCenterX(), getMapCenterZ(), getInitialPoisonRadius()));
+        var capabilities = json.getAsJsonObject().get("capabilities");
+        if (capabilities != null) {
+            getCapabilityMap().write(CapabilityMap.Wrapper.CODEC
+                    .parse(JsonOps.INSTANCE, capabilities).getOrThrow(false, message -> {}));
+        }
         if (!isStart) {
             ensureConfiguredTeams();
         }

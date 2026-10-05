@@ -19,7 +19,6 @@ import dev.stya.blockzone.editor.loot.LootCrateEdit;
 import dev.stya.blockzone.equipment.StartingLoadout;
 import dev.stya.blockzone.loot.LootDropEntity;
 import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
-import dev.stya.blockzone.net.battlezone.ZoneStateS2CPacket;
 import dev.stya.blockzone.util.CodecSettings;
 import dev.stya.blockzone.zone.PoisonPath;
 import dev.stya.blockzone.zone.PoisonSettingsMigration;
@@ -75,7 +74,8 @@ public final class BattlezoneMap extends BaseMap {
     private boolean snapshotSavePending;
     private boolean victoryAnnounced;
     private java.util.UUID lootRoundId;
-    private long lastVisualStateSync = Long.MIN_VALUE;
+    private final BattlezoneEliminationRule eliminationRule = new BattlezoneEliminationRule();
+    private final BattlezoneVisualSync visualSync;
 
     public BattlezoneMap(ServerLevel serverLevel, String mapName, AreaData areaData) {
         super(serverLevel, mapName, areaData);
@@ -103,6 +103,7 @@ public final class BattlezoneMap extends BaseMap {
                 List.of(PoisonSettingsMigration.defaults(getMapCenterX(), getMapCenterZ(), getInitialPoisonRadius()))));
         this.boundaryTexture = addSetting("battlezone", "boundaryTexture",
                 "blockzone:textures/effect/battlezone_warning_fence.png");
+        this.visualSync = new BattlezoneVisualSync(this, deployment, poison, boundaryTexture::get);
         this.sceneSnapshot = new SceneSnapshot(this);
         this.snapshotValid = sceneSnapshot.load();
         if (!snapshotValid && !sceneSnapshot.exists()) {
@@ -142,7 +143,7 @@ public final class BattlezoneMap extends BaseMap {
             case SETTLEMENT -> tickSettlement();
             case RESETTING -> tickResetting();
         }
-        syncVisualState(false);
+        visualSync.sync(false);
     }
 
     private void tickWaiting() {
@@ -177,7 +178,7 @@ public final class BattlezoneMap extends BaseMap {
             phase = MatchPhase.MATCH;
             phaseTicks = 0;
             broadcast(Component.literal("Battlezone deployment completed."));
-            syncVisualState(true);
+            visualSync.sync(true);
         }
     }
 
@@ -199,7 +200,7 @@ public final class BattlezoneMap extends BaseMap {
             }
             phase = MatchPhase.WAITING;
             phaseTicks = 0;
-            syncVisualState(true);
+            visualSync.sync(true);
         }
     }
 
@@ -319,7 +320,7 @@ public final class BattlezoneMap extends BaseMap {
         resetMatchClock();
         deployment.start(route.get());
         broadcast(Component.literal("Battlezone match started; poison sequence " + poison.sequenceNumber() + "."));
-        syncVisualState(true);
+        visualSync.sync(true);
         return true;
     }
 
@@ -411,7 +412,7 @@ public final class BattlezoneMap extends BaseMap {
             if (!MatchRegeneration.allowed(player)) {
                 combat.initialize(player);
             }
-            BattlezoneNetwork.send(player, createVisualStatePacket(player));
+            visualSync.send(player);
             BattlezoneNetwork.send(player, deployment.vehicleSnapshot(phase == MatchPhase.DEPLOYMENT));
             if (phase == MatchPhase.DEPLOYMENT) {
                 deployment.board(player);
@@ -480,7 +481,7 @@ public final class BattlezoneMap extends BaseMap {
         // FPSMatch records elimination and restores entity health; the game type owns spectator mode.
         player.setGameMode(net.minecraft.world.level.GameType.SPECTATOR);
         player.displayClientMessage(Component.translatable("blockzone.match.eliminated"), false);
-        BattlezoneNetwork.send(player, createVisualStatePacket(player));
+        visualSync.send(player);
     }
 
     @Override
@@ -489,34 +490,27 @@ public final class BattlezoneMap extends BaseMap {
             return;
         }
         victoryAnnounced = true;
-        List<ServerTeam> livingTeams = getMapTeams().getNormalTeams().stream()
-                .filter(team -> !team.getLivingPlayers().isEmpty())
-                .toList();
-        if (livingTeams.isEmpty()) {
-            broadcast(Component.literal("Battlezone ended in a draw."));
-        } else if (livingTeams.size() == 1) {
-            livingTeams.get(0).sendMessage(Component.literal("Your team won the Battlezone."));
-            for (ServerTeam team : getMapTeams().getNormalTeams()) {
-                if (team != livingTeams.get(0)) {
-                    team.sendMessage(Component.literal("Your team was eliminated from the Battlezone."));
-                }
+        eliminationRule.resolve(BattlezoneMatchContext.capture(this).livingTeams()).ifPresent(result -> {
+            if (result.reason() == BattlezoneResultReason.DRAW) {
+                broadcast(Component.literal("Battlezone ended in a draw."));
+            } else {
+                getMapTeams().getTeamByName(result.winner()).ifPresent(winner -> {
+                    winner.sendMessage(Component.literal("Your team won the Battlezone."));
+                    for (ServerTeam team : getMapTeams().getNormalTeams()) {
+                        if (team != winner) team.sendMessage(Component.literal("Your team was eliminated from the Battlezone."));
+                    }
+                });
             }
-        }
+        });
         super.victory();
         phase = MatchPhase.SETTLEMENT;
         phaseTicks = 0;
-        syncVisualState(true);
+        visualSync.sync(true);
     }
 
     @Override
     public boolean victoryGoal() {
-        if (isDebug() || phase != MatchPhase.MATCH) {
-            return false;
-        }
-        long teamsAlive = getMapTeams().getNormalTeams().stream()
-                .filter(team -> !team.getLivingPlayers().isEmpty())
-                .count();
-        return teamsAlive <= 1;
+        return eliminationRule.evaluate(BattlezoneMatchContext.capture(this)).isPresent();
     }
 
     @Override
@@ -542,7 +536,7 @@ public final class BattlezoneMap extends BaseMap {
         landing.clear();
         super.reset();
         isStart = false;
-        syncVisualState(true);
+        visualSync.sync(true);
         for (ServerPlayer player : List.copyOf(getMapTeams().getOnlineWithSpec())) {
             leave(player);
             // A cancelled leave event must not keep a finished match populated.
@@ -571,11 +565,11 @@ public final class BattlezoneMap extends BaseMap {
         if (!cleanupMap()) {
             phase = MatchPhase.WAITING;
             broadcast(Component.literal("Battlezone scene restore could not start; save a valid snapshot first."));
-            syncVisualState(true);
+            visualSync.sync(true);
             return;
         }
         phase = MatchPhase.RESETTING;
-        syncVisualState(true);
+        visualSync.sync(true);
     }
 
     @Override
@@ -602,7 +596,7 @@ public final class BattlezoneMap extends BaseMap {
             if (!wasDeploying) {
                 poison.restart();
             }
-            syncVisualState(true);
+            visualSync.sync(true);
         }
     }
 
@@ -613,7 +607,7 @@ public final class BattlezoneMap extends BaseMap {
             deployment.remove(player);
             clearCombat(player);
             landing.finish(player);
-            BattlezoneNetwork.send(player, createVisualStatePacket(player, false));
+            visualSync.send(player, false);
             BattlezoneNetwork.send(player, deployment.vehicleSnapshot(false));
             PlayerStateSnapshot state = playerStates.remove(player.getUUID());
             if (state != null) {
@@ -725,48 +719,6 @@ public final class BattlezoneMap extends BaseMap {
 
     public boolean isMatchActive() {
         return isStart && phase != MatchPhase.RESETTING;
-    }
-
-    private void syncVisualState(boolean force) {
-        if (!force && !isStart) {
-            return;
-        }
-        long gameTime = getServerLevel().getGameTime();
-        if (!force && (lastVisualStateSync == Long.MIN_VALUE || gameTime - lastVisualStateSync < 5)) {
-            return;
-        }
-        lastVisualStateSync = gameTime;
-        var vehicle = deployment.vehicleSnapshot(isStart && phase == MatchPhase.DEPLOYMENT);
-        for (ServerPlayer player : getMapTeams().getOnlineWithSpec()) {
-            BattlezoneNetwork.send(player, createVisualStatePacket(player));
-            BattlezoneNetwork.send(player, vehicle);
-        }
-    }
-
-    private ZoneStateS2CPacket createVisualStatePacket(ServerPlayer player) {
-        return createVisualStatePacket(player, isStart && phase != MatchPhase.RESETTING);
-    }
-
-    private ZoneStateS2CPacket createVisualStatePacket(ServerPlayer player, boolean boundaryVisible) {
-        AreaData area = getMapArea();
-        boolean participant = player.serverLevel() == getServerLevel() && !player.isSpectator()
-                && getMapTeams().getTeamByPlayer(player)
-                .filter(team -> !team.isSpectator())
-                .flatMap(team -> team.getPlayerData(player.getUUID()))
-                .map(data -> data.isLiving()).orElse(false);
-        var zone = poison.current();
-        return new ZoneStateS2CPacket(
-                getMapName(),
-                getServerLevel().dimension().location(),
-                boundaryVisible,
-                boundaryVisible && participant && (phase == MatchPhase.DEPLOYMENT || phase == MatchPhase.MATCH),
-                area.pos1(),
-                area.pos2(),
-                zone.centerX(),
-                zone.centerZ(),
-                (float) zone.radius(),
-                boundaryTexture.get(),
-                zone.shape());
     }
 
     @Override

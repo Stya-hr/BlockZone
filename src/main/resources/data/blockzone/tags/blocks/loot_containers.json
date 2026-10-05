@@ -1,0 +1,12 @@
+{
+  "replace": false,
+  "values": [
+    "blockzone:loot_crate",
+    "blockzone:tactical_loot_crate",
+    "blockzone:medical_loot_crate",
+    "blockzone:weathered_loot_crate",
+    "minecraft:chest",
+    "minecraft:trapped_chest",
+    "minecraft:barrel"
+  ]
+}

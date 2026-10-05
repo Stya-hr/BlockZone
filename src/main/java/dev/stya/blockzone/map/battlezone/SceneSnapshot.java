@@ -56,6 +56,8 @@ final class SceneSnapshot {
     private CompoundTag data;
     private Operation operation;
     private boolean valid;
+    private java.util.function.Consumer<Boolean> captureResult;
+    private java.util.function.BooleanSupplier captureValid;
     private boolean lastOperationSucceeded = true;
 
     SceneSnapshot(BattlezoneMap map) {
@@ -76,6 +78,46 @@ final class SceneSnapshot {
         operation = Operation.capture(map.getServerLevel(), bounds, pieces, snapshotPath(), createInitialData(map.getServerLevel(), bounds, pieces));
         valid = false;
         lastOperationSucceeded = false;
+        return true;
+    }
+
+    boolean saveLootCrateEdits(java.util.List<dev.stya.blockzone.util.editor.LootCrateEdit> changes,
+                               java.util.function.Consumer<Boolean> result) {
+        if (!map.canEditLootCrates()) return false;
+        var previous = data;
+        boolean previousValid = valid;
+        var originals = new java.util.ArrayList<dev.stya.blockzone.util.editor.LootCrateEdit>();
+        for (var entry : changes) {
+            var be = map.getServerLevel().getBlockEntity(new BlockPos(entry.x(), entry.y(), entry.z()));
+            if (dev.stya.blockzone.loot.LootContainerAdapters.find(be)==null) return false;
+            originals.add(dev.stya.blockzone.loot.LootContainerControl.data(be));
+        }
+        if (!beginSave()) { data = previous; valid = previousValid; return false; }
+        for (var entry : changes) {
+            dev.stya.blockzone.loot.LootContainerControl.apply(map.getServerLevel().getBlockEntity(
+                    new BlockPos(entry.x(), entry.y(), entry.z())),entry,map.getMapName());
+        }
+        captureValid = () -> {
+            if (!operation.bounds.equals(currentBounds())) return false;
+            for (var entry : changes) {
+                var be = map.getServerLevel().getBlockEntity(new BlockPos(entry.x(), entry.y(), entry.z()));
+                if (dev.stya.blockzone.loot.LootContainerAdapters.find(be)==null || !dev.stya.blockzone.loot.LootContainerControl.data(be).equals(entry)) return false;
+            }
+            return true;
+        };
+        captureResult = success -> {
+            if (!success) {
+                for (int i = 0; i < changes.size(); i++) {
+                    var entry = changes.get(i);
+                    var be = map.getServerLevel().getBlockEntity(new BlockPos(entry.x(), entry.y(), entry.z()));
+                    if (dev.stya.blockzone.loot.LootContainerAdapters.find(be)!=null
+                            && dev.stya.blockzone.loot.LootContainerControl.data(be).equals(entry))
+                        dev.stya.blockzone.loot.LootContainerControl.apply(be,originals.get(i),map.getMapName());
+                }
+                data = previous; valid = previousValid;
+            }
+            result.accept(success);
+        };
         return true;
     }
 
@@ -140,6 +182,14 @@ final class SceneSnapshot {
             operation = null;
             lastOperationSucceeded = false;
         }
+        notifyCaptureResult();
+    }
+
+    private void notifyCaptureResult() {
+        if (operation == null && captureResult != null) {
+            var callback = captureResult; captureResult = null; captureValid = null;
+            callback.accept(lastOperationSucceeded);
+        }
     }
 
     boolean isBusy() {
@@ -162,6 +212,7 @@ final class SceneSnapshot {
             return;
         }
 
+        if (captureValid != null && !captureValid.getAsBoolean()) throw new IOException("Crates or map bounds changed during capture");
         current.data.put("pieces", current.pieces);
         current.data.put("entities", captureEntities(current.level, current.bounds));
         Path parent = current.path.getParent();

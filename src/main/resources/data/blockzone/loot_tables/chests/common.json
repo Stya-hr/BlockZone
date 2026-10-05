@@ -62,6 +62,20 @@
           ]
         }
       ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:empty",
+          "weight": 5
+        },
+        {
+          "type": "minecraft:item",
+          "name": "blockzone:armor_expansion",
+          "weight": 1
+        }
+      ]
     }
   ]
 }

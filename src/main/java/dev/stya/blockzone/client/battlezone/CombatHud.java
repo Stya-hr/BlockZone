@@ -15,14 +15,16 @@ import net.minecraftforge.fml.common.Mod;
 @Mod.EventBusSubscriber(modid = BlockZone.MOD_ID, value = Dist.CLIENT)
 public final class CombatHud {
     private static boolean active;
+    private static int plateSlots = 2;
     private static float platePoints = CombatRecovery.PLATE_POINTS;
     private CombatHud() { }
 
     public static void setActive(boolean value) { active = value; }
 
-    public static void setCombatState(boolean value, float points) {
+    public static void setCombatState(boolean value, float points, int slots) {
         active = value;
         platePoints = points;
+        plateSlots = Mth.clamp(slots, 0, 3);
     }
 
     @SubscribeEvent
@@ -54,12 +56,13 @@ public final class CombatHud {
         gui.fill(x, y + 12, x + width, y + 18, 0xFF394450);
         gui.fill(x, y + 12, x + Mth.ceil(width * Mth.clamp(health / maxHealth, 0, 1)), y + 18, healthColor);
         gui.drawString(mc.font, Component.translatable("hud.blockzone.armor"), x, y + 24, 0xFFB8C3CD, false);
-        String ap = Mth.ceil(armor) + " / " + Mth.ceil((platePoints * 3));
+        String ap = Mth.ceil(armor) + " / " + Mth.ceil((platePoints * plateSlots));
         gui.drawString(mc.font, ap, x + width - mc.font.width(ap), y + 24, 0xFF55B9F3, false);
-        for (int i = 0; i < 3; i++) {
-            int left = x + i * 61;
-            gui.fill(left, y + 36, left + 58, y + 42, 0xFF394450);
-            int filled = Mth.ceil(58 * Mth.clamp((armor - i * platePoints)
+        for (int i = 0; i < plateSlots; i++) {
+            int segment = (width - (plateSlots - 1) * 3) / plateSlots;
+            int left = x + i * (segment + 3);
+            gui.fill(left, y + 36, left + segment, y + 42, 0xFF394450);
+            int filled = Mth.ceil(segment * Mth.clamp((armor - i * platePoints)
                     / platePoints, 0, 1));
             gui.fill(left, y + 36, left + filled, y + 42, 0xFF55B9F3);
         }

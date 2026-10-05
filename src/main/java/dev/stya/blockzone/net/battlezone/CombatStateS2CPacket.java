@@ -5,13 +5,14 @@ import net.minecraftforge.network.NetworkEvent;
 import java.util.function.Supplier;
 
 /** Authoritative HUD scope; world previews must never enable the match HUD. */
-public record CombatStateS2CPacket(boolean active, float platePoints) {
+public record CombatStateS2CPacket(boolean active, float platePoints, int plateSlots) {
     public static void encode(CombatStateS2CPacket packet, FriendlyByteBuf buffer) {
         buffer.writeBoolean(packet.active);
         buffer.writeFloat(packet.platePoints);
+        buffer.writeVarInt(packet.plateSlots);
     }
     public static CombatStateS2CPacket decode(FriendlyByteBuf buffer) {
-        return new CombatStateS2CPacket(buffer.readBoolean(), buffer.readFloat());
+        return new CombatStateS2CPacket(buffer.readBoolean(), buffer.readFloat(), buffer.readVarInt());
     }
     public void handle(Supplier<NetworkEvent.Context> supplier) {
         var context = supplier.get();

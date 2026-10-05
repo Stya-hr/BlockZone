@@ -454,7 +454,7 @@ public final class BattlezoneMap extends BaseMap {
         recovery.clear();
         getMapTeams().getNormalTeams().forEach(team -> team.getOnline().forEach(player -> {
             clearCombat(player);
-            CombatHealth.initialize(player, activeMatchHealth);
+            MatchPlayerState.initialize(player, activeMatchHealth);
         }));
         phaseTicks = 0;
         victoryAnnounced = false;
@@ -552,7 +552,7 @@ public final class BattlezoneMap extends BaseMap {
         }
         if (result.isSuccess() && isStart) {
             clearCombat(player);
-            if (!MatchRegeneration.allowed(player)) CombatHealth.initialize(player, activeMatchHealth);
+            if (!MatchRegeneration.allowed(player)) MatchPlayerState.initialize(player, activeMatchHealth);
             BattlezoneNetwork.send(player, createVisualStatePacket(player));
             BattlezoneNetwork.send(player, deployment.vehicleSnapshot(phase == MatchPhase.DEPLOYMENT));
             if (phase == MatchPhase.DEPLOYMENT) {

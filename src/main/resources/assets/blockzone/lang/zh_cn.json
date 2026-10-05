@@ -116,5 +116,8 @@
   "block.blockzone.weathered_loot_crate": "战地旧物资箱",
   "block.blockzone.medical_loot_crate": "医疗补给箱",
   "editor.blockzone.loot.enabled": "启用战利品箱特性",
-  "item.blockzone.armor_plate": "护甲插板"
+  "item.blockzone.armor_plate": "护甲插板",
+  "hud.blockzone.health": "生命",
+  "hud.blockzone.armor": "护甲",
+  "hud.blockzone.plating": "正在插板"
 }

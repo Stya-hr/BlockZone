@@ -61,7 +61,7 @@ public final class BattlezoneMap extends BaseMap {
         if (MatchRegeneration.allowed(player)) return;
         if (recovery.computeIfAbsent(player.getUUID(), id -> new CombatRecovery()).tick()
                 && player.isAlive() && player.getHealth() < player.getMaxHealth()) {
-            player.heal(1.0F);
+            player.heal(CombatRecovery.HEAL_POINTS);
         }
     }
 
@@ -439,7 +439,7 @@ public final class BattlezoneMap extends BaseMap {
         recovery.clear();
         getMapTeams().getNormalTeams().forEach(team -> team.getOnline().forEach(player -> {
             clearCombat(player);
-            player.setHealth(player.getMaxHealth());
+            CombatHealth.initialize(player);
         }));
         phaseTicks = 0;
         victoryAnnounced = false;
@@ -537,7 +537,7 @@ public final class BattlezoneMap extends BaseMap {
         }
         if (result.isSuccess() && isStart) {
             clearCombat(player);
-            player.setHealth(player.getMaxHealth());
+            if (!MatchRegeneration.allowed(player)) CombatHealth.initialize(player);
             BattlezoneNetwork.send(player, createVisualStatePacket(player));
             BattlezoneNetwork.send(player, deployment.vehicleSnapshot(phase == MatchPhase.DEPLOYMENT));
             if (phase == MatchPhase.DEPLOYMENT) {
@@ -713,6 +713,7 @@ public final class BattlezoneMap extends BaseMap {
     @Override
     public void handlePlayerDisconnect(ServerPlayer player) {
         clearCombat(player);
+        CombatHealth.remove(player);
         deployment.remove(player);
         landing.finish(player);
         super.handlePlayerDisconnect(player);

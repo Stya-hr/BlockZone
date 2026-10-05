@@ -4,8 +4,10 @@ package dev.stya.blockzone.map.battlezone;
 public final class CombatRecovery {
     public static final int DELAY_TICKS = 100;
     public static final int INTERVAL_TICKS = 5;
-    public static final float PLATE_POINTS = 10;
-    public static final float MAX_ARMOR = 30;
+    public static final float MAX_HEALTH = 100;
+    public static final float HEAL_POINTS = 5;
+    public static final float PLATE_POINTS = 50;
+    public static final float MAX_ARMOR = 150;
     private int quietTicks;
 
     public void hurt() { quietTicks = 0; }

@@ -23,9 +23,9 @@ class CombatRecoveryTest {
     }
 
     @Test void plateRepairsPartialArmorAndCapsAtThreePlates() {
-        assertEquals(10, CombatRecovery.insertPlate(0));
-        assertEquals(17, CombatRecovery.insertPlate(7));
-        assertEquals(30, CombatRecovery.insertPlate(27));
-        assertEquals(30, CombatRecovery.insertPlate(30));
+        assertEquals(50, CombatRecovery.insertPlate(0));
+        assertEquals(57, CombatRecovery.insertPlate(7));
+        assertEquals(150, CombatRecovery.insertPlate(127));
+        assertEquals(150, CombatRecovery.insertPlate(150));
     }
 }

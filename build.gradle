@@ -71,6 +71,7 @@ dependencies {
     modImplementation "github.release.fpsmatch:fpsmatch-1.20.1-1.3.0-forge-snapshot:${fpsmatch_snapshot_tag}"
     modRuntimeOnly "maven.modrinth:kotlin-for-forge:${kotlin_forge_version}"
     modRuntimeOnly "maven.modrinth:timeless-and-classics-zero:${tacz_version}"
+    modCompileOnly "maven.modrinth:timeless-and-classics-zero:${tacz_version}"
     modRuntimeOnly "icyllis.modernui:ModernUI-Forge:${minecraft_version}-${modernui_forge_version}"
     additionalRuntimeClasspath "icyllis.modernui:ModernUI-Core:${modernui_core_version}"
     additionalRuntimeClasspath "icyllis.modernui:ModernUI-Markflow:${modernui_core_version}"

@@ -10,7 +10,7 @@
 
 ## 对局装备与扩容
 
-默认开局穿戴战术头盔、双槽插板背心、护膝裤和战术靴，并携带两块插板；初始护甲值为零。每板护甲量仍由地图的 `armorPlatePoints` 设置控制。
+默认开局穿戴战术头盔、双槽插板背心、护膝裤和战术靴，并携带两块插板；初始护甲值为零。每板护甲量由地图的战斗 Capability 配置控制。
 
 手持 `blockzone:armor_expansion` 使用，安装到正在穿戴的插板背心上，扩容为三槽。按 N 拆卸（可在按键设置中修改），配件返回背包，背包满时掉落。安装不补充护甲；拆卸将护甲上限和当前超额护甲降至两槽。背心被脱下后，对局中的护甲归零。
 
@@ -23,3 +23,15 @@ fpsm map modify battlezone flat160 capability loadout set [{"slot":"head","item"
 槽位支持 `head/chest/legs/feet/offhand`、`hotbar.0` 至 `hotbar.8`、`inventory.0` 至 `inventory.26`。`count` 默认为 1，`nbt` 为可选 SNBT 字符串，可配置 TaCZ 枪械等模组物品。预装扩容的背心可使用 `"nbt":"{BlockzoneArmorExpansion:1b}"`。配置在下一局开始时生效，中途加入使用该局同一份配置；非法物品、重复槽位和错误 NBT 会拒绝保存，开局也会再次校验，不会发放部分装备。结算后仍恢复入场前的玩家状态和物品。
 
 使用 `capability loadout get` 查看配置，`clear` 清空初始装备，`reset` 恢复默认装备（前缀同上）。命令自动保存到该地图配置的 `capabilities` 字段。旧 `settings startingLoadout` 已移除，旧装备配置不会迁移，需要重新配置。
+
+战斗参数通过以下命令配置，修改在下一局生效：
+
+```mcfunction
+fpsm map modify battlezone flat160 capability combat set {"matchHealth":100,"armorPlatePoints":50}
+```
+
+开局使用 FPSMatch 原生 `autoStart`、`autoStartTime`、`readyStartEnabled`、`readyStartTime`；时间单位为 tick。旧 `countdownSeconds`、血量和毒圈 Settings 已删除，需要重新配置。
+
+毒圈编辑器仍可通过 `fpsm map modify battlezone flat160 settings sequence edit` 打开。路径命令改为 `capability zone sequence ...`，完整配置使用 `capability zone get|set <JSON>|reset`，修改自动保存。世界编辑、相机、形状选择、预览和保存功能保留。战利品编辑器仍使用 `settings loot edit`。
+
+地图配置文件现在同时保存地图能力和队伍能力；不保存对局成员或本局分数。

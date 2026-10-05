@@ -15,9 +15,15 @@ import net.minecraftforge.fml.common.Mod;
 @Mod.EventBusSubscriber(modid = BlockZone.MOD_ID, value = Dist.CLIENT)
 public final class CombatHud {
     private static boolean active;
+    private static float platePoints = CombatRecovery.PLATE_POINTS;
     private CombatHud() { }
 
     public static void setActive(boolean value) { active = value; }
+
+    public static void setCombatState(boolean value, float points) {
+        active = value;
+        platePoints = points;
+    }
 
     @SubscribeEvent
     public static void hideVanillaBars(RenderGuiOverlayEvent.Pre event) {
@@ -48,13 +54,13 @@ public final class CombatHud {
         gui.fill(x, y + 12, x + width, y + 18, 0xFF394450);
         gui.fill(x, y + 12, x + Mth.ceil(width * Mth.clamp(health / maxHealth, 0, 1)), y + 18, healthColor);
         gui.drawString(mc.font, Component.translatable("hud.blockzone.armor"), x, y + 24, 0xFFB8C3CD, false);
-        String ap = Mth.ceil(armor) + " / " + Mth.ceil(CombatRecovery.MAX_ARMOR);
+        String ap = Mth.ceil(armor) + " / " + Mth.ceil((platePoints * 3));
         gui.drawString(mc.font, ap, x + width - mc.font.width(ap), y + 24, 0xFF55B9F3, false);
         for (int i = 0; i < 3; i++) {
             int left = x + i * 61;
             gui.fill(left, y + 36, left + 58, y + 42, 0xFF394450);
-            int filled = Mth.ceil(58 * Mth.clamp((armor - i * CombatRecovery.PLATE_POINTS)
-                    / CombatRecovery.PLATE_POINTS, 0, 1));
+            int filled = Mth.ceil(58 * Mth.clamp((armor - i * platePoints)
+                    / platePoints, 0, 1));
             gui.fill(left, y + 36, left + filled, y + 42, 0xFF55B9F3);
         }
         if (mc.player.isUsingItem() && mc.player.getUseItem().is(dev.stya.blockzone.loot.LootCrateRegistry.ARMOR_PLATE.get())) {

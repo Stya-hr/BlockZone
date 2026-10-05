@@ -17,7 +17,8 @@ public final class ArmorPlateItem extends Item {
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
-        if (player.isSpectator() || player.getAbsorptionAmount() >= CombatRecovery.MAX_ARMOR
+        if (player.isSpectator() || (!level.isClientSide && player instanceof net.minecraft.server.level.ServerPlayer serverPlayer
+                && MatchRegeneration.map(serverPlayer).map(map -> player.getAbsorptionAmount() >= map.getMaxCombatArmor()).orElse(true))
                 || (!level.isClientSide && MatchRegeneration.allowed(player))) {
             return InteractionResultHolder.fail(stack);
         }
@@ -30,11 +31,14 @@ public final class ArmorPlateItem extends Item {
 
     @Override
     public ItemStack finishUsingItem(ItemStack stack, Level level, LivingEntity entity) {
-        if (!level.isClientSide && entity instanceof Player player && player.isAlive()
-                && !MatchRegeneration.allowed(player) && player.getAbsorptionAmount() < CombatRecovery.MAX_ARMOR) {
-            player.setAbsorptionAmount(CombatRecovery.insertPlate(player.getAbsorptionAmount()));
-            if (!player.getAbilities().instabuild) stack.shrink(1);
-            player.getCooldowns().addCooldown(this, 5);
+        if (!level.isClientSide && entity instanceof net.minecraft.server.level.ServerPlayer player
+                && player.isAlive() && !MatchRegeneration.allowed(player)) {
+            MatchRegeneration.map(player).ifPresent(map -> {
+                if (player.getAbsorptionAmount() >= map.getMaxCombatArmor()) return;
+                player.setAbsorptionAmount(CombatRecovery.insertPlate(player.getAbsorptionAmount(), map.getArmorPlatePoints()));
+                if (!player.getAbilities().instabuild) stack.shrink(1);
+                player.getCooldowns().addCooldown(this, 5);
+            });
         }
         return stack;
     }

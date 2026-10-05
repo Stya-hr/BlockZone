@@ -11,15 +11,16 @@ import java.util.WeakHashMap;
 
 public final class BattlezoneNetwork {
     private static final NetworkPacketRegister PACKETS = new NetworkPacketRegister(
-            ResourceLocation.fromNamespaceAndPath(BlockZone.MOD_ID, "main"), "14");
+            ResourceLocation.fromNamespaceAndPath(BlockZone.MOD_ID, "main"), "15");
 
     private static final Map<ServerPlayer, FlightStateS2CPacket> FLIGHT_STATES = new WeakHashMap<>();
-    private static final Map<ServerPlayer, Boolean> COMBAT_STATES = new WeakHashMap<>();
+    private static final Map<ServerPlayer, CombatStateS2CPacket> COMBAT_STATES = new WeakHashMap<>();
 
-    public static void syncCombat(ServerPlayer player, boolean active) {
-        if (java.util.Objects.equals(COMBAT_STATES.get(player), active)) return;
-        COMBAT_STATES.put(player, active);
-        PACKETS.getChannel().send(PacketDistributor.PLAYER.with(() -> player), new CombatStateS2CPacket(active));
+    public static void syncCombat(ServerPlayer player, boolean active, float platePoints) {
+        var state = new CombatStateS2CPacket(active, platePoints);
+        if (java.util.Objects.equals(COMBAT_STATES.get(player), state)) return;
+        COMBAT_STATES.put(player, state);
+        PACKETS.getChannel().send(PacketDistributor.PLAYER.with(() -> player), state);
     }
 
     private BattlezoneNetwork() {

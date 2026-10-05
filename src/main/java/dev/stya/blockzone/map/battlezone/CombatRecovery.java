@@ -5,9 +5,7 @@ public final class CombatRecovery {
     public static final int DELAY_TICKS = 100;
     public static final int INTERVAL_TICKS = 5;
     public static final float MAX_HEALTH = 100;
-    public static final float HEAL_POINTS = 5;
     public static final float PLATE_POINTS = 50;
-    public static final float MAX_ARMOR = 150;
     private int quietTicks;
 
     public void hurt() { quietTicks = 0; }
@@ -19,7 +17,7 @@ public final class CombatRecovery {
         return true;
     }
 
-    public static float insertPlate(float armor) {
-        return Math.min(MAX_ARMOR, Math.max(0, armor) + PLATE_POINTS);
+    public static float insertPlate(float armor, float platePoints) {
+        return Math.min(platePoints * 3, Math.max(0, armor) + platePoints);
     }
 }

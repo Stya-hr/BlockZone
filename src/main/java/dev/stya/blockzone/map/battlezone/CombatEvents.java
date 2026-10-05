@@ -28,7 +28,8 @@ public final class CombatEvents {
                     .filter(map -> player.serverLevel() == map.getServerLevel())
                     .flatMap(map -> map.getMapTeams().getTeamByPlayer(player))
                     .filter(team -> !team.isSpectator()).isPresent();
-            dev.stya.blockzone.net.battlezone.BattlezoneNetwork.syncCombat(player, hud);
+            dev.stya.blockzone.net.battlezone.BattlezoneNetwork.syncCombat(player, hud, MatchRegeneration.map(player)
+                    .map(BattlezoneMap::getArmorPlatePoints).orElse(CombatRecovery.PLATE_POINTS));
         }
     }
 }

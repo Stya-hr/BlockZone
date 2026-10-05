@@ -14,17 +14,25 @@ class CombatHealthTest {
 
     @Test void matchHealthDoesNotChangeBaseAndRestoresOnExit() {
         var health = health(20);
-        CombatHealth.initialize(health);
+        CombatHealth.initialize(health, 100);
         assertEquals(100, health.getValue(), 0.0001);
         assertEquals(20, health.getBaseValue());
         CombatHealth.remove(health);
         assertEquals(20, health.getValue());
     }
 
+    @Test void customMatchHealthRestoresOriginalValue() {
+        var health = health(20);
+        CombatHealth.initialize(health, 200);
+        assertEquals(200, health.getValue(), 0.0001);
+        CombatHealth.remove(health);
+        assertEquals(20, health.getValue());
+    }
+
     @Test void repeatedInitializationDoesNotStack() {
         var health = health(40);
-        CombatHealth.initialize(health);
-        CombatHealth.initialize(health);
+        CombatHealth.initialize(health, 100);
+        CombatHealth.initialize(health, 100);
         assertEquals(100, health.getValue(), 0.0001);
         CombatHealth.remove(health);
         assertEquals(40, health.getValue());
@@ -37,7 +45,7 @@ class CombatHealthTest {
         health.addTransientModifier(bonus);
         health.addTransientModifier(multiplier);
         assertEquals(45, health.getValue());
-        CombatHealth.initialize(health);
+        CombatHealth.initialize(health, 100);
         assertEquals(100, health.getValue(), 0.0001);
         CombatHealth.remove(health);
         assertEquals(45, health.getValue());

@@ -39,6 +39,15 @@ public final class BattlezoneMap extends BaseMap {
     private final Setting<Double> deploymentHeight;
     private final DeploymentController deployment = new DeploymentController(this);
     private final LandingController landing = new LandingController();
+    private final Setting<Double> matchHealth;
+    private final Setting<Double> armorPlatePoints;
+    private float activeMatchHealth = CombatRecovery.MAX_HEALTH;
+    private float activePlatePoints = CombatRecovery.PLATE_POINTS;
+
+    public float getCombatHealth() { return activeMatchHealth; }
+    public float getArmorPlatePoints() { return activePlatePoints; }
+    public float getMaxCombatArmor() { return activePlatePoints * 3; }
+
     private final Setting<Double> poisonDamage;
     private final Setting<List<PoisonPath>> poisonSequences;
     private List<PoisonPath.Circle> activePoisonPhases = List.of();
@@ -61,7 +70,7 @@ public final class BattlezoneMap extends BaseMap {
         if (MatchRegeneration.allowed(player)) return;
         if (recovery.computeIfAbsent(player.getUUID(), id -> new CombatRecovery()).tick()
                 && player.isAlive() && player.getHealth() < player.getMaxHealth()) {
-            player.heal(CombatRecovery.HEAL_POINTS);
+            player.heal(activeMatchHealth * 0.05F);
         }
     }
 
@@ -105,6 +114,10 @@ public final class BattlezoneMap extends BaseMap {
                 CodecSettings.FINITE_DOUBLE,
                 Math.max(areaData.pos1().getY(), areaData.pos2().getY()) + 64.0));
 
+        this.matchHealth = addSetting(CodecSettings.create("battlezone", "matchHealth",
+                Codec.doubleRange(1.0, 1024.0), 100.0));
+        this.armorPlatePoints = addSetting(CodecSettings.create("battlezone", "armorPlatePoints",
+                Codec.doubleRange(1.0, 1024.0), 50.0));
         this.poisonDamage = addSetting(CodecSettings.create("battlezone", "poisonDamagePerSecond",
                 CodecSettings.NONNEGATIVE_DOUBLE, 1.0));
         this.poisonSequences = addSetting(CodecSettings.create("battlezone", "poisonSequences", PoisonPath.CODEC.listOf(),
@@ -436,10 +449,12 @@ public final class BattlezoneMap extends BaseMap {
         isStart = true;
         lootRoundId = java.util.UUID.randomUUID();
         phase = MatchPhase.DEPLOYMENT;
+        activeMatchHealth = matchHealth.get().floatValue();
+        activePlatePoints = armorPlatePoints.get().floatValue();
         recovery.clear();
         getMapTeams().getNormalTeams().forEach(team -> team.getOnline().forEach(player -> {
             clearCombat(player);
-            CombatHealth.initialize(player);
+            CombatHealth.initialize(player, activeMatchHealth);
         }));
         phaseTicks = 0;
         victoryAnnounced = false;
@@ -537,7 +552,7 @@ public final class BattlezoneMap extends BaseMap {
         }
         if (result.isSuccess() && isStart) {
             clearCombat(player);
-            if (!MatchRegeneration.allowed(player)) CombatHealth.initialize(player);
+            if (!MatchRegeneration.allowed(player)) CombatHealth.initialize(player, activeMatchHealth);
             BattlezoneNetwork.send(player, createVisualStatePacket(player));
             BattlezoneNetwork.send(player, deployment.vehicleSnapshot(phase == MatchPhase.DEPLOYMENT));
             if (phase == MatchPhase.DEPLOYMENT) {

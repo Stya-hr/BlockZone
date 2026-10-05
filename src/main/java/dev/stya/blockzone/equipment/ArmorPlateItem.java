@@ -1,4 +1,4 @@
-package dev.stya.blockzone.loot;
+package dev.stya.blockzone.equipment;
 
 import dev.stya.blockzone.map.battlezone.MatchRegeneration;
 import net.minecraft.world.InteractionHand;

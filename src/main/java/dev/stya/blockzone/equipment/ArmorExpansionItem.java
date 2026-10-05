@@ -34,7 +34,7 @@ public final class ArmorExpansionItem extends Item {
         dev.stya.blockzone.map.battlezone.MatchRegeneration.map(player).filter(map -> map.isMatchActive())
                 .ifPresent(map -> player.setAbsorptionAmount(Math.min(player.getAbsorptionAmount(),
                         map.getArmorPlatePoints() * carrier.plateSlots())));
-        var attachment = new ItemStack(dev.stya.blockzone.loot.LootCrateRegistry.ARMOR_EXPANSION.get());
+        var attachment = new ItemStack(dev.stya.blockzone.equipment.EquipmentRegistry.ARMOR_EXPANSION.get());
         if (!player.getInventory().add(attachment)) player.drop(attachment, false);
         player.displayClientMessage(Component.translatable("message.blockzone.expansion_removed"), true);
         player.playSound(net.minecraft.sounds.SoundEvents.ARMOR_EQUIP_LEATHER, 1, .8F);

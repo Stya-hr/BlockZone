@@ -23,12 +23,6 @@ public final class LootCrateRegistry {
             DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, BlockZone.MOD_ID);
 
     public static final RegistryObject<LootCrateBlock> LOOT_CRATE = BLOCKS.register("loot_crate", LootCrateBlock::new);
-    public static final RegistryObject<Item> TACTICAL_HELMET = ITEMS.register("tactical_helmet", () -> new dev.stya.blockzone.equipment.TacticalArmorItem(net.minecraft.world.item.ArmorItem.Type.HELMET, "helmet", 0));
-    public static final RegistryObject<Item> PLATE_CARRIER = ITEMS.register("plate_carrier", () -> new dev.stya.blockzone.equipment.TacticalArmorItem(net.minecraft.world.item.ArmorItem.Type.CHESTPLATE, "carrier", 2));
-    public static final RegistryObject<Item> ARMOR_EXPANSION = ITEMS.register("armor_expansion", dev.stya.blockzone.equipment.ArmorExpansionItem::new);
-    public static final RegistryObject<Item> TACTICAL_LEGGINGS = ITEMS.register("tactical_leggings", () -> new dev.stya.blockzone.equipment.TacticalArmorItem(net.minecraft.world.item.ArmorItem.Type.LEGGINGS, "leggings", 0));
-    public static final RegistryObject<Item> TACTICAL_BOOTS = ITEMS.register("tactical_boots", () -> new dev.stya.blockzone.equipment.TacticalArmorItem(net.minecraft.world.item.ArmorItem.Type.BOOTS, "boots", 0));
-    public static final RegistryObject<Item> ARMOR_PLATE = ITEMS.register("armor_plate", ArmorPlateItem::new);
     public static final RegistryObject<LootCrateBlock> TACTICAL_LOOT_CRATE = BLOCKS.register("tactical_loot_crate",
             () -> new LootCrateBlock(-8, 24, 1, 15, 6, 2, .54));
     public static final RegistryObject<LootCrateBlock> MEDICAL_LOOT_CRATE = BLOCKS.register("medical_loot_crate",
@@ -63,14 +57,6 @@ public final class LootCrateRegistry {
     }
 
     private static void creativeTab(BuildCreativeModeTabContentsEvent event) {
-        if (event.getTabKey() == CreativeModeTabs.COMBAT) {
-            event.accept(ARMOR_PLATE);
-            event.accept(TACTICAL_HELMET);
-            event.accept(PLATE_CARRIER);
-            event.accept(ARMOR_EXPANSION);
-            event.accept(TACTICAL_LEGGINGS);
-            event.accept(TACTICAL_BOOTS);
-        }
         if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
             event.accept(LOOT_CRATE_ITEM);
             event.accept(TACTICAL_LOOT_CRATE_ITEM);

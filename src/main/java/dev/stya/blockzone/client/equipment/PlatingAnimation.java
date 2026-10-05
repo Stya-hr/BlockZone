@@ -2,7 +2,7 @@ package dev.stya.blockzone.client.equipment;
 
 import com.mojang.math.Axis;
 import dev.stya.blockzone.BlockZone;
-import dev.stya.blockzone.loot.LootCrateRegistry;
+import dev.stya.blockzone.equipment.EquipmentRegistry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 import net.minecraft.world.InteractionHand;
@@ -25,7 +25,7 @@ public final class PlatingAnimation {
     @SubscribeEvent public static void hand(RenderHandEvent event) {
         var mc = Minecraft.getInstance();
         var player = mc.player;
-        if (player == null || !player.isUsingItem() || !player.getUseItem().is(LootCrateRegistry.ARMOR_PLATE.get())) return;
+        if (player == null || !player.isUsingItem() || !player.getUseItem().is(EquipmentRegistry.ARMOR_PLATE.get())) return;
         event.setCanceled(true);
         if (event.getHand() != player.getUsedItemHand()) return;
         float progress = Math.min(1, (player.getTicksUsingItem() + event.getPartialTick()) / 40F);

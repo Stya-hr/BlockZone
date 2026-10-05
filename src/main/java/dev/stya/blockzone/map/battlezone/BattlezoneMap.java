@@ -63,7 +63,7 @@ public final class BattlezoneMap extends BaseMap {
 
     public void combatHurt(ServerPlayer player) {
         recovery.computeIfAbsent(player.getUUID(), id -> new CombatRecovery()).hurt();
-        if (player.getUseItem().is(dev.stya.blockzone.loot.LootCrateRegistry.ARMOR_PLATE.get())) {
+        if (player.getUseItem().is(dev.stya.blockzone.equipment.EquipmentRegistry.ARMOR_PLATE.get())) {
             player.stopUsingItem();
         }
     }

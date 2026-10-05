@@ -39,6 +39,8 @@ public final class BattlezoneMap extends BaseMap {
     private final Setting<Double> deploymentHeight;
     private final DeploymentController deployment = new DeploymentController(this);
     private final LandingController landing = new LandingController();
+    private final Setting<List<dev.stya.blockzone.equipment.StartingLoadout.Entry>> startingLoadout;
+    private List<dev.stya.blockzone.equipment.StartingLoadout.Prepared> activeLoadout = List.of();
     private final Setting<Double> matchHealth;
     private final Setting<Double> armorPlatePoints;
     private float activeMatchHealth = CombatRecovery.MAX_HEALTH;
@@ -46,7 +48,7 @@ public final class BattlezoneMap extends BaseMap {
 
     public float getCombatHealth() { return activeMatchHealth; }
     public float getArmorPlatePoints() { return activePlatePoints; }
-    public float getMaxCombatArmor() { return activePlatePoints * 3; }
+    public float getMaxCombatArmor(ServerPlayer player) { return activePlatePoints * dev.stya.blockzone.equipment.PlateCapacity.slots(player); }
 
     private final Setting<Double> poisonDamage;
     private final Setting<List<PoisonPath>> poisonSequences;
@@ -114,6 +116,8 @@ public final class BattlezoneMap extends BaseMap {
                 CodecSettings.FINITE_DOUBLE,
                 Math.max(areaData.pos1().getY(), areaData.pos2().getY()) + 64.0));
 
+        this.startingLoadout = addSetting(CodecSettings.create("battlezone", "startingLoadout",
+                dev.stya.blockzone.equipment.StartingLoadout.Entry.CODEC.listOf(), dev.stya.blockzone.equipment.StartingLoadout.defaults()));
         this.matchHealth = addSetting(CodecSettings.create("battlezone", "matchHealth",
                 Codec.doubleRange(1.0, 1024.0), 100.0));
         this.armorPlatePoints = addSetting(CodecSettings.create("battlezone", "armorPlatePoints",
@@ -443,18 +447,26 @@ public final class BattlezoneMap extends BaseMap {
             broadcast(Component.literal("Battlezone cannot start: deploymentHeight and deploymentSpeed must be valid numbers, and the initial horizontal circle must have room for a route."));
             return false;
         }
+        List<dev.stya.blockzone.equipment.StartingLoadout.Prepared> loadout;
+        try { loadout = dev.stya.blockzone.equipment.StartingLoadout.prepare(startingLoadout.get()); }
+        catch (IllegalArgumentException exception) {
+            broadcast(Component.literal("Battlezone cannot start: invalid startingLoadout: " + exception.getMessage()));
+            return false;
+        }
         if (!super.start()) {
             return false;
         }
         isStart = true;
         lootRoundId = java.util.UUID.randomUUID();
         phase = MatchPhase.DEPLOYMENT;
+        activeLoadout = loadout;
         activeMatchHealth = matchHealth.get().floatValue();
         activePlatePoints = armorPlatePoints.get().floatValue();
         recovery.clear();
         getMapTeams().getNormalTeams().forEach(team -> team.getOnline().forEach(player -> {
             clearCombat(player);
             MatchPlayerState.initialize(player, activeMatchHealth);
+            dev.stya.blockzone.equipment.StartingLoadout.apply(player, activeLoadout);
         }));
         phaseTicks = 0;
         victoryAnnounced = false;
@@ -552,7 +564,10 @@ public final class BattlezoneMap extends BaseMap {
         }
         if (result.isSuccess() && isStart) {
             clearCombat(player);
-            if (!MatchRegeneration.allowed(player)) MatchPlayerState.initialize(player, activeMatchHealth);
+            if (!MatchRegeneration.allowed(player)) {
+                MatchPlayerState.initialize(player, activeMatchHealth);
+                dev.stya.blockzone.equipment.StartingLoadout.apply(player, activeLoadout);
+            }
             BattlezoneNetwork.send(player, createVisualStatePacket(player));
             BattlezoneNetwork.send(player, deployment.vehicleSnapshot(phase == MatchPhase.DEPLOYMENT));
             if (phase == MatchPhase.DEPLOYMENT) {

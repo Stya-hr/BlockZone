@@ -123,5 +123,15 @@
   "setting.battlezone.matchHealth": "对局生命上限",
   "setting.battlezone.matchHealth.desc": "范围 1–1024，下一局生效；脱战回血按生命上限的 5% 恢复。",
   "setting.battlezone.armorPlatePoints": "每块插板护甲量",
-  "setting.battlezone.armorPlatePoints.desc": "范围 1–1024，下一局生效；总护甲上限为三块插板的容量。"
+  "setting.battlezone.armorPlatePoints.desc": "范围 1–1024，下一局生效；总护甲上限为三块插板的容量。",
+  "item.blockzone.tactical_helmet": "战术头盔",
+  "item.blockzone.plate_carrier": "战术护甲背心",
+  "item.blockzone.tactical_leggings": "战术护膝裤",
+  "item.blockzone.tactical_boots": "战术靴",
+  "item.blockzone.armor_expansion": "护甲扩容配件",
+  "key.blockzone.detach_armor": "拆下护甲扩容配件",
+  "message.blockzone.expansion_installed": "已安装扩容配件：3 个插板槽",
+  "message.blockzone.expansion_removed": "已拆下扩容配件：2 个插板槽",
+  "setting.battlezone.startingLoadout": "初始装备",
+  "setting.battlezone.startingLoadout.desc": "下一局生效；JSON 数组配置 slot、item、count、nbt。"
 }

@@ -11,22 +11,25 @@ import java.util.WeakHashMap;
 
 public final class BattlezoneNetwork {
     private static final NetworkPacketRegister PACKETS = new NetworkPacketRegister(
-            ResourceLocation.fromNamespaceAndPath(BlockZone.MOD_ID, "main"), "15");
+            ResourceLocation.fromNamespaceAndPath(BlockZone.MOD_ID, "main"), "16");
 
     private static final Map<ServerPlayer, FlightStateS2CPacket> FLIGHT_STATES = new WeakHashMap<>();
     private static final Map<ServerPlayer, CombatStateS2CPacket> COMBAT_STATES = new WeakHashMap<>();
 
-    public static void syncCombat(ServerPlayer player, boolean active, float platePoints) {
-        var state = new CombatStateS2CPacket(active, platePoints);
+    public static void syncCombat(ServerPlayer player, boolean active, float platePoints, int plateSlots) {
+        var state = new CombatStateS2CPacket(active, platePoints, plateSlots);
         if (java.util.Objects.equals(COMBAT_STATES.get(player), state)) return;
         COMBAT_STATES.put(player, state);
         PACKETS.getChannel().send(PacketDistributor.PLAYER.with(() -> player), state);
     }
 
+    public static void detachArmor() { PACKETS.getChannel().sendToServer(new DetachArmorC2SPacket()); }
+
     private BattlezoneNetwork() {
     }
 
     public static void register() {
+        PACKETS.registerPacket(DetachArmorC2SPacket.class, NetworkDirection.PLAY_TO_SERVER);
         PACKETS.registerPacket(CombatStateS2CPacket.class, NetworkDirection.PLAY_TO_CLIENT);
         PACKETS.registerPacket(dev.stya.blockzone.net.editor.LootEditorS2CPacket.class, NetworkDirection.PLAY_TO_CLIENT);
         PACKETS.registerPacket(dev.stya.blockzone.net.editor.LootEditorResultS2CPacket.class, NetworkDirection.PLAY_TO_CLIENT);

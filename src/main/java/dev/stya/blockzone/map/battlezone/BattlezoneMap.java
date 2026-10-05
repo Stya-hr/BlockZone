@@ -21,6 +21,7 @@ import dev.stya.blockzone.editor.loot.LootCrateEdit;
 import dev.stya.blockzone.equipment.StartingLoadout;
 import dev.stya.blockzone.loot.LootDropEntity;
 import dev.stya.blockzone.map.battlezone.capability.BattlezoneLoadoutCapability;
+import dev.stya.blockzone.map.battlezone.capability.BattlezoneCombatCapability;
 import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
 import dev.stya.blockzone.util.CodecSettings;
 import dev.stya.blockzone.zone.PoisonPath;
@@ -48,13 +49,11 @@ public final class BattlezoneMap extends BaseMap {
     private final Setting<Double> deploymentHeight;
     private final DeploymentController deployment = new DeploymentController(this);
     private final LandingController landing = new LandingController();
-    private final Setting<Double> matchHealth;
-    private final Setting<Double> armorPlatePoints;
-    private final MatchCombatController combat = new MatchCombatController();
+    private MatchCombatController combat() { return CapabilityMap.getMapCapability(this, BattlezoneCombatCapability.class).orElseThrow().controller(); }
 
-    public float getCombatHealth() { return combat.health(); }
-    public float getArmorPlatePoints() { return combat.platePoints(); }
-    public float getMaxCombatArmor(ServerPlayer player) { return combat.maxArmor(player); }
+    public float getCombatHealth() { return combat().health(); }
+    public float getArmorPlatePoints() { return combat().platePoints(); }
+    public float getMaxCombatArmor(ServerPlayer player) { return combat().maxArmor(player); }
 
     private final Setting<Double> poisonDamage;
     private final Setting<List<PoisonPath>> poisonSequences;
@@ -62,11 +61,11 @@ public final class BattlezoneMap extends BaseMap {
     private final Setting<String> boundaryTexture;
 
     private final java.util.Map<java.util.UUID, PlayerStateSnapshot> playerStates = new java.util.HashMap<>();
-    public void combatHurt(ServerPlayer player) { combat.hurt(player); }
+    public void combatHurt(ServerPlayer player) { combat().hurt(player); }
 
-    public void tickRecovery(ServerPlayer player) { combat.tickRecovery(player); }
+    public void tickRecovery(ServerPlayer player) { combat().tickRecovery(player); }
 
-    private void clearCombat(ServerPlayer player) { combat.clear(player); }
+    private void clearCombat(ServerPlayer player) { combat().clear(player); }
 
     private final SceneSnapshot sceneSnapshot;
     private MatchPhase phase = MatchPhase.WAITING;
@@ -79,7 +78,7 @@ public final class BattlezoneMap extends BaseMap {
     private final BattlezoneVisualSync visualSync;
 
     public BattlezoneMap(ServerLevel serverLevel, String mapName, AreaData areaData) {
-        super(serverLevel, mapName, areaData, List.of(BattlezoneLoadoutCapability.class));
+        super(serverLevel, mapName, areaData, List.of(BattlezoneLoadoutCapability.class, BattlezoneCombatCapability.class));
         this.teamPlayerLimit = addSetting("battlezone", "teamPlayerLimit", 3);
         this.totalPlayerLimit = addSetting("battlezone", "totalPlayerLimit", 24);
         this.minimumTeamsToStart = addSetting("battlezone", "minimumTeamsToStart", 2);
@@ -91,10 +90,6 @@ public final class BattlezoneMap extends BaseMap {
                 CodecSettings.FINITE_DOUBLE,
                 Math.max(areaData.pos1().getY(), areaData.pos2().getY()) + 64.0));
 
-        this.matchHealth = addSetting(CodecSettings.create("battlezone", "matchHealth",
-                Codec.doubleRange(1.0, 1024.0), 100.0));
-        this.armorPlatePoints = addSetting(CodecSettings.create("battlezone", "armorPlatePoints",
-                Codec.doubleRange(1.0, 1024.0), 50.0));
         this.poisonDamage = addSetting(CodecSettings.create("battlezone", "poisonDamagePerSecond",
                 CodecSettings.NONNEGATIVE_DOUBLE, 1.0));
         this.poisonSequences = addSetting(CodecSettings.create("battlezone", "poisonSequences", PoisonPath.CODEC.listOf(),
@@ -285,7 +280,7 @@ public final class BattlezoneMap extends BaseMap {
         lootRoundId = java.util.UUID.randomUUID();
         phase = MatchPhase.DEPLOYMENT;
         loadout().begin(loadout);
-        combat.start(matchHealth.get().floatValue(), armorPlatePoints.get().floatValue());
+        CapabilityMap.getMapCapability(this, BattlezoneCombatCapability.class).orElseThrow().begin();
         getMapTeams().getNormalTeams().forEach(team -> team.getOnline().forEach(this::initializeParticipant));
         phaseTicks = 0;
         victoryAnnounced = false;
@@ -496,7 +491,7 @@ public final class BattlezoneMap extends BaseMap {
     @Override
     public void reset() {
         loadout().reset();
-        combat.clearRecovery();
+        combat().clearRecovery();
         getMapTeams().getOnlineWithSpec().forEach(this::clearCombat);
         lootRoundId = null;
         // Drops that escaped the arena bounds must also disappear when this match ends.
@@ -594,7 +589,7 @@ public final class BattlezoneMap extends BaseMap {
     }
 
     private void initializeParticipant(ServerPlayer player) {
-        combat.initialize(player);
+        combat().initialize(player);
         loadout().give(player);
     }
 

@@ -46,12 +46,11 @@ public final class LoadoutCapabilityCommand implements FPSMCapability.Factory.Co
                 case "reset" -> StartingLoadout.defaults();
                 default -> throw new IllegalArgumentException("Unknown loadout operation");
             };
-            loadout.write(entries);
+            dev.stya.blockzone.data.persistence.CapabilityConfiguration.save(loadout, entries);
         } catch (RuntimeException exception) {
             source.sendFailure(Component.literal("Invalid loadout: " + exception.getMessage()));
             return 0;
         }
-        loadout.getHolder().saveConfig();
         source.sendSuccess(() -> Component.literal("Loadout saved; applies to the next match."), false);
         return 1;
     }

@@ -17,6 +17,9 @@ public final class BlockZone {
         context.getModEventBus().addListener(this::commonSetup);
     }
     private void commonSetup(net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent event) {
-        event.enqueueWork(dev.stya.blockzone.map.battlezone.capability.BattlezoneLoadoutCapability::register);
+        event.enqueueWork(() -> {
+            dev.stya.blockzone.map.battlezone.capability.BattlezoneLoadoutCapability.register();
+            dev.stya.blockzone.map.battlezone.capability.BattlezoneCombatCapability.register();
+        });
     }
 }

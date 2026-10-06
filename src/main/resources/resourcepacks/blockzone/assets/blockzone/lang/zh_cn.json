@@ -122,5 +122,8 @@
   "message.blockzone.expansion_removed": "已拆下扩容配件：2 个插板槽",
   "itemGroup.blockzone": "BlockZone",
   "pack.blockzone.description": "BlockZone 默认资源：装备、场景箱、运输机与伞具",
-  "pack.blockzone.title": "BlockZone 默认资源"
+  "pack.blockzone.title": "BlockZone 默认资源",
+  "hud.blockzone.downed": "已倒地 · 流血剩余 %s 秒",
+  "hud.blockzone.rescuing": "正在救援队友",
+  "hud.blockzone.rescue_hint": "靠近队友并保持蹲下 8 秒以救援"
 }

@@ -9,6 +9,10 @@ final class ClientPacketHandler {
     private ClientPacketHandler() {
     }
 
+    static void handle(RescueStateS2CPacket packet) {
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () ->
+                dev.stya.blockzone.client.battlezone.RescueClientState.apply(packet));
+    }
     static void handle(CombatStateS2CPacket packet) {
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () ->
                 dev.stya.blockzone.client.battlezone.CombatHud.setCombatState(packet.active(), packet.platePoints(), packet.plateSlots()));

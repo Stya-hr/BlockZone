@@ -122,5 +122,8 @@
   "message.blockzone.expansion_removed": "Expansion removed: 2 plate slots",
   "itemGroup.blockzone": "BlockZone",
   "pack.blockzone.description": "BlockZone default resources: equipment, loot crates, aircraft and parachutes",
-  "pack.blockzone.title": "BlockZone Default Resources"
+  "pack.blockzone.title": "BlockZone Default Resources",
+  "hud.blockzone.downed": "DOWNED · Bleed out in %s s",
+  "hud.blockzone.rescuing": "Reviving teammate",
+  "hud.blockzone.rescue_hint": "Crouch beside your teammate for 8 s to revive"
 }

@@ -30,12 +30,13 @@ public final class MatchCombatController {
     }
 
     public void tickRecovery(ServerPlayer player) {
-        if (MatchRegeneration.allowed(player)) return;
+        if (MatchRegeneration.allowed(player) || DownedController.down(player)) return;
         if (recovery.computeIfAbsent(player.getUUID(), id -> new CombatRecovery()).tick()
                 && player.isAlive() && player.getHealth() < player.getMaxHealth()) player.heal(health * 0.05F);
     }
 
     public void clear(ServerPlayer player) {
+        DownedController.clear(player);
         recovery.remove(player.getUUID());
         player.stopUsingItem();
         player.setAbsorptionAmount(0);

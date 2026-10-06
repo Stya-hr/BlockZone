@@ -19,6 +19,8 @@ public final class BlockZone {
         BlockzoneEntities.register(context.getModEventBus());
         context.getModEventBus().addListener(dev.stya.blockzone.resource.BlockzoneResources::addPackFinders);
         BattlezoneNetwork.register();
+        if (net.minecraftforge.fml.ModList.get().isLoaded("tacz"))
+            dev.stya.blockzone.combat.DownedGunEvents.register();
         context.getModEventBus().addListener(this::commonSetup);
     }
     private void commonSetup(net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent event) {

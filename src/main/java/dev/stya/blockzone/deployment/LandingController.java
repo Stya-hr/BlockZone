@@ -14,13 +14,18 @@ import net.minecraft.world.phys.Vec3;
 /** Reusable descent and first-landing protection for deployment and future airborne respawns. */
 public final class LandingController {
     private final Map<UUID, LandingState> players = new HashMap<>();
+    private final ParachuteAppearance appearances = new ParachuteAppearance();
 
     /** Call after positioning a living player in the air. Repeated calls preserve the original state. */
     public void begin(ServerPlayer player) {
         if (!player.isAlive() || player.isSpectator() || players.containsKey(player.getUUID())) {
             return;
         }
-        players.put(player.getUUID(), new LandingState(player));
+        int appearance = com.ptcrys.fpsmatch.core.FPSMCore.getInstance().getMapByPlayerWithSpec(player)
+                .flatMap(map -> map.getMapTeams().getTeamByPlayer(player))
+                .map(team -> appearances.forTeam(team.getName()))
+                .orElseGet(() -> appearances.forTeam(player.getUUID().toString()));
+        players.put(player.getUUID(), new LandingState(player, appearance));
         player.stopRiding();
         player.getAbilities().mayfly = true;
         player.getAbilities().flying = false;
@@ -31,7 +36,7 @@ public final class LandingController {
         player.setOnGround(false);
         player.setDeltaMovement(0, -0.8, 0);
         player.connection.send(new ClientboundSetEntityMotionPacket(player));
-        BattlezoneNetwork.send(player, new FlightStateS2CPacket(player.getUUID(), 3));
+        BattlezoneNetwork.send(player, new FlightStateS2CPacket(player.getUUID(), 3, 0, appearance));
     }
 
     public boolean toggleParachute(ServerPlayer player) {
@@ -45,7 +50,7 @@ public final class LandingController {
         }
         state.lastToggleTick = now;
         state.parachuteOpen = !state.parachuteOpen;
-        BattlezoneNetwork.send(player, new FlightStateS2CPacket(player.getUUID(), state.parachuteOpen ? 2 : 3));
+        BattlezoneNetwork.send(player, new FlightStateS2CPacket(player.getUUID(), state.parachuteOpen ? 2 : 3, 0, state.appearance));
         return true;
     }
 
@@ -97,10 +102,12 @@ public final class LandingController {
         for (LandingState state : List.copyOf(players.values())) {
             finish(state.player);
         }
+        appearances.reset();
     }
 
     private static final class LandingState {
         final ServerPlayer player;
+        final int appearance;
         final boolean mayfly;
         final boolean flying;
         final boolean noGravity;
@@ -109,7 +116,8 @@ public final class LandingController {
         final Pose pose;
         final net.minecraft.world.level.GameType gameMode;
 
-        LandingState(ServerPlayer player) {
+        LandingState(ServerPlayer player, int appearance) {
+            this.appearance = appearance;
             this.player = player;
             mayfly = player.getAbilities().mayfly;
             flying = player.getAbilities().flying;

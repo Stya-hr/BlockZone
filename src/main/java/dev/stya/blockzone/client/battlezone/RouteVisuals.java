@@ -82,7 +82,7 @@ public final class RouteVisuals {
             stack.mulPose(Axis.ZP.rotationDegrees((float) Math.sin(swing) * 2));
             stack.mulPose(Axis.XP.rotationDegrees((float) Math.cos(swing * .8) * 1.2f));
             light = LevelRenderer.getLightColor(minecraft.level, BlockPos.containing(position.add(0, 4, 0)));
-            AirborneModels.render(AirborneModels.PARACHUTE, 4, stack, vertices, light);
+            AirborneModels.renderParachute(4, stack, vertices, light, pose.appearance);
             stack.popPose();
         }
         buffers.endBatch(type);

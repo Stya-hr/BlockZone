@@ -3,6 +3,9 @@ package dev.stya.blockzone.client.battlezone.model;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import dev.stya.blockzone.BlockZone;
+import dev.stya.blockzone.deployment.ParachuteAppearance;
+import net.minecraft.core.Direction;
+import net.minecraft.util.RandomSource;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
@@ -48,6 +51,29 @@ public final class AirborneModels {
         stack.translate(-.5, -.5, -.5);
         minecraft.getBlockRenderer().getModelRenderer().renderModel(stack.last(), vertices, null, model,
                 1, 1, 1, light, OverlayTexture.NO_OVERLAY);
+        stack.popPose();
+    }
+
+    public static void renderParachute(float scale, PoseStack stack, VertexConsumer vertices,
+                                       int light, int appearance) {
+        var model = Minecraft.getInstance().getModelManager().getModel(PARACHUTE);
+        stack.pushPose();
+        stack.scale(scale, scale, scale);
+        model = model.applyTransform(ItemDisplayContext.FIXED, stack, false);
+        stack.translate(-.5, -.5, -.5);
+        var random = RandomSource.create();
+        // Include both culled and unculled faces, as the vanilla model renderer does.
+        for (int side = 0; side <= Direction.values().length; side++) {
+            random.setSeed(42);
+            Direction direction = side == Direction.values().length ? null : Direction.values()[side];
+            for (var quad : model.getQuads(null, direction, random)) {
+                int rgb = !quad.isTinted() ? 0xFFFFFF
+                        : ParachuteAppearance.accent(appearance, quad.getTintIndex())
+                        ? 0xF5F5F5 : ParachuteAppearance.color(appearance);
+                vertices.putBulkData(stack.last(), quad, ((rgb >> 16) & 255) / 255f,
+                        ((rgb >> 8) & 255) / 255f, (rgb & 255) / 255f, light, OverlayTexture.NO_OVERLAY);
+            }
+        }
         stack.popPose();
     }
 }

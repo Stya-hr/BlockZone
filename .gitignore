@@ -10,6 +10,11 @@
 # Editor and local machine files.
 /.idea/
 /.vscode/
+/.settings/
+/.eclipse/
+/.classpath
+/.project
+/*.launch
 *.iml
 *.log
 /logs/

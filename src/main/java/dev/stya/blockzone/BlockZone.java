@@ -1,7 +1,7 @@
 package dev.stya.blockzone;
 
 import net.minecraftforge.fml.common.Mod;
-import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
+import dev.stya.blockzone.net.BlockzoneNetwork;
 import dev.stya.blockzone.registry.BlockzoneBlockEntities;
 import dev.stya.blockzone.registry.BlockzoneBlocks;
 import dev.stya.blockzone.registry.BlockzoneEntities;
@@ -18,7 +18,7 @@ public final class BlockZone {
         BlockzoneBlockEntities.register(context.getModEventBus());
         BlockzoneEntities.register(context.getModEventBus());
         context.getModEventBus().addListener(dev.stya.blockzone.resource.BlockzoneResources::addPackFinders);
-        BattlezoneNetwork.register();
+        BlockzoneNetwork.register();
         if (net.minecraftforge.fml.ModList.get().isLoaded("tacz"))
             dev.stya.blockzone.combat.DownedGunEvents.register();
         context.getModEventBus().addListener(this::commonSetup);

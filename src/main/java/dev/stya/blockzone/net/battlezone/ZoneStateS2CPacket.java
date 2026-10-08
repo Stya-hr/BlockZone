@@ -51,7 +51,7 @@ public record ZoneStateS2CPacket(
 
     public void handle(Supplier<NetworkEvent.Context> contextSupplier) {
         NetworkEvent.Context context = contextSupplier.get();
-        context.enqueueWork(() -> ClientPacketHandler.handle(this));
+        context.enqueueWork(() -> BattlezoneClientPacketHandler.handle(this));
         context.setPacketHandled(true);
     }
 }

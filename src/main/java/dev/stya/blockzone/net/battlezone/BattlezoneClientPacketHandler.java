@@ -5,8 +5,8 @@ import dev.stya.blockzone.client.battlezone.DeploymentClientController;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
 
-final class ClientPacketHandler {
-    private ClientPacketHandler() {
+final class BattlezoneClientPacketHandler {
+    private BattlezoneClientPacketHandler() {
     }
 
     static void handle(RescueStateS2CPacket packet) {

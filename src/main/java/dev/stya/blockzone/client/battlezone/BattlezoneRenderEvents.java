@@ -9,13 +9,13 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(modid = BlockZone.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
-public final class ClientRenderEvents {
-    private ClientRenderEvents() {
+public final class BattlezoneRenderEvents {
+    private BattlezoneRenderEvents() {
     }
 
     @SubscribeEvent
     public static void render(RenderLevelStageEvent event) {
-        WorldRenderer.renderWorld(event);
+        BattlezoneWorldRenderer.renderWorld(event);
         dev.stya.blockzone.client.editor.PoisonWorldEditor.render(event);
     }
 

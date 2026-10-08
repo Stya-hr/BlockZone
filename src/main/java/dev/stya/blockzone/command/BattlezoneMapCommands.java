@@ -2,7 +2,7 @@ package dev.stya.blockzone.command;
 
 import dev.stya.blockzone.map.battlezone.BattlezoneMap;
 import dev.stya.blockzone.net.battlezone.BoundaryPreviewS2CPacket;
-import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
+import dev.stya.blockzone.net.BlockzoneNetwork;
 import dev.stya.blockzone.BlockZone;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -99,7 +99,7 @@ public final class BattlezoneMapCommands {
             return 0;
         }
         var area = map.getMapArea();
-        BattlezoneNetwork.send(player, new BoundaryPreviewS2CPacket(
+        BlockzoneNetwork.sendToPlayer(player, new BoundaryPreviewS2CPacket(
                 map.getServerLevel().dimension().location(), visible, area.pos1(), area.pos2()));
         context.getSource().sendSuccess(() -> Component.literal(
                 visible ? "Battlezone boundary preview enabled." : "Battlezone boundary preview disabled."), false);

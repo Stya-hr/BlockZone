@@ -20,7 +20,7 @@ public final class PlatingAnimation {
         if (event.phase != TickEvent.Phase.END) return;
         var mc = Minecraft.getInstance();
         if (mc.player == null || mc.screen != null) return;
-        while (EquipmentClientEvents.DETACH.consumeClick()) dev.stya.blockzone.net.battlezone.BattlezoneNetwork.detachArmor();
+        while (EquipmentClientEvents.DETACH.consumeClick()) dev.stya.blockzone.net.BlockzoneNetwork.sendToServer(new dev.stya.blockzone.net.battlezone.DetachArmorC2SPacket());
     }
     @SubscribeEvent public static void hand(RenderHandEvent event) {
         var mc = Minecraft.getInstance();

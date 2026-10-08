@@ -16,7 +16,7 @@ public record CombatStateS2CPacket(boolean active, float platePoints, int plateS
     }
     public void handle(Supplier<NetworkEvent.Context> supplier) {
         var context = supplier.get();
-        context.enqueueWork(() -> ClientPacketHandler.handle(this));
+        context.enqueueWork(() -> BattlezoneClientPacketHandler.handle(this));
         context.setPacketHandled(true);
     }
 }

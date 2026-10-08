@@ -9,27 +9,27 @@ class BattlezoneEliminationRuleTest {
     private final BattlezoneEliminationRule rule = new BattlezoneEliminationRule();
 
     @Test void onlyTheLastLivingTeamWins() {
-        assertTrue(rule.evaluate(new BattlezoneMatchContext(false, true, List.of("a", "b"))).isEmpty());
-        var result = rule.evaluate(new BattlezoneMatchContext(false, true, List.of("b"))).orElseThrow();
+        assertTrue(rule.evaluate(new BattlezoneEliminationContext(false, true, List.of("a", "b"))).isEmpty());
+        var result = rule.evaluate(new BattlezoneEliminationContext(false, true, List.of("b"))).orElseThrow();
         assertEquals("b", result.winner());
         assertEquals(BattlezoneResultReason.LAST_TEAM_STANDING, result.reason());
     }
 
     @Test void noLivingTeamsIsADraw() {
-        var result = rule.evaluate(new BattlezoneMatchContext(false, true, List.of())).orElseThrow();
+        var result = rule.evaluate(new BattlezoneEliminationContext(false, true, List.of())).orElseThrow();
         assertNull(result.winner());
         assertEquals(BattlezoneResultReason.DRAW, result.reason());
     }
 
     @Test void debugAndNonCombatPhasesDoNotEndTheMatch() {
-        assertTrue(rule.evaluate(new BattlezoneMatchContext(true, true, List.of("a"))).isEmpty());
-        assertTrue(rule.evaluate(new BattlezoneMatchContext(false, false, List.of("a"))).isEmpty());
-        assertTrue(rule.evaluate(new BattlezoneMatchContext(false, false, List.of())).isEmpty());
+        assertTrue(rule.evaluate(new BattlezoneEliminationContext(true, true, List.of("a"))).isEmpty());
+        assertTrue(rule.evaluate(new BattlezoneEliminationContext(false, false, List.of("a"))).isEmpty());
+        assertTrue(rule.evaluate(new BattlezoneEliminationContext(false, false, List.of())).isEmpty());
     }
 
     @Test void ruleInputKeepsItsCapturedRoster() {
         var teams = new ArrayList<>(List.of("a", "b"));
-        var context = new BattlezoneMatchContext(false, true, teams);
+        var context = new BattlezoneEliminationContext(false, true, teams);
         teams.clear();
         assertTrue(rule.evaluate(context).isEmpty());
         assertEquals(List.of("a", "b"), context.livingTeams());

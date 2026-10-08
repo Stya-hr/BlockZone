@@ -1,7 +1,7 @@
 package dev.stya.blockzone.zone;
 
 import dev.stya.blockzone.map.battlezone.BattlezoneMap;
-import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
+import dev.stya.blockzone.net.BlockzoneNetwork;
 import dev.stya.blockzone.net.battlezone.ZonePreviewS2CPacket;
 import java.util.ArrayList;
 import java.util.List;
@@ -68,7 +68,7 @@ public final class PoisonZoneController {
         if (number < 1 || number > paths.size()) return false;
         var circles = map.isMatchActive() && number == sequenceNumber ? state.sequence()
                 : resolvePath(paths.get(number - 1), number);
-        BattlezoneNetwork.send(player, new ZonePreviewS2CPacket(map.getServerLevel().dimension().location(), true, circles));
+        BlockzoneNetwork.sendToPlayer(player, new ZonePreviewS2CPacket(map.getServerLevel().dimension().location(), true, circles));
         player.sendSystemMessage(Component.literal("Sequence " + number + ": " + circles.size() + " circles (shape grid preview)"));
         for (int i = 0; i < circles.size(); i++) {
             var circle = circles.get(i);
@@ -79,7 +79,7 @@ public final class PoisonZoneController {
     }
 
     public void hidePreview(ServerPlayer player) {
-        BattlezoneNetwork.send(player, new ZonePreviewS2CPacket(map.getServerLevel().dimension().location(), false, List.of()));
+        BlockzoneNetwork.sendToPlayer(player, new ZonePreviewS2CPacket(map.getServerLevel().dimension().location(), false, List.of()));
     }
 
     public ZoneGeometry current() {

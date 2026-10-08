@@ -1,7 +1,7 @@
 package dev.stya.blockzone.combat;
 
 import dev.stya.blockzone.map.battlezone.BattlezoneMap;
-import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
+import dev.stya.blockzone.combat.CombatStateSync;
 import dev.stya.blockzone.net.battlezone.RescueStateS2CPacket;
 import java.util.*;
 import net.minecraft.server.level.ServerPlayer;
@@ -133,6 +133,6 @@ public final class DownedController {
         }
     }
     public static void sync(ServerPlayer player, int state, int bleed, int progress) {
-        BattlezoneNetwork.sendRescue(player, new RescueStateS2CPacket(player.getUUID(), state, bleed, progress));
+        CombatStateSync.sendRescue(player, new RescueStateS2CPacket(player.getUUID(), state, bleed, progress));
     }
 }

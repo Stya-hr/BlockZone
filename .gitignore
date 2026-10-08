@@ -1,6 +1,3 @@
-# Project documentation is kept outside Git history by request.
-/docs/
-
 # Gradle and Forge development output.
 /.gradle/
 /build/
@@ -8,6 +5,7 @@
 /run/
 /src/generated/
 /bin/
+/tmp/
 
 # Editor and local machine files.
 /.idea/

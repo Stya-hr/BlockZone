@@ -2,6 +2,7 @@ package dev.stya.blockzone.client.battlezone;
 
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
+import org.joml.Vector4f;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -17,12 +18,17 @@ class CameraGeometryTest {
     }
 
     @Test
-    void worldPositionRoundTripsThroughPitchYawAndForgeRoll() {
-        Matrix4f view = new Matrix4f().rotateZ(0.2F).rotateX(0.4F).rotateY(1.5F);
-        Vector3f world = new Vector3f(12, -6, 8);
-        Vector3f reconstructed = CameraGeometry.viewToWorld(view)
-                .transformDirection(view.transformDirection(new Vector3f(world)));
-        assertTrue(world.distance(reconstructed) < 1.0e-4F);
+    void worldPositionRoundTripsThroughPitchYawRollAndProjection() {
+        var view = new Matrix4f().rotateZ(0.2F).rotateX(0.4F).rotateY(1.5F);
+        var projection = new Matrix4f().perspective(1.2F, 1.7F, .05F, 512F);
+        var world = new Vector4f(12, -6, 8, 1);
+        var clip = new Matrix4f(projection).mul(view).transform(new Vector4f(world));
+        var reconstructed = CameraGeometry.viewToWorld(view)
+                .mul(new Matrix4f(projection).invert()).transform(clip);
+        reconstructed.div(reconstructed.w);
+        assertEquals(world.x, reconstructed.x, .002F);
+        assertEquals(world.y, reconstructed.y, .002F);
+        assertEquals(world.z, reconstructed.z, .002F);
     }
 
     private static void assertForward(float yaw, float pitch, float x, float y, float z) {

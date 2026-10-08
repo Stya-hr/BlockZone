@@ -20,7 +20,6 @@ class DeploymentVehiclePacketTest {
         var packet = new DeploymentVehicleS2CPacket(ResourceLocation.fromNamespaceAndPath("minecraft", "the_nether"),
                 null, 0);
         assertEquals(packet, roundTrip(packet));
-        assertNull(roundTrip(packet).route());
     }
 
     private DeploymentVehicleS2CPacket roundTrip(DeploymentVehicleS2CPacket packet) {

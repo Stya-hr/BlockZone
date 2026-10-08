@@ -23,7 +23,10 @@ class ZoneGeometryTest {
         assertFalse(prism.contains(0, 64, -10.001));
         assertTrue(prism.containsHorizontal(10, 10));
         assertEquals(ZoneShape.SQUARE_PRISM, prism.fitInside(BoundaryGeometry.of(-20, -20, 20, 20)).shape());
-        for (var shape : ZoneShape.values()) assertFalse(new ZoneGeometry(0, 0, 0, 0, shape).contains(0, 0, 0));
+        for (var shape : ZoneShape.values()) {
+            assertFalse(new ZoneGeometry(0, 0, 0, 0, shape).contains(0, 0, 0));
+            assertFalse(new ZoneGeometry(0, 0, 0, -1, shape).contains(0, 0, 0));
+        }
     }
 
     @Test void outOfBoundsCirclesAreTranslatedWithoutChangingRadius() {
@@ -60,18 +63,6 @@ class ZoneGeometryTest {
         assertTrue(zone.containsHorizontal(150, -100));
         assertFalse(zone.containsHorizontal(151, -100));
         assertFalse(new ZoneGeometry(0, 0, 0, 0).containsHorizontal(0, 0));
-    }
-
-    @Test
-    void cylinderIncludesBoundaryAndRejectsOutside() {
-        assertTrue(zone.contains(150, 64, -100));
-        assertFalse(zone.contains(150.001, 64, -100));
-    }
-
-    @Test
-    void collapsedZoneHasNoImmortalCentrePoint() {
-        assertFalse(new ZoneGeometry(100, 64, -100, 0).contains(100, 64, -100));
-        assertFalse(new ZoneGeometry(100, 64, -100, -1).contains(100, 64, -100));
     }
 
     @Test

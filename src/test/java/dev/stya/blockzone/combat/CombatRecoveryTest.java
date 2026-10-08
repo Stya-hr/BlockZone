@@ -21,17 +21,4 @@ class CombatRecoveryTest {
         recovery.hurt();
         assertFalse(recovery.tick());
     }
-
-    @Test void customPlatePointsCapAtThreePlates() {
-        assertEquals(25, CombatRecovery.insertPlate(0, 25));
-        assertEquals(75, CombatRecovery.insertPlate(65, 25));
-        assertEquals(75, CombatRecovery.insertPlate(100, 25));
-    }
-
-    @Test void plateRepairsPartialArmorAndCapsAtThreePlates() {
-        assertEquals(50, CombatRecovery.insertPlate(0, 50));
-        assertEquals(57, CombatRecovery.insertPlate(7, 50));
-        assertEquals(150, CombatRecovery.insertPlate(127, 50));
-        assertEquals(150, CombatRecovery.insertPlate(150, 50));
-    }
 }

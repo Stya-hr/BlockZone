@@ -1,6 +1,8 @@
 # BlockZone
 
-基于 Minecraft Forge 和 FPSMatch 的大逃杀玩法模组，玩法方向对齐《战地 6》的大逃杀模式，目前处于开发阶段。
+![WIP](https://img.shields.io/badge/🚧_WIP-Under_Construction-yellow?style=for-the-badge&labelColor=black)
+
+基于 Minecraft Forge 和 FPSMatch 的大逃杀玩法模组，玩法方向对齐《战地 6》的大逃杀模式。
 
 ## 功能
 
@@ -29,9 +31,3 @@
 构建产物位于 `build/libs/`。客户端和服务端运行目录分别为 `run/client/` 与 `run/server/`，地图需要通过 FPSMatch 配置。
 
 客户端测试流程见 [AGENTS.md](AGENTS.md)，提交规范见 [CONTRIBUTING.md](CONTRIBUTING.md)。
-
-## 状态
-
-已验证单客户端部署、结算、编辑器保存、开箱及场景和玩家状态恢复。多人交战、倒地救援等流程仍需进一步测试。
-
-本项目采用 All Rights Reserved。

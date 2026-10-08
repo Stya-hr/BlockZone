@@ -39,8 +39,8 @@ public final class PoisonWorldEditor {
                 JsonParser.parseString(packet.pathsJson())).getOrThrow(false, m -> {}));
         savedJson = PoisonEditorSessions.json(draft.paths());
         saving = false; message = "";
-        if (!PoisonEditorCamera.start()) message = Component.translatable("editor.blockzone.camera_busy").getString();
         mc.setScreen(new PoisonEditorScreen());
+        if (!PoisonEditorCamera.start()) message = Component.translatable("editor.blockzone.camera_busy").getString();
     }
     public static boolean hasFreeCamera() { return session != null && PoisonEditorCamera.active(); }
     static BoundaryGeometry bounds() {
@@ -124,13 +124,18 @@ public final class PoisonWorldEditor {
         var mc = Minecraft.getInstance();
         if (session == null || mc.screen != null) return;
         var graphics = event.getGuiGraphics();
-        graphics.fill(6, 6, 440, 63, 0xb0000000);
-        graphics.drawString(mc.font, Component.translatable("editor.blockzone.observing", draft.sequence()+1, draft.circle()+1,
-                String.format(java.util.Locale.ROOT, "%.1f", draft.selected().radius())), 10, 10, 0xffffff);
-        graphics.drawString(mc.font, Component.translatable("editor.blockzone.world_controls"), 10, 25, 0xffffff);
+        int panelWidth = Math.min(420, mc.getWindow().getGuiScaledWidth() - 16);
+        var controls = mc.font.split(Component.translatable("editor.blockzone.world_controls"), panelWidth - 24);
+        int lines = Math.min(2, controls.size());
+        EditorUi.panel(graphics, 8, 8, panelWidth, 43 + lines * 11);
+        graphics.fill(8, 8, 10, 51 + lines * 11, EditorUi.ACCENT);
+        EditorUi.text(graphics, mc.font, Component.translatable("editor.blockzone.observing", draft.sequence()+1, draft.circle()+1,
+                String.format(java.util.Locale.ROOT, "%.1f", draft.selected().radius())), 20, 17, panelWidth - 24, EditorUi.TEXT);
+        for (int i = 0; i < lines; i++)
+            graphics.drawString(mc.font, controls.get(i), 20, 32 + i * 11, EditorUi.MUTED, false);
         var position = PoisonEditorCamera.position();
-        if (position != null) graphics.drawString(mc.font, Component.translatable("editor.blockzone.camera_position",
+        if (position != null) EditorUi.text(graphics, mc.font, Component.translatable("editor.blockzone.camera_position",
                 String.format(java.util.Locale.ROOT, "%.1f", position.x), String.format(java.util.Locale.ROOT, "%.1f", position.y),
-                String.format(java.util.Locale.ROOT, "%.1f", position.z)), 10, 43, 0x80ffff);
+                String.format(java.util.Locale.ROOT, "%.1f", position.z)), 20, 36 + lines * 11, panelWidth - 24, EditorUi.ACCENT);
     }
 }

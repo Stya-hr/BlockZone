@@ -29,3 +29,10 @@ mandatory=true
 versionRange="[${fpsmatch_version},)"
 ordering="AFTER"
 side="BOTH"
+
+[[dependencies.${mod_id}]]
+modId="tacz"
+mandatory=true
+versionRange="[1.1.7,)"
+ordering="AFTER"
+side="BOTH"

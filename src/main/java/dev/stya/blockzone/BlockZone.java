@@ -17,7 +17,6 @@ public final class BlockZone {
         BlockzoneItems.register(context.getModEventBus());
         BlockzoneBlockEntities.register(context.getModEventBus());
         BlockzoneEntities.register(context.getModEventBus());
-        context.getModEventBus().addListener(dev.stya.blockzone.resource.BlockzoneResources::addPackFinders);
         BattlezoneNetwork.register();
         if (net.minecraftforge.fml.ModList.get().isLoaded("tacz"))
             dev.stya.blockzone.combat.DownedGunEvents.register();

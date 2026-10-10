@@ -152,6 +152,7 @@ public final class EditorPanel extends Fragment {
     Button button(LinearLayout parent, String value, Runnable handler) {
         var button = new Button(requireContext()); button.setText(value); button.setTextSize(12);
         button.setMinHeight(button.dp(30)); button.setMinimumWidth(0);
+        styleButton(button);
         button.setOnClickListener(v -> action(handler));
         var params = new LinearLayout.LayoutParams(0, WRAP_CONTENT, 1); params.setMargins(0, 0, button.dp(3), button.dp(3));
         parent.addView(button, params); return button;
@@ -238,9 +239,25 @@ public final class EditorPanel extends Fragment {
         for (String key : keys) label(content, tr(key), 12);
         content.setVisibility(helpOpen ? View.VISIBLE : View.GONE);
         var toggle = new Button(requireContext()); toggle.setText(tr("editor.blockzone.ui.help")); toggle.setTextSize(12);
+        styleButton(toggle);
         toggle.setOnClickListener(v -> { helpOpen = !helpOpen; content.setVisibility(helpOpen ? View.VISIBLE : View.GONE); });
         body.addView(toggle, new LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT));
         body.addView(content, new LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT));
+    }
+    private void styleButton(Button button) {
+        int enabled = icyllis.modernui.R.attr.state_enabled;
+        int pressed = icyllis.modernui.R.attr.state_pressed;
+        int hovered = icyllis.modernui.R.attr.state_hovered;
+        int focused = icyllis.modernui.R.attr.state_focused;
+        var states = new int[][]{{-enabled}, {pressed}, {focused}, {hovered}, {}};
+        var background = new GradientDrawable();
+        background.setCornerRadius(button.dp(5));
+        background.setColor(new icyllis.modernui.util.ColorStateList(states,
+                new int[]{0xff29323c, 0xff344453, 0xff4b6074, 0xff4a5a6b, 0xff3b4958}));
+        background.setStroke(button.dp(1), new icyllis.modernui.util.ColorStateList(states,
+                new int[]{0xff1b232c, 0xff111923, 0xff83b8e7, 0xff17222d, 0xff17222d}));
+        button.setBackground(background);
+        button.setPadding(button.dp(8), button.dp(5), button.dp(8), button.dp(5));
     }
     static void background(View view, int color) {
         var bg = new GradientDrawable(); bg.setColor(color); bg.setCornerRadius(view.dp(6)); view.setBackground(bg);

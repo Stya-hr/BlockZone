@@ -49,6 +49,7 @@ public final class LootCrateEditorScreen extends ModernEditorScreen {
     @Override void buildPanel(EditorPanel ui) {
         var state = panelState;
         var body = ui.body();
+        ui.section("target");
         ui.field(ui.row(body), text("filter").getString(), state.filter(), 256, value -> {
             if (saving) return;
             filterValue = value; draft.filter(value); snapshot();
@@ -56,6 +57,10 @@ public final class LootCrateEditorScreen extends ModernEditorScreen {
         var views = ui.row(body);
         ui.button(views, text("overview").getString(), () -> list = false);
         ui.button(views, text("list").getString(), () -> list = true);
+        var selection = ui.row(body);
+        ui.button(selection, text("all").getString(), () -> { if (!saving) draft.selectAll(); });
+        ui.button(selection, text("clear").getString(), () -> { if (!saving) draft.clearSelection(); });
+        ui.section("loot_settings");
         ui.field(ui.row(body), text("table").getString(), state.table(), 256, value -> { if (!saving) { tableValue = value; snapshot(); } });
         ui.button(ui.row(body), text("choose").getString(), () -> {
             if (!saving) { snapshot(); minecraft.setScreen(new LootTablePickerScreen(this, packet.tables())); }
@@ -64,9 +69,6 @@ public final class LootCrateEditorScreen extends ModernEditorScreen {
         ui.check(text("enabled").getString(), state.enabled(), value -> { if (!saving) { enabledValue = value; snapshot(); } });
         ui.check(text("close").getString(), state.close(), value -> { if (!saving) { closeValue = value; snapshot(); } });
         ui.button(ui.row(body), text("apply").getString(), this::apply);
-        var selection = ui.row(body);
-        ui.button(selection, text("all").getString(), () -> { if (!saving) draft.selectAll(); });
-        ui.button(selection, text("clear").getString(), () -> { if (!saving) draft.clearSelection(); });
         ui.help("editor.blockzone.loot.camera_hint", "editor.blockzone.loot.hint", "editor.blockzone.loot.snapshot_hint");
     }
     private void apply() {

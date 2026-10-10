@@ -103,10 +103,12 @@ public final class EditorPanel extends Fragment {
         panel.addView(scroll, new LinearLayout.LayoutParams(MATCH_PARENT, 0, 1));
         body = column(); scroll.addView(body, new ScrollView.LayoutParams(MATCH_PARENT, WRAP_CONTENT));
         screen.buildPanel(this);
-        status = label(panel, "", 12); status.setTextColor(0xffffc060);
+        status = label(panel, "", 12); status.setTextColor(0xffb8c8d8);
+        divider(panel);
         var footer = row(panel);
-        save = screen.hasSaveAction() ? button(footer, tr("editor.blockzone.save"), this::screenSave) : null;
         button(footer, tr(screen.hasSaveAction() ? "editor.blockzone.exit" : "gui.back"), screen::onClose);
+        save = screen.hasSaveAction() ? button(footer, tr("editor.blockzone.save"), this::screenSave) : null;
+        if (save != null) accent(save, 0xff70b7ff);
         builtWidth = root.getWidth(); builtHeight = root.getHeight();
         var metrics = requireContext().getResources().getDisplayMetrics();
         builtDensity = metrics.density; builtScaledDensity = metrics.scaledDensity;
@@ -126,6 +128,22 @@ public final class EditorPanel extends Fragment {
         var row = new LinearLayout(requireContext()); row.setOrientation(LinearLayout.HORIZONTAL);
         parent.addView(row, new LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)); return row;
     }
+    private void divider(LinearLayout parent) {
+        var line = new View(requireContext()); background(line, 0xff34414e);
+        var params = new LinearLayout.LayoutParams(MATCH_PARENT, line.dp(1));
+        params.setMargins(0, line.dp(6), 0, line.dp(6)); parent.addView(line, params);
+    }
+    void section(String key) {
+        divider(body);
+        var title = label(body, tr("editor.blockzone.ui." + key), 12);
+        title.setTextColor(0xff83b8e7);
+    }
+    private void accent(Button button, int color) {
+        button.setTextColor(new icyllis.modernui.util.ColorStateList(
+                new int[][]{{-icyllis.modernui.R.attr.state_enabled}, {}},
+                new int[]{0xff687581, color}));
+    }
+    Button danger(Button button) { accent(button, 0xffff9b93); return button; }
     TextView label(LinearLayout parent, String value, int size) {
         var label = new TextView(requireContext()); label.setText(value); label.setTextSize(size); label.setTextColor(0xffe7eef4);
         label.setPadding(0, label.dp(4), 0, label.dp(4));
@@ -139,7 +157,9 @@ public final class EditorPanel extends Fragment {
         parent.addView(button, params); return button;
     }
     EditText field(LinearLayout parent, String caption, String value, int max, Consumer<String> changed) {
-        var box = column(); parent.addView(box, new LinearLayout.LayoutParams(0, WRAP_CONTENT, 1));
+        var box = column();
+        var boxParams = new LinearLayout.LayoutParams(0, WRAP_CONTENT, 1);
+        boxParams.setMargins(0, 0, box.dp(4), box.dp(5)); parent.addView(box, boxParams);
         label(box, caption, 12);
         var field = new EditText(requireContext()); field.setSingleLine(); field.setTextSize(13);
         field.setMinHeight(field.dp(30));

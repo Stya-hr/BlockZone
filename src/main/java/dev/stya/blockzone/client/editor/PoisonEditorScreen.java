@@ -44,30 +44,33 @@ public final class PoisonEditorScreen extends ModernEditorScreen {
         var state = panelState;
         if (state == null) return;
         var body = ui.body();
+        ui.section("target");
         var sequences = ui.row(body);
         ui.button(sequences, "‹", () -> change(() -> PoisonWorldEditor.draft.selectSequence(PoisonWorldEditor.draft.sequence()-1)));
         ui.label(sequences, state.sequence(), 12).setLayoutParams(new icyllis.modernui.widget.LinearLayout.LayoutParams(0, -2, 3));
         ui.button(sequences, "›", () -> change(() -> PoisonWorldEditor.draft.selectSequence(PoisonWorldEditor.draft.sequence()+1)));
         var sequenceActions = ui.row(body);
         ui.button(sequenceActions, EditorPanel.tr("editor.blockzone.copy_sequence"), () -> change(PoisonWorldEditor.draft::duplicateSequence));
-        ui.button(sequenceActions, EditorPanel.tr("editor.blockzone.delete_sequence"), () -> change(PoisonWorldEditor.draft::removeSequence));
+        ui.danger(ui.button(sequenceActions, EditorPanel.tr("editor.blockzone.delete_sequence"), () -> change(PoisonWorldEditor.draft::removeSequence)));
         var circles = ui.row(body);
         ui.button(circles, "‹", () -> change(() -> PoisonWorldEditor.draft.selectCircle(PoisonWorldEditor.draft.circle()-1)));
         ui.label(circles, state.circle(), 12).setLayoutParams(new icyllis.modernui.widget.LinearLayout.LayoutParams(0, -2, 3));
         ui.button(circles, "›", () -> change(() -> PoisonWorldEditor.draft.selectCircle(PoisonWorldEditor.draft.circle()+1)));
         var circleActions = ui.row(body);
         ui.button(circleActions, EditorPanel.tr("editor.blockzone.copy_circle"), () -> change(PoisonWorldEditor.draft::addCircle));
-        ui.button(circleActions, EditorPanel.tr("editor.blockzone.delete_circle"), () -> change(PoisonWorldEditor.draft::removeCircle));
-        for (int i = 0; i < 6; i += 2) {
+        ui.danger(ui.button(circleActions, EditorPanel.tr("editor.blockzone.delete_circle"), () -> change(PoisonWorldEditor.draft::removeCircle)));
+        for (int[] group : new int[][]{{0, 1}, {2}, {3, 4}, {5}}) {
+            if (group[0] == 0) ui.section("geometry");
+            if (group[0] == 3) ui.section("timing");
             var row = ui.row(body);
-            for (int j = i; j < i+2; j++) {
-                final int index = j;
-                ui.field(row, EditorPanel.tr(fieldKey(j)), state.values().get(j), 32, value -> {
+            for (int index : group) {
+                ui.field(row, EditorPanel.tr(fieldKey(index)), state.values().get(index), 32, value -> {
                     if (PoisonWorldEditor.saving) return;
                     fields.set(index, value); snapshot(); apply();
-                }).setTooltipText(EditorPanel.tr(fieldKey(j) + ".desc"));
+                }).setTooltipText(EditorPanel.tr(fieldKey(index) + ".desc"));
             }
         }
+        ui.section("arrangement");
         var order = ui.row(body);
         ui.button(order, EditorPanel.tr("editor.blockzone.move_up"), () -> change(() -> PoisonWorldEditor.draft.moveCircle(-1)));
         ui.button(order, EditorPanel.tr("editor.blockzone.move_down"), () -> change(() -> PoisonWorldEditor.draft.moveCircle(1)));

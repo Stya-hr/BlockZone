@@ -131,5 +131,10 @@
   "editor.blockzone.ui.normal": "普通箱子",
   "editor.blockzone.ui.opened": "已打开",
   "editor.blockzone.ui.loot": "战利品箱",
-  "editor.blockzone.ui.search_tables": "搜索 Loot Table"
+  "editor.blockzone.ui.search_tables": "搜索 Loot Table",
+  "editor.blockzone.ui.target": "编辑对象",
+  "editor.blockzone.ui.geometry": "位置与范围",
+  "editor.blockzone.ui.timing": "时序与伤害",
+  "editor.blockzone.ui.arrangement": "顺序与预览",
+  "editor.blockzone.ui.loot_settings": "战利品设置"
 }

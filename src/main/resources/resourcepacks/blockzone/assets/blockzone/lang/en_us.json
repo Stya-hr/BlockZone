@@ -131,5 +131,10 @@
   "editor.blockzone.ui.normal": "Normal",
   "editor.blockzone.ui.opened": "Opened",
   "editor.blockzone.ui.loot": "Loot",
-  "editor.blockzone.ui.search_tables": "Search loot tables"
+  "editor.blockzone.ui.search_tables": "Search loot tables",
+  "editor.blockzone.ui.target": "Selection",
+  "editor.blockzone.ui.geometry": "Position & size",
+  "editor.blockzone.ui.timing": "Timing & damage",
+  "editor.blockzone.ui.arrangement": "Order & preview",
+  "editor.blockzone.ui.loot_settings": "Loot settings"
 }

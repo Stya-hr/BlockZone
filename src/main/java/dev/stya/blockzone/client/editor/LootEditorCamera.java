@@ -8,7 +8,6 @@ import java.util.HashSet;
 import java.util.Set;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.EditBox;
 
 /** Uses FPSMatch ownership and input policy so editor navigation cannot move the player. */
 final class LootEditorCamera {
@@ -72,7 +71,7 @@ final class LootEditorCamera {
         if (action == org.lwjgl.glfw.GLFW.GLFW_RELEASE) { HELD.remove(key); return false; }
         if (!active()) return false;
         var mc = Minecraft.getInstance();
-        if (mc.screen instanceof LootCrateEditorScreen screen && screen.getFocused() instanceof EditBox) {
+        if (mc.screen instanceof LootCrateEditorScreen screen && screen.editingText()) {
             clearMovement(); return false;
         }
         if (mc.screen != null && !(mc.screen instanceof LootCrateEditorScreen)) { clearMovement(); return false; }
@@ -91,7 +90,7 @@ final class LootEditorCamera {
         if (!active()) { clearMovement(); return; }
         var mc = Minecraft.getInstance();
         if ((mc.screen != null && !(mc.screen instanceof LootCrateEditorScreen))
-                || (mc.screen instanceof LootCrateEditorScreen screen && screen.getFocused() instanceof EditBox)
+                || (mc.screen instanceof LootCrateEditorScreen screen && screen.editingText())
                 || (lastWindowActive && !mc.isWindowActive())) clearMovement();
         lastWindowActive = mc.isWindowActive();
         var options = mc.options;

@@ -125,5 +125,11 @@
   "pack.blockzone.title": "BlockZone 默认资源",
   "hud.blockzone.downed": "已倒地 · 流血剩余 %s 秒",
   "hud.blockzone.rescuing": "正在救援队友",
-  "hud.blockzone.rescue_hint": "靠近队友并保持蹲下 8 秒以救援"
+  "hud.blockzone.rescue_hint": "靠近队友并保持蹲下 8 秒以救援",
+  "editor.blockzone.ui.help": "操作帮助",
+  "editor.blockzone.ui.no_results": "没有匹配的 Loot Table",
+  "editor.blockzone.ui.normal": "普通箱子",
+  "editor.blockzone.ui.opened": "已打开",
+  "editor.blockzone.ui.loot": "战利品箱",
+  "editor.blockzone.ui.search_tables": "搜索 Loot Table"
 }

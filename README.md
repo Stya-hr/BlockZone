@@ -16,7 +16,10 @@
 - Java 17
 - Minecraft 1.20.1 / Forge 47.4.10
 - FPSMatch 1.3.0 Forge snapshot
-- TaCZ、Kotlin for Forge、Modern UI
+- TaCZ、Kotlin for Forge
+- 客户端需要 Modern UI 3.12.0.1 或更新版本（编辑器使用其控件与布局）
+
+编辑器保留原有命令入口、世界操作和保存流程；参数集中在可滚动侧栏，保存与退出固定在底部，操作说明可在“操作帮助”中展开。地图场景不使用全屏背景或模糊。
 
 开发依赖版本见 `gradle.properties`，Gradle 会解析开发运行所需依赖。
 

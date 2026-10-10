@@ -125,5 +125,11 @@
   "pack.blockzone.title": "BlockZone Default Resources",
   "hud.blockzone.downed": "DOWNED · Bleed out in %s s",
   "hud.blockzone.rescuing": "Reviving teammate",
-  "hud.blockzone.rescue_hint": "Crouch beside your teammate for 8 s to revive"
+  "hud.blockzone.rescue_hint": "Crouch beside your teammate for 8 s to revive",
+  "editor.blockzone.ui.help": "Controls & help",
+  "editor.blockzone.ui.no_results": "No matching loot tables",
+  "editor.blockzone.ui.normal": "Normal",
+  "editor.blockzone.ui.opened": "Opened",
+  "editor.blockzone.ui.loot": "Loot",
+  "editor.blockzone.ui.search_tables": "Search loot tables"
 }

@@ -7,69 +7,98 @@ import dev.stya.blockzone.zone.ZoneShape;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.ConfirmScreen;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.phys.Vec3;
 import org.lwjgl.glfw.GLFW;
 
 /** Transparent parameter panel with direct manipulation of the visible world. */
-public final class PoisonEditorScreen extends Screen {
+public final class PoisonEditorScreen extends ModernEditorScreen {
     private static final String[] FIELD_KEYS = {"x", "z", "radius", "waitSeconds", "shrinkSeconds", "damageMultiplier"};
     private static String fieldKey(int index) { return "setting.battlezone.poisonCircle." + FIELD_KEYS[index]; }
-    private final List<EditBox> fields = new ArrayList<>();
-    private int panel, panelScroll;
+    private final List<String> fields = new ArrayList<>();
+    private volatile PanelState panelState;
+    private record PanelState(String sequence, String circle, String shape, List<String> values) {}
+    private int panel;
     private boolean moving;
-    public PoisonEditorScreen() { super(Component.translatable("editor.blockzone.title")); }
-    @Override public boolean isPauseScreen() { return false; }
-    @Override protected void init() {
-        if (PoisonWorldEditor.draft == null) { onClose(); return; }
-        panel = width - 218; fields.clear();
-        var draft = PoisonWorldEditor.draft;
-        button(panel + 8, 27, 30, "<", () -> change(() -> draft.selectSequence(draft.sequence()-1)));
-        button(panel + 178, 27, 30, ">", () -> change(() -> draft.selectSequence(draft.sequence()+1)));
-        button(panel + 8, 51, 97, "editor.blockzone.copy_sequence", () -> change(draft::duplicateSequence));
-        button(panel + 111, 51, 97, "editor.blockzone.delete_sequence", () -> change(draft::removeSequence));
-        button(panel + 8, 77, 30, "<", () -> change(() -> draft.selectCircle(draft.circle()-1)));
-        button(panel + 178, 77, 30, ">", () -> change(() -> draft.selectCircle(draft.circle()+1)));
-        button(panel + 8, 101, 97, "editor.blockzone.copy_circle", () -> change(draft::addCircle));
-        button(panel + 111, 101, 97, "editor.blockzone.delete_circle", () -> change(draft::removeCircle));
-        var c = draft.selected();
-        String[] values = {Double.toString(c.x()), Double.toString(c.z()), Double.toString(c.radius()),
-                Integer.toString(c.waitSeconds()), Integer.toString(c.shrinkSeconds()), Double.toString(c.damageMultiplier())};
-        for (int i = 0; i < values.length; i++) {
-            var field = new EditBox(font, panel + 8 + (i % 2) * 103, 134 + (i / 2) * 32 - panelScroll, 97, 18,
-                    Component.translatable(fieldKey(i)));
-            field.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.translatable(fieldKey(i) + ".desc")));
-            field.setMaxLength(32); field.setValue(values[i]);
-            fields.add(addRenderableWidget(field));
-            field.setResponder(value -> { if (fields.size() == 6 && !PoisonWorldEditor.saving) apply(); });
-        }
-        button(panel + 8, 222, 97, "editor.blockzone.move_up", () -> change(() -> draft.moveCircle(-1)));
-        button(panel + 111, 222, 97, "editor.blockzone.move_down", () -> change(() -> draft.moveCircle(1)));
-        button(panel + 8, 246, 97, "editor.blockzone.observe", () -> { if (apply()) minecraft.setScreen(null); });
-        button(panel + 111, 246, 97, "editor.blockzone.save", () -> { if (apply()) PoisonWorldEditor.save(); });
-        button(panel + 8, 270, 200, "setting.battlezone.poisonShape." + draft.path().shape().id(),
-                () -> change(() -> draft.setShape(ZoneShape.values()[
-                        (draft.path().shape().ordinal() + 1) % ZoneShape.values().length])));
-        button(panel + 170, 3, 38, "editor.blockzone.exit", this::onClose);
+    public PoisonEditorScreen() {
+        super(Component.translatable("editor.blockzone.title"));
+        syncFields();
     }
-    private void button(int x, int y, int w, String key, Runnable action) {
-        addRenderableWidget(Button.builder(Component.translatable(key), b -> { if (!PoisonWorldEditor.saving) action.run(); })
-                .bounds(x, y - panelScroll, w, 20).build());
+    @Override protected void init() { if (PoisonWorldEditor.draft != null) snapshot(); super.init(); }
+    private void syncFields() {
+        if (PoisonWorldEditor.draft == null) return;
+        var c = PoisonWorldEditor.draft.selected();
+        fields.clear();
+        fields.addAll(List.of(Double.toString(c.x()), Double.toString(c.z()), Double.toString(c.radius()),
+                Integer.toString(c.waitSeconds()), Integer.toString(c.shrinkSeconds()), Double.toString(c.damageMultiplier())));
+        snapshot();
+    }
+    private void snapshot() {
+        var d = PoisonWorldEditor.draft;
+        panelState = new PanelState(EditorPanel.tr("editor.blockzone.sequence", d.sequence()+1, d.paths().size()),
+                EditorPanel.tr("editor.blockzone.circle", d.circle()+1, d.path().circles().size()),
+                EditorPanel.tr("setting.battlezone.poisonShape." + d.path().shape().id()), List.copyOf(fields));
+    }
+    @Override void buildPanel(EditorPanel ui) {
+        var state = panelState;
+        if (state == null) return;
+        var body = ui.body();
+        var sequences = ui.row(body);
+        ui.button(sequences, "‹", () -> change(() -> PoisonWorldEditor.draft.selectSequence(PoisonWorldEditor.draft.sequence()-1)));
+        ui.label(sequences, state.sequence(), 12).setLayoutParams(new icyllis.modernui.widget.LinearLayout.LayoutParams(0, -2, 3));
+        ui.button(sequences, "›", () -> change(() -> PoisonWorldEditor.draft.selectSequence(PoisonWorldEditor.draft.sequence()+1)));
+        var sequenceActions = ui.row(body);
+        ui.button(sequenceActions, EditorPanel.tr("editor.blockzone.copy_sequence"), () -> change(PoisonWorldEditor.draft::duplicateSequence));
+        ui.button(sequenceActions, EditorPanel.tr("editor.blockzone.delete_sequence"), () -> change(PoisonWorldEditor.draft::removeSequence));
+        var circles = ui.row(body);
+        ui.button(circles, "‹", () -> change(() -> PoisonWorldEditor.draft.selectCircle(PoisonWorldEditor.draft.circle()-1)));
+        ui.label(circles, state.circle(), 12).setLayoutParams(new icyllis.modernui.widget.LinearLayout.LayoutParams(0, -2, 3));
+        ui.button(circles, "›", () -> change(() -> PoisonWorldEditor.draft.selectCircle(PoisonWorldEditor.draft.circle()+1)));
+        var circleActions = ui.row(body);
+        ui.button(circleActions, EditorPanel.tr("editor.blockzone.copy_circle"), () -> change(PoisonWorldEditor.draft::addCircle));
+        ui.button(circleActions, EditorPanel.tr("editor.blockzone.delete_circle"), () -> change(PoisonWorldEditor.draft::removeCircle));
+        for (int i = 0; i < 6; i += 2) {
+            var row = ui.row(body);
+            for (int j = i; j < i+2; j++) {
+                final int index = j;
+                ui.field(row, EditorPanel.tr(fieldKey(j)), state.values().get(j), 32, value -> {
+                    if (PoisonWorldEditor.saving) return;
+                    fields.set(index, value); snapshot(); apply();
+                }).setTooltipText(EditorPanel.tr(fieldKey(j) + ".desc"));
+            }
+        }
+        var order = ui.row(body);
+        ui.button(order, EditorPanel.tr("editor.blockzone.move_up"), () -> change(() -> PoisonWorldEditor.draft.moveCircle(-1)));
+        ui.button(order, EditorPanel.tr("editor.blockzone.move_down"), () -> change(() -> PoisonWorldEditor.draft.moveCircle(1)));
+        ui.button(ui.row(body), state.shape(), () -> change(() -> PoisonWorldEditor.draft.setShape(ZoneShape.values()[
+                (PoisonWorldEditor.draft.path().shape().ordinal()+1) % ZoneShape.values().length])));
+        ui.button(ui.row(body), EditorPanel.tr("editor.blockzone.observe"), () -> { if (apply()) minecraft.setScreen(null); });
+        ui.help("editor.blockzone.drag_controls", "editor.blockzone.colors", "editor.blockzone.camera_controls");
+    }
+    void save() { if (apply()) PoisonWorldEditor.save(); }
+    @Override void updatePanel(EditorPanel ui) {
+        if (PoisonWorldEditor.draft == null) return;
+        String warning = PoisonWorldEditor.message;
+        var c = PoisonWorldEditor.draft.selected();
+        try {
+            var actual = new ZoneGeometry(c.x(), PoisonWorldEditor.y(), c.z(), c.radius(), PoisonWorldEditor.draft.path().shape()).fitInside(PoisonWorldEditor.bounds());
+            if (warning.isEmpty() && (actual.centerX()!=c.x() || actual.centerZ()!=c.z()))
+                warning = EditorPanel.tr("editor.blockzone.adjusted", String.format(java.util.Locale.ROOT, "%.2f", actual.centerX()),
+                        String.format(java.util.Locale.ROOT, "%.2f", actual.centerZ()));
+        } catch (IllegalArgumentException bad) { warning = EditorPanel.tr("editor.blockzone.too_large"); }
+        ui.status(warning, PoisonWorldEditor.dirty(), PoisonWorldEditor.saving);
     }
     private void change(Runnable action) {
         if (!apply()) return;
-        try { action.run(); rebuildWidgets(); }
+        try { action.run(); syncFields(); refreshPanel(); }
         catch (IllegalArgumentException invalid) { PoisonWorldEditor.message = invalid.getMessage(); }
     }
     private boolean apply() {
         if (fields.size() != 6 || PoisonWorldEditor.saving) return false;
         try {
             double x = number(0), z = number(1), radius = number(2), damage = number(5);
-            int wait = Integer.parseInt(fields.get(3).getValue()), transition = Integer.parseInt(fields.get(4).getValue());
+            int wait = Integer.parseInt(fields.get(3)), transition = Integer.parseInt(fields.get(4));
             if (radius < 0 || radius > 30000000 || wait < 0 || transition < 0 || wait > 1000000
                     || transition > 1000000 || damage < 0 || damage > Float.MAX_VALUE) throw new IllegalArgumentException();
             PoisonWorldEditor.draft.replace(new PoisonPath.Circle(x, z, radius, wait, transition, damage));
@@ -79,7 +108,7 @@ public final class PoisonEditorScreen extends Screen {
         }
     }
     private double number(int index) {
-        double value = Double.parseDouble(fields.get(index).getValue());
+        double value = Double.parseDouble(fields.get(index));
         if (!Double.isFinite(value)) throw new IllegalArgumentException(); return value;
     }
     @Override public void onClose() {
@@ -89,7 +118,7 @@ public final class PoisonEditorScreen extends Screen {
         if (c != null && fields.size() == 6) {
             String[] values = {Double.toString(c.x()), Double.toString(c.z()), Double.toString(c.radius()),
                     Integer.toString(c.waitSeconds()), Integer.toString(c.shrinkSeconds()), Double.toString(c.damageMultiplier())};
-            for (int i = 0; i < 6; i++) if (!values[i].equals(fields.get(i).getValue())) unapplied = true;
+            for (int i = 0; i < 6; i++) if (!values[i].equals(fields.get(i))) unapplied = true;
         }
         if (PoisonWorldEditor.dirty() || unapplied) {
             minecraft.setScreen(new ConfirmScreen(yes -> { if (yes) PoisonWorldEditor.discard(); else minecraft.setScreen(this); },
@@ -97,26 +126,7 @@ public final class PoisonEditorScreen extends Screen {
         } else PoisonWorldEditor.discard();
     }
     @Override public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        if (PoisonWorldEditor.draft == null) return;
-        g.fill(panel, 0, width, height, 0xd0182028);
-        g.drawString(font, title, panel + 8, 8 - panelScroll, 0xffffff);
-        var d = PoisonWorldEditor.draft;
-        g.drawCenteredString(font, Component.translatable("editor.blockzone.sequence", d.sequence()+1, d.paths().size()), panel + 108, 33 - panelScroll, 0xffffff);
-        g.drawCenteredString(font, Component.translatable("editor.blockzone.circle", d.circle()+1, d.path().circles().size()), panel + 108, 83 - panelScroll, 0xffffff);
-        for (int i = 0; i < 6; i++) g.drawString(font, Component.translatable(fieldKey(i)), panel + 8 + (i % 2) * 103, 123+(i / 2)*32 - panelScroll, 0xffffff);
-        g.fill(4, 4, Math.max(4, panel - 4), 65, 0xb0000000);
-        g.drawString(font, Component.translatable("editor.blockzone.drag_controls"), 8, 8, 0xffffff);
-        g.drawString(font, Component.translatable("editor.blockzone.colors"), 8, 24, 0xffffff);
-        g.drawString(font, Component.translatable("editor.blockzone.camera_controls"), 8, 40, 0xffffff);
-        var c = d.selected();
-        String warning = PoisonWorldEditor.message;
-        try {
-            var actual = new ZoneGeometry(c.x(), PoisonWorldEditor.y(), c.z(), c.radius(), PoisonWorldEditor.draft.path().shape()).fitInside(PoisonWorldEditor.bounds());
-            if (warning.isEmpty() && (actual.centerX()!=c.x() || actual.centerZ()!=c.z()))
-                warning = Component.translatable("editor.blockzone.adjusted", String.format(java.util.Locale.ROOT, "%.2f", actual.centerX()),
-                        String.format(java.util.Locale.ROOT, "%.2f", actual.centerZ())).getString();
-        } catch (IllegalArgumentException bad) { warning = Component.translatable("editor.blockzone.too_large").getString(); }
-        if (!warning.isEmpty()) g.drawWordWrap(font, Component.literal(warning), 8, 72, Math.max(80, panel - 16), 0xffc060);
+        panel = panelLeft();
         super.render(g, mouseX, mouseY, partialTick);
     }
     private Vec3 ground(double mouseX, double mouseY) {
@@ -130,9 +140,7 @@ public final class PoisonEditorScreen extends Screen {
         if (point == null) { PoisonWorldEditor.message = Component.translatable("editor.blockzone.look_down").getString(); return; }
         var c = PoisonWorldEditor.draft.selected();
         PoisonWorldEditor.setGeometry(point.x, point.z, c.radius());
-        var next = PoisonWorldEditor.draft.selected();
-        fields.get(0).setValue(Double.toString(next.x())); fields.get(1).setValue(Double.toString(next.z()));
-        fields.get(2).setValue(Double.toString(next.radius()));
+        syncFields(); fragment.syncValues(List.copyOf(fields));
     }
     @Override public boolean keyPressed(int key, int scan, int modifiers) {
         if (key == GLFW.GLFW_KEY_F6) { PoisonEditorCamera.focus(); return true; }
@@ -146,7 +154,7 @@ public final class PoisonEditorScreen extends Screen {
     @Override public void removed() { PoisonEditorCamera.clearMovement(); super.removed(); }
     @Override public boolean mouseClicked(double x, double y, int button) {
         if (x >= panel) { PoisonEditorCamera.clearMovement(); return super.mouseClicked(x,y,button); }
-        setFocused(null);
+        clearTextFocus();
         if (PoisonWorldEditor.saving) return true;
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && apply()) {
             moving = true; manipulate(x,y); return true;
@@ -167,11 +175,7 @@ public final class PoisonEditorScreen extends Screen {
         if (x < panel && apply()) {
             var c = PoisonWorldEditor.draft.selected();
             PoisonWorldEditor.setGeometry(c.x(),c.z(),c.radius()+delta*(hasControlDown()?10:1));
-            fields.get(2).setValue(Double.toString(PoisonWorldEditor.draft.selected().radius())); return true;
-        }
-        if (x >= panel && !PoisonWorldEditor.saving && apply()) {
-            panelScroll = net.minecraft.util.Mth.clamp(panelScroll - (int)(delta * 18), 0, Math.max(0, 294 - height));
-            rebuildWidgets(); return true;
+            syncFields(); fragment.syncValues(List.copyOf(fields)); return true;
         }
         return super.mouseScrolled(x,y,delta);
     }

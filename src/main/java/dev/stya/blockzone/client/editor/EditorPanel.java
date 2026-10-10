@@ -1,10 +1,6 @@
 package dev.stya.blockzone.client.editor;
 
 import icyllis.modernui.fragment.Fragment;
-import icyllis.modernui.graphics.drawable.GradientDrawable;
-import icyllis.modernui.text.Editable;
-import icyllis.modernui.text.InputFilter;
-import icyllis.modernui.text.TextWatcher;
 import icyllis.modernui.util.DataSet;
 import icyllis.modernui.view.*;
 import icyllis.modernui.widget.*;
@@ -22,14 +18,13 @@ public final class EditorPanel extends Fragment {
     private Button save;
     private volatile boolean updatePending;
     private ListView listView;
-    private RowAdapter listAdapter;
+    private EditorRowAdapter listAdapter;
     private java.util.List<ListRow> lastRows;
     record ListRow(String label, boolean selected, Runnable click) {}
     private int builtWidth, builtHeight;
     private float builtDensity, builtScaledDensity;
-    private boolean helpOpen;
-    private boolean syncing;
-    private final java.util.List<EditText> fields = new java.util.ArrayList<>();
+    private EditorControls controls;
+    private EditorForm form;
 
     EditorPanel(ModernEditorScreen screen) { this.screen = screen; }
     static String tr(String key, Object... args) { return Component.translatable(key, args).getString(); }
@@ -39,6 +34,8 @@ public final class EditorPanel extends Fragment {
         });
     }
     @Override public View onCreateView(LayoutInflater inflater, ViewGroup container, DataSet saved) {
+        controls = new EditorControls(requireContext(), this::action);
+        form = new EditorForm(requireContext(), controls, this::action, focused -> screen.textFocused = focused, form != null && form.helpOpen());
         root = new FrameLayout(requireContext());
         root.setFocusableInTouchMode(true);
         rebuild();
@@ -83,12 +80,14 @@ public final class EditorPanel extends Fragment {
     }
     private void rebuild() {
         root.removeAllViews();
-        fields.clear();
         listView = null; listAdapter = null; lastRows = null;
         screen.textFocused = false;
-        var panel = column();
-        panel.setPadding(panel.dp(10), panel.dp(8), panel.dp(10), panel.dp(8));
-        background(panel, 0xe8182028);
+        var sidebar = new EditorSidebar(requireContext(), controls, screen.getTitle().getString(),
+                tr(screen.hasSaveAction() ? "editor.blockzone.exit" : "gui.back"), tr("editor.blockzone.save"),
+                screen::onClose, screen.hasSaveAction() ? screen::save : null);
+        var panel = sidebar.view;
+        body = sidebar.body; status = sidebar.status; save = sidebar.save;
+        form.reset(body);
         var params = new FrameLayout.LayoutParams(panelWidth(), MATCH_PARENT, Gravity.RIGHT);
         root.addView(panel, params);
         panel.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob) -> {
@@ -97,18 +96,7 @@ public final class EditorPanel extends Fragment {
             screen.panelFraction = Math.min(1f, (float) target / Math.max(1, root.getWidth()));
             if (listView != null) sizeList();
         });
-        label(panel, screen.getTitle().getString(), 15);
-        var scroll = new ScrollView(requireContext());
-        scroll.setFillViewport(false);
-        panel.addView(scroll, new LinearLayout.LayoutParams(MATCH_PARENT, 0, 1));
-        body = column(); scroll.addView(body, new ScrollView.LayoutParams(MATCH_PARENT, WRAP_CONTENT));
         screen.buildPanel(this);
-        status = label(panel, "", 12); status.setTextColor(0xffb8c8d8);
-        divider(panel);
-        var footer = row(panel);
-        button(footer, tr(screen.hasSaveAction() ? "editor.blockzone.exit" : "gui.back"), screen::onClose);
-        save = screen.hasSaveAction() ? button(footer, tr("editor.blockzone.save"), this::screenSave) : null;
-        if (save != null) accent(save, 0xff70b7ff);
         builtWidth = root.getWidth(); builtHeight = root.getHeight();
         var metrics = requireContext().getResources().getDisplayMetrics();
         builtDensity = metrics.density; builtScaledDensity = metrics.scaledDensity;
@@ -117,65 +105,20 @@ public final class EditorPanel extends Fragment {
     private int panelWidth() {
         return root.getWidth() == 0 ? root.dp(280) : Math.max(1, Math.min(root.dp(280), Math.round(root.getWidth() * .35f)));
     }
-    private void screenSave() {
-        if (screen instanceof PoisonEditorScreen poison) poison.save();
-        else if (screen instanceof LootCrateEditorScreen loot) loot.save();
-    }
     LinearLayout body() { return body; }
     FrameLayout root() { return root; }
-    LinearLayout column() { var v = new LinearLayout(requireContext()); v.setOrientation(LinearLayout.VERTICAL); return v; }
-    LinearLayout row(LinearLayout parent) {
-        var row = new LinearLayout(requireContext()); row.setOrientation(LinearLayout.HORIZONTAL);
-        parent.addView(row, new LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)); return row;
-    }
-    private void divider(LinearLayout parent) {
-        var line = new View(requireContext()); background(line, 0xff34414e);
-        var params = new LinearLayout.LayoutParams(MATCH_PARENT, line.dp(1));
-        params.setMargins(0, line.dp(6), 0, line.dp(6)); parent.addView(line, params);
-    }
-    void section(String key) {
-        divider(body);
-        var title = label(body, tr("editor.blockzone.ui." + key), 12);
-        title.setTextColor(0xff83b8e7);
-    }
-    private void accent(Button button, int color) {
-        button.setTextColor(new icyllis.modernui.util.ColorStateList(
-                new int[][]{{-icyllis.modernui.R.attr.state_enabled}, {}},
-                new int[]{0xff687581, color}));
-    }
-    Button danger(Button button) { accent(button, 0xffff9b93); return button; }
-    TextView label(LinearLayout parent, String value, int size) {
-        var label = new TextView(requireContext()); label.setText(value); label.setTextSize(size); label.setTextColor(0xffe7eef4);
-        label.setPadding(0, label.dp(4), 0, label.dp(4));
-        parent.addView(label, new LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)); return label;
-    }
-    Button button(LinearLayout parent, String value, Runnable handler) {
-        var button = new Button(requireContext()); button.setText(value); button.setTextSize(12);
-        button.setMinHeight(button.dp(30)); button.setMinimumWidth(0);
-        styleButton(button);
-        button.setOnClickListener(v -> action(handler));
-        var params = new LinearLayout.LayoutParams(0, WRAP_CONTENT, 1); params.setMargins(0, 0, button.dp(3), button.dp(3));
-        parent.addView(button, params); return button;
-    }
+    LinearLayout column() { return controls.column(); }
+    LinearLayout row(LinearLayout parent) { return controls.row(parent); }
+    void section(String key) { controls.section(body, tr("editor.blockzone.ui." + key)); }
+    Button danger(Button button) { return controls.danger(button); }
+    TextView label(LinearLayout parent, String value, int size) { return controls.label(parent, value, size); }
+    Button button(LinearLayout parent, String value, Runnable handler) { return controls.button(parent, value, handler); }
     EditText field(LinearLayout parent, String caption, String value, int max, Consumer<String> changed) {
-        var box = column();
-        var boxParams = new LinearLayout.LayoutParams(0, WRAP_CONTENT, 1);
-        boxParams.setMargins(0, 0, box.dp(4), box.dp(5)); parent.addView(box, boxParams);
-        label(box, caption, 12);
-        var field = new EditText(requireContext()); field.setSingleLine(); field.setTextSize(13);
-        field.setMinHeight(field.dp(30));
-        field.setPadding(field.dp(6), field.dp(4), field.dp(6), field.dp(4));
-        background(field, 0xff101820); field.setFilters(new InputFilter.LengthFilter(max)); field.setText(value);
-        field.setOnFocusChangeListener((v, focused) -> screen.textFocused = focused);
-        field.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s,int start,int count,int after) {}
-            @Override public void onTextChanged(CharSequence s,int start,int before,int count) {
-                if (!syncing) { String value = s.toString(); action(() -> changed.accept(value)); }
-            }
-            @Override public void afterTextChanged(Editable s) {}
-        });
-        fields.add(field);
-        box.addView(field, new LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)); return field;
+        return form.field(parent, caption, value, max, changed);
+    }
+    void check(String caption, boolean value, Consumer<Boolean> changed) { form.check(caption, value, changed); }
+    void help(String... keys) {
+        form.help(tr("editor.blockzone.ui.help"), java.util.Arrays.stream(keys).map(EditorPanel::tr).toArray(String[]::new));
     }
     void showList(java.util.List<ListRow> rows, boolean visible) {
         var view = root;
@@ -185,8 +128,8 @@ public final class EditorPanel extends Fragment {
             if (!visible) { if (listView != null) listView.setVisibility(View.GONE); return; }
             if (listView == null) {
                 listView = new ListView(requireContext());
-                background(listView, 0xe8182028);
-                listAdapter = new RowAdapter(); listView.setAdapter(listAdapter);
+                EditorTheme.background(listView, 0xe8182028);
+                listAdapter = new EditorRowAdapter(requireContext()); listView.setAdapter(listAdapter);
                 listView.setOnItemClickListener((parent, child, position, id) -> action(listAdapter.rows.get(position).click()));
                 root.addView(listView, new FrameLayout.LayoutParams(1, MATCH_PARENT, Gravity.LEFT));
                 sizeList();
@@ -206,60 +149,8 @@ public final class EditorPanel extends Fragment {
         params.width = Math.max(1, Math.round(root.getWidth() * (1-screen.panelFraction)) - gap*2);
         params.setMargins(gap, gap, gap, gap); listView.setLayoutParams(params);
     }
-    private final class RowAdapter extends BaseAdapter {
-        java.util.List<ListRow> rows = java.util.List.of();
-        @Override public int getCount() { return rows.size(); }
-        @Override public ListRow getItem(int position) { return rows.get(position); }
-        @Override public long getItemId(int position) { return position; }
-        @Override public View getView(int position, View recycled, ViewGroup parent) {
-            var label = recycled instanceof TextView t ? t : new TextView(requireContext());
-            var row = rows.get(position);
-            label.setText(row.label()); label.setTextSize(13); label.setTextColor(0xffe7eef4);
-            label.setPadding(label.dp(10), label.dp(8), label.dp(10), label.dp(8));
-            background(label, row.selected() ? 0xff355d46 : 0x00182028);
-            return label;
-        }
-    }
     void syncValues(java.util.List<String> values) {
         var view = root;
-        if (view != null) view.post(() -> {
-            if (root != view || fields.size() != values.size()) return;
-            syncing = true;
-            try { for (int i = 0; i < values.size(); i++) fields.get(i).setText(values.get(i)); }
-            finally { syncing = false; }
-        });
-    }
-    void check(String caption, boolean value, Consumer<Boolean> changed) {
-        var check = new CheckBox(requireContext()); check.setText(caption); check.setTextSize(12); check.setChecked(value);
-        check.setOnCheckedChangeListener((v, selected) -> action(() -> changed.accept(selected)));
-        body.addView(check, new LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT));
-    }
-    void help(String... keys) {
-        var content = column();
-        for (String key : keys) label(content, tr(key), 12);
-        content.setVisibility(helpOpen ? View.VISIBLE : View.GONE);
-        var toggle = new Button(requireContext()); toggle.setText(tr("editor.blockzone.ui.help")); toggle.setTextSize(12);
-        styleButton(toggle);
-        toggle.setOnClickListener(v -> { helpOpen = !helpOpen; content.setVisibility(helpOpen ? View.VISIBLE : View.GONE); });
-        body.addView(toggle, new LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT));
-        body.addView(content, new LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT));
-    }
-    private void styleButton(Button button) {
-        int enabled = icyllis.modernui.R.attr.state_enabled;
-        int pressed = icyllis.modernui.R.attr.state_pressed;
-        int hovered = icyllis.modernui.R.attr.state_hovered;
-        int focused = icyllis.modernui.R.attr.state_focused;
-        var states = new int[][]{{-enabled}, {pressed}, {focused}, {hovered}, {}};
-        var background = new GradientDrawable();
-        background.setCornerRadius(button.dp(5));
-        background.setColor(new icyllis.modernui.util.ColorStateList(states,
-                new int[]{0xff29323c, 0xff344453, 0xff4b6074, 0xff4a5a6b, 0xff3b4958}));
-        background.setStroke(button.dp(1), new icyllis.modernui.util.ColorStateList(states,
-                new int[]{0xff1b232c, 0xff111923, 0xff83b8e7, 0xff17222d, 0xff17222d}));
-        button.setBackground(background);
-        button.setPadding(button.dp(8), button.dp(5), button.dp(8), button.dp(5));
-    }
-    static void background(View view, int color) {
-        var bg = new GradientDrawable(); bg.setColor(color); bg.setCornerRadius(view.dp(6)); view.setBackground(bg);
+        if (view != null) view.post(() -> { if (root == view) form.syncValues(values); });
     }
 }

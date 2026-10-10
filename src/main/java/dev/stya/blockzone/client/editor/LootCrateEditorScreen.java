@@ -80,7 +80,7 @@ public final class LootCrateEditorScreen extends ModernEditorScreen {
         } catch (NumberFormatException failure) { message = text("invalid_seed").getString(); }
         catch (IllegalArgumentException failure) { message = failure.getMessage(); }
     }
-    void save() {
+    @Override void save() {
         if (saving || !draft.dirty()) return;
         saving = true; message = text("saving").getString();
         BattlezoneNetwork.saveLootEditor(new SaveLootEditorC2SPacket(packet.token(), draft.changes()));

@@ -79,7 +79,7 @@ public final class PoisonEditorScreen extends ModernEditorScreen {
         ui.button(ui.row(body), EditorPanel.tr("editor.blockzone.observe"), () -> { if (apply()) minecraft.setScreen(null); });
         ui.help("editor.blockzone.drag_controls", "editor.blockzone.colors", "editor.blockzone.camera_controls");
     }
-    void save() { if (apply()) PoisonWorldEditor.save(); }
+    @Override void save() { if (apply()) PoisonWorldEditor.save(); }
     @Override void updatePanel(EditorPanel ui) {
         if (PoisonWorldEditor.draft == null) return;
         String warning = PoisonWorldEditor.message;

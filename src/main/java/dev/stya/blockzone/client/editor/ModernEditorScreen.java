@@ -23,6 +23,7 @@ public abstract class ModernEditorScreen extends Screen implements MuiScreen, Sc
     ModernEditorScreen(Component title) { super(title); }
     abstract void buildPanel(EditorPanel ui);
     void updatePanel(EditorPanel ui) {}
+    void save() {}
     boolean hasSaveAction() { return true; }
     final boolean editingText() { return textFocused; }
     final int panelLeft() { return Math.max(0, width - Math.round(width * panelFraction)); }

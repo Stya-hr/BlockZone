@@ -136,5 +136,7 @@
   "editor.blockzone.ui.geometry": "位置与范围",
   "editor.blockzone.ui.timing": "时序与伤害",
   "editor.blockzone.ui.arrangement": "顺序与预览",
-  "editor.blockzone.ui.loot_settings": "战利品设置"
+  "editor.blockzone.ui.loot_settings": "战利品设置",
+  "editor.blockzone.loot.selected_short": "已选 %s/%s",
+  "editor.blockzone.loot.changed_short": "待存 %s"
 }

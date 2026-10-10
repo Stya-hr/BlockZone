@@ -136,5 +136,7 @@
   "editor.blockzone.ui.geometry": "Position & size",
   "editor.blockzone.ui.timing": "Timing & damage",
   "editor.blockzone.ui.arrangement": "Order & preview",
-  "editor.blockzone.ui.loot_settings": "Loot settings"
+  "editor.blockzone.ui.loot_settings": "Loot settings",
+  "editor.blockzone.loot.selected_short": "Selected %s/%s",
+  "editor.blockzone.loot.changed_short": "Unsaved %s"
 }

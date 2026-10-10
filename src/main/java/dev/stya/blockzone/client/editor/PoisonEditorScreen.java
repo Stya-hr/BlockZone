@@ -90,7 +90,7 @@ public final class PoisonEditorScreen extends ModernEditorScreen {
                 warning = EditorPanel.tr("editor.blockzone.adjusted", String.format(java.util.Locale.ROOT, "%.2f", actual.centerX()),
                         String.format(java.util.Locale.ROOT, "%.2f", actual.centerZ()));
         } catch (IllegalArgumentException bad) { warning = EditorPanel.tr("editor.blockzone.too_large"); }
-        ui.status(warning, PoisonWorldEditor.dirty(), PoisonWorldEditor.saving);
+        ui.status("", warning, PoisonWorldEditor.dirty(), PoisonWorldEditor.saving);
     }
     private void change(Runnable action) {
         if (!apply()) return;

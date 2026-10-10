@@ -90,9 +90,8 @@ public final class LootCrateEditorScreen extends ModernEditorScreen {
                 entry.x() + ", " + entry.y() + ", " + entry.z() + " · "
                         + EditorPanel.tr("editor.blockzone.ui." + (!entry.enabled() ? "normal" : entry.opened() ? "opened" : "loot"))
                         + "\n" + entry.table(), draft.selected(entry), () -> { if (!saving) draft.toggle(entry); })).toList() : java.util.List.of(), list);
-        ui.status(EditorPanel.tr("editor.blockzone.loot.selected", draft.selectedCount(), draft.entries().size())
-                + " · " + EditorPanel.tr("editor.blockzone.loot.changed", draft.changes().size())
-                + "\n" + message, draft.dirty(), saving);
+        ui.status(EditorPanel.tr("editor.blockzone.loot.selected_short", draft.selectedCount(), draft.entries().size())
+                + " · " + EditorPanel.tr("editor.blockzone.loot.changed_short", draft.changes().size()), message, draft.dirty(), saving);
     }
     void pick(String value) { tableValue = value; snapshot(); minecraft.setScreen(this); }
     @Override protected void init() { snapshot(); super.init(); }

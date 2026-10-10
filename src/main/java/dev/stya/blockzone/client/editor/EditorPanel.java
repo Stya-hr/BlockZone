@@ -15,6 +15,7 @@ public final class EditorPanel extends Fragment {
     private volatile FrameLayout root;
     private LinearLayout body;
     private EditorStatusBar status;
+    private String lastFeedback = "";
     private Button save;
     private volatile boolean updatePending;
     private ListView listView;
@@ -65,11 +66,15 @@ public final class EditorPanel extends Fragment {
             updatePending = false;
         });
     }
-    void status(String value, boolean canSave, boolean busy) {
+    void status(String value, String feedback, boolean canSave, boolean busy) {
         var view = root;
         if (view != null) view.post(() -> {
             if (root != view) return;
             if (status != null) status.show(value);
+            if (!feedback.isEmpty() && !feedback.equals(lastFeedback)) {
+                Toast.makeText(requireContext(), feedback, Toast.LENGTH_LONG).show();
+            }
+            lastFeedback = feedback;
             if (listView != null) sizeList();
             if (save != null) save.setEnabled(canSave && !busy);
             if (body != null) enable(body, !busy);

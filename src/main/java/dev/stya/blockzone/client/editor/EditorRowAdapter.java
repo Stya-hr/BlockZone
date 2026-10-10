@@ -5,6 +5,9 @@ import icyllis.modernui.view.View;
 import icyllis.modernui.view.ViewGroup;
 import icyllis.modernui.widget.BaseAdapter;
 import icyllis.modernui.widget.TextView;
+import icyllis.modernui.widget.FrameLayout;
+
+import static icyllis.modernui.view.ViewGroup.LayoutParams.*;
 
 /** Recycled selection rows, independent of world/draft state. */
 final class EditorRowAdapter extends BaseAdapter {
@@ -15,11 +18,22 @@ final class EditorRowAdapter extends BaseAdapter {
     @Override public EditorPanel.ListRow getItem(int position) { return rows.get(position); }
     @Override public long getItemId(int position) { return position; }
     @Override public View getView(int position, View recycled, ViewGroup parent) {
-        var label = recycled instanceof TextView t ? t : new TextView(context);
+        FrameLayout item;
+        TextView label;
+        if (recycled instanceof FrameLayout frame) {
+            item = frame;
+            label = (TextView) frame.getChildAt(0);
+        } else {
+            item = new FrameLayout(context);
+            label = new TextView(context);
+            var params = new FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT);
+            params.setMargins(0, label.dp(2), 0, label.dp(2));
+            item.addView(label, params);
+        }
         var row = rows.get(position);
         label.setText(row.label()); label.setTextSize(13); label.setTextColor(0xffe7eef4);
-        label.setPadding(label.dp(10), label.dp(8), label.dp(10), label.dp(8));
+        label.setPadding(label.dp(10), label.dp(4), label.dp(10), label.dp(4));
         EditorTheme.background(label, row.selected() ? 0xff355d46 : 0x00182028);
-        return label;
+        return item;
     }
 }

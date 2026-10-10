@@ -135,7 +135,10 @@ public final class LootCrateEditorScreen extends ModernEditorScreen {
                 int x = (int)point.x(), y = (int)point.y();
                 graphics.renderOutline(x - 4, y - 4, 9, 9, draft.selected(entry) ? 0xff65e096 : 0xffd2ac61);
                 if (Math.abs(mouseX - x) <= 5 && Math.abs(mouseY - y) <= 5)
-                    graphics.renderTooltip(font, Component.literal(entry.x() + ", " + entry.y() + ", " + entry.z() + " | " + entry.block() + " | " + entry.table()), mouseX, mouseY);
+                    graphics.renderComponentTooltip(font, java.util.List.of(
+                            Component.literal(entry.x() + ", " + entry.y() + ", " + entry.z()),
+                            Component.literal(entry.block()),
+                            Component.literal(entry.table())), mouseX, mouseY);
             }
             if (dragging) graphics.renderOutline((int)Math.min(startX, endX), (int)Math.min(startY, endY),
                     (int)Math.abs(endX - startX) + 1, (int)Math.abs(endY - startY) + 1, 0xff65e096);

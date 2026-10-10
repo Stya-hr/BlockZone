@@ -89,11 +89,13 @@ public final class EditorPanel extends Fragment {
         body = sidebar.body; status = sidebar.status; save = sidebar.save;
         form.reset(body);
         var params = new FrameLayout.LayoutParams(panelWidth(), MATCH_PARENT, Gravity.RIGHT);
+        int gap = root.dp(8);
+        params.setMargins(0, gap, gap, gap);
         root.addView(panel, params);
         panel.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob) -> {
             int target = panelWidth();
             if (params.width != target) { params.width = target; panel.setLayoutParams(params); }
-            screen.panelFraction = Math.min(1f, (float) target / Math.max(1, root.getWidth()));
+            screen.panelFraction = Math.min(1f, (float) (target + gap) / Math.max(1, root.getWidth()));
             if (listView != null) sizeList();
         });
         screen.buildPanel(this);
@@ -103,7 +105,7 @@ public final class EditorPanel extends Fragment {
         action(() -> screen.updatePanel(this));
     }
     private int panelWidth() {
-        return root.getWidth() == 0 ? root.dp(280) : Math.max(1, Math.min(root.dp(280), Math.round(root.getWidth() * .35f)));
+        return root.getWidth() == 0 ? root.dp(280) : Math.max(1, Math.min(root.dp(280), Math.round(root.getWidth() * .35f) - root.dp(8)));
     }
     LinearLayout body() { return body; }
     FrameLayout root() { return root; }

@@ -7,7 +7,8 @@
 | `EditorTheme` | 按钮圆角、边框、背景和交互状态，公共背景与强调色 |
 | `EditorControls` | 按钮、文本、横纵布局、分隔线和表单分组 |
 | `EditorForm` | 带标签输入框、复选框、折叠帮助，以及输入同步和焦点状态 |
-| `EditorSidebar` | 标题、滚动内容、状态反馈和固定底部操作区 |
+| `EditorSidebar` | 标题、滚动内容和固定底部操作区 |
+| `EditorStatusBar` | 左下角两行状态：数量摘要、操作反馈；长消息可悬停查看全文 |
 | `EditorRowAdapter` | 可复用列表行和选择高亮 |
 | `EditorPanel` | Fragment 生命周期、组件组合入口、窗口适配和跨线程调度 |
 | `ModernEditorScreen` | Minecraft 与 Modern UI 的渲染和输入桥接 |

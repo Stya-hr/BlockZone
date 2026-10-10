@@ -14,7 +14,7 @@ public final class EditorPanel extends Fragment {
     private final ModernEditorScreen screen;
     private volatile FrameLayout root;
     private LinearLayout body;
-    private TextView status;
+    private EditorStatusBar status;
     private Button save;
     private volatile boolean updatePending;
     private ListView listView;
@@ -69,7 +69,8 @@ public final class EditorPanel extends Fragment {
         var view = root;
         if (view != null) view.post(() -> {
             if (root != view) return;
-            if (status != null && !status.getText().toString().equals(value)) status.setText(value);
+            if (status != null) status.show(value);
+            if (listView != null) sizeList();
             if (save != null) save.setEnabled(canSave && !busy);
             if (body != null) enable(body, !busy);
         });
@@ -86,16 +87,19 @@ public final class EditorPanel extends Fragment {
                 tr(screen.hasSaveAction() ? "editor.blockzone.exit" : "gui.back"), tr("editor.blockzone.save"),
                 screen::onClose, screen.hasSaveAction() ? screen::save : null);
         var panel = sidebar.view;
-        body = sidebar.body; status = sidebar.status; save = sidebar.save;
+        body = sidebar.body; save = sidebar.save;
         form.reset(body);
         var params = new FrameLayout.LayoutParams(panelWidth(), MATCH_PARENT, Gravity.RIGHT);
         int gap = root.dp(8);
         params.setMargins(0, gap, gap, gap);
         root.addView(panel, params);
+        status = new EditorStatusBar(controls, root);
+        status.view.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob) -> { if (listView != null) sizeList(); });
         panel.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob) -> {
             int target = panelWidth();
             if (params.width != target) { params.width = target; panel.setLayoutParams(params); }
             screen.panelFraction = Math.min(1f, (float) (target + gap) / Math.max(1, root.getWidth()));
+            status.resize(Math.max(0, root.getWidth() - target - gap));
             if (listView != null) sizeList();
         });
         screen.buildPanel(this);
@@ -135,6 +139,7 @@ public final class EditorPanel extends Fragment {
                 listView.setOnItemClickListener((parent, child, position, id) -> action(listAdapter.rows.get(position).click()));
                 root.addView(listView, new FrameLayout.LayoutParams(1, MATCH_PARENT, Gravity.LEFT));
                 sizeList();
+                root.bringChildToFront(status.view);
             }
             listView.setVisibility(View.VISIBLE);
             // The game supplies immutable labels and selection state; callbacks are never evaluated on the UI thread.
@@ -148,8 +153,11 @@ public final class EditorPanel extends Fragment {
     private void sizeList() {
         var params = (FrameLayout.LayoutParams) listView.getLayoutParams();
         int gap = root.dp(8);
-        params.width = Math.max(1, Math.round(root.getWidth() * (1-screen.panelFraction)) - gap*2);
-        params.setMargins(gap, gap, gap, gap); listView.setLayoutParams(params);
+        int width = Math.max(1, Math.round(root.getWidth() * (1-screen.panelFraction)) - gap*2);
+        int bottom = status.listBottomMargin();
+        if (params.width != width || params.bottomMargin != bottom) {
+            params.width = width; params.setMargins(gap, gap, gap, bottom); listView.setLayoutParams(params);
+        }
     }
     void syncValues(java.util.List<String> values) {
         var view = root;

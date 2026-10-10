@@ -31,12 +31,11 @@ final class EditorForm {
     EditText field(LinearLayout parent, String caption, String value, int max, Consumer<String> changed) {
         var box = controls.column();
         var boxParams = new LinearLayout.LayoutParams(0, WRAP_CONTENT, 1);
-        boxParams.setMargins(0, 0, box.dp(4), box.dp(5)); parent.addView(box, boxParams);
+        boxParams.setMargins(0, 0, box.dp(4), box.dp(3)); parent.addView(box, boxParams);
         controls.label(box, caption, 12);
-        var field = new EditText(context); field.setSingleLine(); field.setTextSize(13);
-        field.setMinHeight(field.dp(30));
-        field.setPadding(field.dp(6), field.dp(4), field.dp(6), field.dp(4));
-        EditorTheme.background(field, 0xff101820); field.setFilters(new InputFilter.LengthFilter(max)); field.setText(value);
+        var field = new EditText(context); field.setSingleLine();
+        EditorTheme.styleInput(field);
+        field.setFilters(new InputFilter.LengthFilter(max)); field.setText(value);
         field.setOnFocusChangeListener((v, focused) -> focus.accept(focused));
         field.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s,int start,int count,int after) {}

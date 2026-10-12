@@ -1,16 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="156" height="56" viewBox="0 0 156 56" fill="none">
-  <title>Assault rifle — M4 silhouette</title>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+  <title>Assault rifle</title>
   <g fill="#F3F7F8">
-    <!-- Flash hider, barrel and triangular front sight. -->
-    <path d="M2 21H10V27H2Z M10 23H34V26H10Z M25 23L30 10H33L36 23H32L31 16L28 23Z"/>
-    <!-- Ribbed handguard and continuous top rail. -->
-    <path d="M35 18H66V30H35Z M36 15H40V18H36Z M43 15H47V18H43Z M50 15H54V18H50Z M57 15H61V18H57Z M64 15H104V18H64Z"/>
-    <path fill-rule="evenodd" d="M66 18H102L107 23V31H95L90 35H73L68 30H66ZM78 21V25H94V21Z"/>
-    <!-- Carry handle with open center and adjustable shoulder stock. -->
-    <path fill-rule="evenodd" d="M73 15V9H99V15H95V12H77V15Z"/>
-    <path d="M106 23H129V27H106Z M122 20H150V23H155V39H149L137 31H122Z"/>
-    <!-- Box magazine, pistol grip and open trigger guard. -->
-    <path d="M69 32H81L80 42L76 51H64L68 41Z M96 33H105L110 49H99L93 39Z"/>
-    <path fill-rule="evenodd" d="M81 32H96V40H83ZM84 34V37H93V34Z"/>
+    <!-- Keep the original PNG's long barrel, front post, ribbed handguard, curved magazine, grip and stock. -->
+    <path d="M2 30H6V34H2Z M6 31H15V33H6Z M15 29L17 23H19L21 30V34H18V32H15Z"/>
+    <path d="M20 29H37V36H20Z M21 27H24V29H21Z M26 27H29V29H26Z M31 27H34V29H31Z M36 28H51V31H36Z"/>
+    <path fill-rule="evenodd" d="M36 30H49L51 32V38H45L43 40H38L36 37ZM39 32V34H46V32Z"/>
+    <path d="M49 32H61V34H63V39H60L55 36H49Z"/>
+    <!-- Curved magazine and pistol grip echo the distinctive original silhouette. -->
+    <path d="M38 38H43L42 43L39 48L35 47L33 45L36 41Z M45 38H49L52 46L48 48L45 42Z"/>
+    <path fill-rule="evenodd" d="M42 37H47V41H43ZM43 38.5V39.5H46V38.5Z"/>
   </g>
 </svg>

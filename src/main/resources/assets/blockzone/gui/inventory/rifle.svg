@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" width="312" height="113" viewBox="0 0 312 113" fill="none">
   <title>Assault rifle</title>
-  <g fill="#F3F7F8">
+  <g transform="translate(0 -15) scale(4.8 1.87)" fill="#F3F7F8">
     <!-- Barrel and front sight. -->
     <path d="M2 29.5H6.5V34.5H2Z M6.5 31H17V33H6.5Z"/>
     <path d="M16 30L18.4 23H20.5L22.4 30H20.5V35H17.8V31.5H16Z"/>

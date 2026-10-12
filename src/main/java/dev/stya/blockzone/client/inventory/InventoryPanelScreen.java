@@ -36,13 +36,13 @@ public final class InventoryPanelScreen extends Screen {
         for (int i = 0; i < 2; i++) {
             int x = 760 + 242 * i;
             slot(gui, x, 1060, 230, 112, false);
-            icon(gui, "rifle", x + 83, 1071, 64, 64, EMPTY_ICON_ALPHA);
+            icon(gui, "rifle", x + 37, 1075, 156, 56, EMPTY_ICON_ALPHA);
         }
         String[] items = {"grenade", "battery", "medkit", "plates"};
         for (int i = 0; i < items.length; i++) {
             int x = 1244 + 142 * i;
             slot(gui, x, 1060, 130, 112, false);
-            if (i == 0) icon(gui, items[i], x + 33, 1071, 64, 64, EMPTY_ICON_ALPHA);
+            if (i == 0) icon(gui, items[i], x + 54, 1080, 22, 46, EMPTY_ICON_ALPHA);
             else icon(gui, items[i], x + 45, 1086, 40, 42, EMPTY_ICON_ALPHA);
         }
         for (int i = 0; i < 5; i++) {

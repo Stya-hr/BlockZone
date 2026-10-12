@@ -95,8 +95,21 @@ dependencies {
     runtimeOnly fg.deobf("maven.modrinth:timeless-and-classics-zero:${tacz_version}")
     compileOnly fg.deobf("maven.modrinth:timeless-and-classics-zero:${tacz_version}")
     runtimeOnly fg.deobf("icyllis.modernui:ModernUI-Forge:${minecraft_version}-${modernui_forge_version}")
-    runtimeOnly "icyllis.modernui:ModernUI-Core:${modernui_core_version}"
-    runtimeOnly "icyllis.modernui:ModernUI-Markflow:${modernui_core_version}"
+    // Core libraries must be visible to Forge's game class loader.
+    minecraftLibrary("icyllis.modernui:ModernUI-Core:${modernui_core_version}") {
+        exclude group: 'org.apache.logging.log4j'
+        exclude group: 'com.google.code.findbugs', module: 'jsr305'
+        exclude group: 'org.jetbrains', module: 'annotations'
+        exclude group: 'com.ibm.icu', module: 'icu4j'
+        exclude group: 'it.unimi.dsi', module: 'fastutil'
+    }
+    minecraftLibrary("icyllis.modernui:ModernUI-Markflow:${modernui_core_version}") {
+        exclude group: 'org.apache.logging.log4j'
+        exclude group: 'com.google.code.findbugs', module: 'jsr305'
+        exclude group: 'org.jetbrains', module: 'annotations'
+        exclude group: 'com.ibm.icu', module: 'icu4j'
+        exclude group: 'it.unimi.dsi', module: 'fastutil'
+    }
 }
 
 tasks.named('processResources', ProcessResources).configure {

@@ -46,7 +46,19 @@
 | `@gun:tacz:ak47` | 由 FPSMatch 枪械适配器识别的具体枪型 ID |
 | `*` | 任意非空物品 |
 
-`limit` 为 1..1024，同时受物品自身最大堆叠数限制。不存在的物品或空标签不会匹配。
+`limit` 为未单独配置数量的物品提供默认上限。可选的 `item_limits` 为 `allowed` 中的
+选择器设置独立上限，例如同一医疗槽放金苹果最多 8 个、纸最多 16 个、蜂蜜瓶最多 2 个：
+
+```text
+/fpsm map modify battlezone <地图名> capability inventory slot item.medkit {"allowed":["minecraft:golden_apple","minecraft:paper","minecraft:honey_bottle"],"limit":4,"item_limits":{"minecraft:golden_apple":8,"minecraft:paper":16,"minecraft:honey_bottle":2}}
+```
+
+`item_limits` 的键必须与 `allowed` 中某个选择器完全一致，也支持标签、NBT 与枪型选择器。
+物品命中独立数量规则时覆盖 `limit`；命中多条独立数量规则时取最小值。
+旧配置不含 `item_limits` 时行为保持一致。每个槽位仍只存一叠物品，数量限制按该槽位计算，
+不是跨槽位的总携带量限制。
+
+所有数量上限为 1..1024，同时受物品自身最大堆叠数限制。不存在的物品或空标签不会匹配。
 规则变严格或数量上限降低时，已经保存的物品不会被删除，仍可取出。
 
 ## 槽位 ID
@@ -97,6 +109,6 @@ TaCZ 的 `GunSmithTableIngredient` 只包装配方 Ingredient 和数量，都不
 ./gradlew runGameTestServer
 ```
 
-单元测试覆盖配置序列化、原子拒绝、槽位 ID、地图隔离与按局固定规则。
-GameTest 在 Forge 环境覆盖物品/NBT/标签筛选、模拟插入、堆叠限制、直接替换、
+单元测试覆盖配置序列化、旧配置兼容、错误数量配置的原子拒绝、槽位 ID、地图隔离与按局固定规则。
+GameTest 在 Forge 环境覆盖物品/NBT/标签筛选、不同物品的独立上限、重叠数量规则、模拟插入、堆叠限制、直接替换、
 规则收紧后的物品保留与取出，以及固定大小的 NBT 存储。

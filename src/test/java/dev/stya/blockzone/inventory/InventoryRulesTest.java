@@ -8,6 +8,31 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class InventoryRulesTest {
+    @Test void itemLimitsRoundTripAndOldConfigurationsKeepTheirFallback() {
+        var cap = new BattlezoneInventoryCapability(null);
+        var definition = new InventoryRules.Definition(List.of("minecraft:golden_apple", "minecraft:paper"), 4,
+                Map.of("minecraft:golden_apple", 8, "minecraft:paper", 16));
+        cap.write(cap.read().withSlot(InventorySlot.MEDKIT, definition));
+        var restored = new BattlezoneInventoryCapability(null);
+        restored.decode(cap.toJson());
+        assertEquals(cap.read(), restored.read());
+        assertThrows(UnsupportedOperationException.class, () -> definition.itemLimits().clear());
+        restored.decode(JsonParser.parseString("{\"item.medkit\":{\"allowed\":[\"minecraft:paper\"],\"limit\":4}}"));
+        assertTrue(restored.read().slots().get("item.medkit").itemLimits().isEmpty());
+        assertEquals(4, restored.rule(InventorySlot.MEDKIT).limit());
+    }
+
+    @Test void invalidItemLimitsCannotChangeCapability() {
+        var cap = new BattlezoneInventoryCapability(null);
+        var before = cap.read();
+        for (String overrides : List.of("{\"minecraft:paper\":0}", "{\"minecraft:paper\":1025}",
+                "{\"minecraft:stone\":8}", "{\"minecraft:paper\":\"bad\"}", "[]", "null")) {
+            String json = "{\"item.medkit\":{\"allowed\":[\"minecraft:paper\"],\"limit\":4,\"item_limits\":" + overrides + "}}";
+            assertThrows(RuntimeException.class, () -> cap.decode(JsonParser.parseString(json)), overrides);
+            assertEquals(before, cap.read());
+        }
+    }
+
     @Test void allPanelSlotsHaveStableUniqueIdsAndIndices() {
         assertEquals(17, InventorySlot.ALL.size());
         assertEquals(17, InventoryRules.defaults().slots().size());

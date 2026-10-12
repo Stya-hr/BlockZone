@@ -23,6 +23,49 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 public final class InventoryGameTests {
 
     @GameTest(template = "empty")
+    public static void differentItemsHaveIndependentLimitsAndNativeStackCaps(GameTestHelper helper) {
+        var rule = SlotRule.parse(List.of("minecraft:golden_apple", "minecraft:paper", "minecraft:stick", "minecraft:iron_sword"),
+                4, Map.of("minecraft:golden_apple", 8, "minecraft:paper", 16, "minecraft:iron_sword", 2));
+        var inventory = new PanelInventory(slot -> rule);
+        assertEquals(2, inventory.insertItem(0, new ItemStack(Items.GOLDEN_APPLE, 10), true).getCount());
+        assertTrue(inventory.getStackInSlot(0).isEmpty());
+        assertEquals(2, inventory.insertItem(0, new ItemStack(Items.GOLDEN_APPLE, 10), false).getCount());
+        assertEquals(8, inventory.getStackInSlot(0).getCount());
+        assertEquals(4, inventory.insertItem(1, new ItemStack(Items.PAPER, 20), false).getCount());
+        assertEquals(16, inventory.getStackInSlot(1).getCount());
+        assertEquals(2, inventory.insertItem(2, new ItemStack(Items.STICK, 6), false).getCount());
+        assertEquals(1, inventory.insertItem(3, new ItemStack(Items.IRON_SWORD, 2), false).getCount());
+        assertThrows(IllegalArgumentException.class, () -> inventory.setStackInSlot(0, new ItemStack(Items.GOLDEN_APPLE, 9)));
+        assertThrows(IllegalArgumentException.class, () -> inventory.setStackInSlot(3, new ItemStack(Items.IRON_SWORD, 2)));
+        inventory.extractItem(0, 8, false);
+        inventory.setStackInSlot(0, new ItemStack(Items.PAPER, 16));
+        assertEquals(16, inventory.getStackInSlot(0).getCount());
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void overlappingNbtRulesUseStrictestOverrideAndTighteningPreservesItems(GameTestHelper helper) throws Exception {
+        var definition = new InventoryRules.Definition(List.of("minecraft:paper", "minecraft:paper{medical:1}"), 4,
+                Map.of("minecraft:paper", 16, "minecraft:paper{medical:1}", 2));
+        var cap = new BattlezoneInventoryCapability(null);
+        cap.write(cap.read().withSlot(InventorySlot.MEDKIT, definition));
+        var inventory = cap.createInventory();
+        var medical = new ItemStack(Items.PAPER, 5);
+        medical.setTag(TagParser.parseTag("{medical:1,extra:3}"));
+        int slot = InventorySlot.MEDKIT.index();
+        assertEquals(3, inventory.insertItem(slot, medical, false).getCount());
+        assertEquals(2, inventory.getStackInSlot(slot).getCount());
+        var saved = inventory.serializeNBT();
+        cap.write(cap.read().withSlot(InventorySlot.MEDKIT,
+                new InventoryRules.Definition(definition.allowed(), 4, Map.of("minecraft:paper", 1))));
+        inventory.deserializeNBT(saved);
+        assertEquals(2, inventory.getStackInSlot(slot).getCount());
+        assertEquals(5, inventory.insertItem(slot, medical, false).getCount());
+        assertEquals(2, inventory.extractItem(slot, 2, false).getCount());
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty")
     public static void vanillaPredicateMatchesItemAndPartialNbtButRejectsUnknownIds(GameTestHelper helper) throws Exception {
         var selector = ItemSelector.parse("minecraft:stick{custom:{kind:\"medical\"}}");
         var stack = new ItemStack(Items.STICK);

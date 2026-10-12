@@ -21,14 +21,19 @@ public final class PanelInventory extends ItemStackHandler {
 
     @Override
     public int getSlotLimit(int slot) {
-        return rules.apply(InventorySlot.byIndex(slot)).limit();
+        return rules.apply(InventorySlot.byIndex(slot)).maximumLimit();
+    }
+
+    @Override
+    protected int getStackLimit(int slot, ItemStack stack) {
+        return Math.min(rules.apply(InventorySlot.byIndex(slot)).limitFor(stack), stack.getMaxStackSize());
     }
 
     @Override
     public void setStackInSlot(int slot, ItemStack stack) {
         InventorySlot.byIndex(slot);
         if (!stack.isEmpty() && (!isItemValid(slot, stack)
-                || stack.getCount() > Math.min(getSlotLimit(slot), stack.getMaxStackSize())))
+                || stack.getCount() > getStackLimit(slot, stack)))
             throw new IllegalArgumentException("Item or count is not allowed in " + InventorySlot.byIndex(slot).id());
         super.setStackInSlot(slot, stack.copy());
     }

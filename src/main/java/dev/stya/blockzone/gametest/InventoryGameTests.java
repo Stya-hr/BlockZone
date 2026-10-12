@@ -1,0 +1,107 @@
+package dev.stya.blockzone.gametest;
+
+import dev.stya.blockzone.inventory.*;
+
+import java.util.List;
+import java.util.Map;
+import dev.stya.blockzone.map.battlezone.capability.BattlezoneInventoryCapability;
+import net.minecraft.gametest.framework.GameTest;
+import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.TagParser;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraftforge.gametest.GameTestHolder;
+import net.minecraftforge.gametest.PrefixGameTestTemplate;
+
+@GameTestHolder("blockzone")
+@PrefixGameTestTemplate(false)
+public final class InventoryGameTests {
+
+    @GameTest(template = "empty")
+    public static void vanillaPredicateMatchesItemAndPartialNbtButRejectsUnknownIds(GameTestHelper helper) throws Exception {
+        var selector = ItemSelector.parse("minecraft:stick{custom:{kind:\"medical\"}}");
+        var stack = new ItemStack(Items.STICK);
+        stack.setTag(TagParser.parseTag("{custom:{kind:\"medical\",charge:4},other:1}"));
+        assertTrue(selector.matches(stack));
+        assertFalse(selector.matches(new ItemStack(Items.STICK)));
+        assertFalse(selector.matches(new ItemStack(Items.STONE)));
+        assertFalse(ItemSelector.parse("missing_mod:missing_item").matches(stack));
+        assertFalse(ItemSelector.parse("*").matches(ItemStack.EMPTY));
+        assertFalse(ItemSelector.parse("@gun:*").matches(stack));
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void nativeTagPredicateSeesReboundTagsWithoutRecompilingRules(GameTestHelper helper) {
+        var tag = TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath("blockzone", "test_allowed"));
+        var previous = new java.util.HashMap<TagKey<Item>, List<net.minecraft.core.Holder<Item>>>();
+        BuiltInRegistries.ITEM.getTags().forEach(pair -> previous.put(pair.getFirst(), pair.getSecond().stream().toList()));
+        var selector = ItemSelector.parse("#blockzone:test_allowed");
+        try {
+            BuiltInRegistries.ITEM.bindTags(Map.of(tag, List.of(BuiltInRegistries.ITEM.wrapAsHolder(Items.STICK))));
+            assertTrue(selector.matches(new ItemStack(Items.STICK)));
+            BuiltInRegistries.ITEM.bindTags(Map.of(tag, List.of(BuiltInRegistries.ITEM.wrapAsHolder(Items.STONE))));
+            assertFalse(selector.matches(new ItemStack(Items.STICK)));
+            assertTrue(selector.matches(new ItemStack(Items.STONE)));
+        } finally { BuiltInRegistries.ITEM.bindTags(previous); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void insertionAndDirectReplacementEnforceRulesAndStackLimits(GameTestHelper helper) {
+        var inventory = new PanelInventory(slot -> SlotRule.parse(List.of("minecraft:stick"), 4));
+        assertEquals(2, inventory.insertItem(0, new ItemStack(Items.STICK, 6), true).getCount());
+        assertTrue(inventory.getStackInSlot(0).isEmpty());
+        assertEquals(2, inventory.insertItem(0, new ItemStack(Items.STICK, 6), false).getCount());
+        assertEquals(4, inventory.getStackInSlot(0).getCount());
+        assertEquals(1, inventory.insertItem(0, new ItemStack(Items.STONE), false).getCount());
+        assertThrows(IllegalArgumentException.class, () -> inventory.setStackInSlot(0, new ItemStack(Items.STONE)));
+        assertThrows(IllegalArgumentException.class, () -> inventory.setStackInSlot(0, new ItemStack(Items.STICK, 5)));
+        assertEquals(4, inventory.getStackInSlot(0).getCount());
+        var singleItem = new PanelInventory(slot -> SlotRule.parse(List.of("*"), 64));
+        assertEquals(1, singleItem.insertItem(0, new ItemStack(Items.IRON_SWORD, 2), false).getCount());
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void tightenedRulesPreserveStoredItemsAndStillAllowExtraction(GameTestHelper helper) {
+        var cap = new BattlezoneInventoryCapability(null);
+        cap.write(new InventoryRules(Map.of("item.medkit", new InventoryRules.Definition(List.of("minecraft:stick"), 8))));
+        var inventory = cap.createInventory();
+        int slot = InventorySlot.MEDKIT.index();
+        inventory.insertItem(slot, new ItemStack(Items.STICK, 5), false);
+        var saved = inventory.serializeNBT();
+        cap.write(new InventoryRules(Map.of("item.medkit", new InventoryRules.Definition(List.of(), 1))));
+        var restored = cap.createInventory();
+        restored.deserializeNBT(saved);
+        assertEquals(17, restored.getSlots());
+        assertEquals(5, restored.getStackInSlot(slot).getCount());
+        assertEquals(1, restored.insertItem(slot, new ItemStack(Items.STICK), false).getCount());
+        assertEquals(5, restored.extractItem(slot, 5, false).getCount());
+        assertTrue(restored.getStackInSlot(slot).isEmpty());
+        saved.putInt("Size", 99);
+        assertThrows(IllegalArgumentException.class, () -> restored.deserializeNBT(saved));
+        helper.succeed();
+    }
+
+    private static void assertTrue(boolean condition) {
+        if (!condition) throw new AssertionError("Expected true");
+    }
+    private static void assertFalse(boolean condition) { assertTrue(!condition); }
+    private static void assertEquals(int expected, int actual) {
+        if (expected != actual) throw new AssertionError("Expected " + expected + " but got " + actual);
+    }
+    private static void assertThrows(Class<? extends Throwable> type, Runnable action) {
+        try { action.run(); }
+        catch (Throwable failure) {
+            if (type.isInstance(failure)) return;
+            throw new AssertionError("Unexpected failure", failure);
+        }
+        throw new AssertionError("Expected " + type.getSimpleName());
+    }
+}

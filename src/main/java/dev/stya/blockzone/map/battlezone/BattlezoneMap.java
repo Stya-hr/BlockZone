@@ -23,6 +23,7 @@ import dev.stya.blockzone.equipment.StartingLoadout;
 import dev.stya.blockzone.loot.LootDropEntity;
 import dev.stya.blockzone.map.battlezone.capability.BattlezoneLoadoutCapability;
 import dev.stya.blockzone.map.battlezone.capability.BattlezoneCombatCapability;
+import dev.stya.blockzone.map.battlezone.capability.BattlezoneInventoryCapability;
 import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
 import dev.stya.blockzone.util.CodecSettings;
 import dev.stya.blockzone.zone.PoisonPath;
@@ -80,7 +81,8 @@ public final class BattlezoneMap extends BaseMap {
     private final BattlezoneVisualSync visualSync;
 
     public BattlezoneMap(ServerLevel serverLevel, String mapName, AreaData areaData) {
-        super(serverLevel, mapName, areaData, List.of(BattlezoneLoadoutCapability.class, BattlezoneCombatCapability.class, BattlezoneZoneCapability.class));
+        super(serverLevel, mapName, areaData, List.of(BattlezoneLoadoutCapability.class, BattlezoneCombatCapability.class, BattlezoneZoneCapability.class,
+                BattlezoneInventoryCapability.class));
         this.teamPlayerLimit = addSetting("battlezone", "teamPlayerLimit", 3);
         this.totalPlayerLimit = addSetting("battlezone", "totalPlayerLimit", 24);
         this.minimumTeamsToStart = addSetting("battlezone", "minimumTeamsToStart", 2);
@@ -276,6 +278,7 @@ public final class BattlezoneMap extends BaseMap {
         phase = MatchPhase.DEPLOYMENT;
         loadout().begin(loadout);
         CapabilityMap.getMapCapability(this, BattlezoneCombatCapability.class).orElseThrow().begin();
+        CapabilityMap.getMapCapability(this, BattlezoneInventoryCapability.class).orElseThrow().begin();
         getMapTeams().getNormalTeams().forEach(team -> team.getOnline().forEach(this::initializeParticipant));
         phaseTicks = 0;
         victoryAnnounced = false;
@@ -486,6 +489,7 @@ public final class BattlezoneMap extends BaseMap {
     @Override
     public void reset() {
         loadout().reset();
+        CapabilityMap.getMapCapability(this, BattlezoneInventoryCapability.class).orElseThrow().reset();
         combat().clearRecovery();
         getMapTeams().getOnlineWithSpec().forEach(this::clearCombat);
         lootRoundId = null;

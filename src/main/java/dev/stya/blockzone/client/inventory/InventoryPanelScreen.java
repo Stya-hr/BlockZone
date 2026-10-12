@@ -1,6 +1,8 @@
 package dev.stya.blockzone.client.inventory;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import dev.stya.blockzone.inventory.InventorySlot;
+import java.util.List;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -14,7 +16,7 @@ public final class InventoryPanelScreen extends Screen {
     private static final float EMPTY_ICON_ALPHA = .25F;
     private static final int LABEL_HEIGHT = 26;
     private static final int BORDER = 0x73666666;
-    private static final String[] EQUIPMENT = {"backpack", "armor_plates", "helmet", "vest", "shield", "plus"};
+    private static final List<InventorySlot> EQUIPMENT = InventorySlot.EQUIPMENT;
 
     public InventoryPanelScreen() {
         super(Component.translatable("screen.blockzone.inventory_preview"));
@@ -28,24 +30,24 @@ public final class InventoryPanelScreen extends Screen {
         gui.pose().translate((width - 1040 * scale) / 2F, height - (410 + BOTTOM_MARGIN) * scale, 0);
         gui.pose().scale(scale, scale, 1);
         slot(gui, 920, 932, 720, 28, false);
-        for (int i = 0; i < EQUIPMENT.length; i++) {
+        for (int i = 0; i < EQUIPMENT.size(); i++) {
             int x = 920 + 122 * i;
             slot(gui, x, 970, 110, 80, i == 1);
-            icon(gui, EQUIPMENT[i], x + 35, 990, 40, 40, EMPTY_ICON_ALPHA);
+            icon(gui, EQUIPMENT.get(i).icon(), x + 35, 990, 40, 40, EMPTY_ICON_ALPHA);
         }
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < InventorySlot.WEAPONS.size(); i++) {
             int x = 760 + 242 * i;
             slot(gui, x, 1060, 230, 112, false);
             icon(gui, "rifle", x + 37, 1075, 156, 56, EMPTY_ICON_ALPHA);
         }
-        String[] items = {"grenade", "battery", "medkit", "plates"};
-        for (int i = 0; i < items.length; i++) {
+        var items = InventorySlot.ITEMS;
+        for (int i = 0; i < items.size(); i++) {
             int x = 1244 + 142 * i;
             slot(gui, x, 1060, 130, 112, false);
-            if (i == 0) icon(gui, items[i], x + 53, 1079, 24, 48, EMPTY_ICON_ALPHA);
-            else icon(gui, items[i], x + 45, 1086, 40, 42, EMPTY_ICON_ALPHA);
+            if (i == 0) icon(gui, items.get(i).icon(), x + 53, 1079, 24, 48, EMPTY_ICON_ALPHA);
+            else icon(gui, items.get(i).icon(), x + 45, 1086, 40, 42, EMPTY_ICON_ALPHA);
         }
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < InventorySlot.AMMUNITION.size(); i++) {
             int x = Math.round(920 + 146.4F * i);
             slot(gui, x, 1182, 134, 80, false);
             icon(gui, "ammunition", x + 47, 1187, 40, 40, EMPTY_ICON_ALPHA);

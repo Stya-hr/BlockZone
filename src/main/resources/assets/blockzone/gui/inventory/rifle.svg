@@ -1,13 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
   <title>Assault rifle</title>
   <g fill="#F3F7F8">
-    <!-- Keep the original PNG's long barrel, front post, ribbed handguard, curved magazine, grip and stock. -->
-    <path d="M1 29H7V35H1Z M7 31H14V34H7Z M14 27H17V22H21V29L23 31V36H18V34H14Z"/>
-    <path d="M21 27H38V38H21Z M22 24H26V27H22Z M28 24H32V27H28Z M34 24H38V27H34Z M37 26H52V31H37Z"/>
-    <path fill-rule="evenodd" d="M37 30H50L53 33V40H46L44 42H38L36 38V32ZM40 33V36H47V33Z"/>
-    <path d="M51 32H60V35H63V42H59L54 38H51Z"/>
-    <!-- Curved magazine and pistol grip echo the distinctive original silhouette. -->
-    <path d="M38 39H45L44 45L40 52H35L32 48L35 42Z M46 39H51L54 49L49 52L46 44Z"/>
-    <path fill-rule="evenodd" d="M43 38H48V43H44ZM44 39.5V41.5H47V39.5Z"/>
+    <!-- Barrel and front sight. -->
+    <path d="M2 29.5H6.5V34.5H2Z M6.5 31H17V33H6.5Z"/>
+    <path d="M16 30L18.4 23H20.5L22.4 30H20.5V35H17.8V31.5H16Z"/>
+    <!-- Gas tube and handguard, with a few broad rail notches. -->
+    <path d="M20 28.5H38V30H21.5V38H20Z"/>
+    <path d="M21.5 30H37V38H21.5Z"/>
+    <path d="M23 27H26V30H23Z M28.5 27H31.5V30H28.5Z M34 27H37V30H34Z"/>
+    <!-- Receiver, rear sight and stock. -->
+    <path d="M36.5 29H49L51 31V38.5H45L42.5 40H37L35.5 37.5V31Z"/>
+    <path fill-rule="evenodd" d="M39 31.5H46.5V35.5H39ZM40.5 33V34H45V33Z"/>
+    <path d="M46 27.5H49V30H46Z"/>
+    <path fill-rule="evenodd" d="M49 30H59.5L62 32.5V40H58.5L54 36.5H49ZM55 32V34.5L58.5 37V32Z"/>
+    <!-- Curved magazine and angled pistol grip, matching the source silhouette. -->
+    <path d="M36.5 38H43.5V41.5L41.5 45.5L40 50L35.5 52L29.5 49.5L32 45L34.5 41Z"/>
+    <path d="M45 38H49L53 46.5L49 49L46 43Z"/>
+    <!-- Open trigger guard keeps the grip and magazine visually distinct. -->
+    <path fill-rule="evenodd" d="M43 37.5H48V41.5H46.5V39H44.5V41H43Z"/>
   </g>
 </svg>

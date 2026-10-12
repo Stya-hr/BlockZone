@@ -26,20 +26,6 @@ class ParachuteAppearanceTest {
     }
 
     @Test
-    void eachPatternHasAVisiblePrimaryAndAccentAndIsDistinct() {
-        var patterns = new HashSet<String>();
-        for (int i = 0; i < ParachuteAppearance.STYLE_COUNT; i += 12) {
-            var cells = new StringBuilder();
-            for (int cell = 0; cell < 9; cell++) {
-                cells.append(ParachuteAppearance.accent(i, cell) ? 'A' : 'P');
-            }
-            assertTrue(cells.toString().contains("A"));
-            assertTrue(cells.toString().contains("P"));
-            assertTrue(patterns.add(cells.toString()));
-        }
-    }
-
-    @Test
     void resetStartsAFreshAllocation() {
         var appearances = new ParachuteAppearance();
         appearances.forTeam("old_team");

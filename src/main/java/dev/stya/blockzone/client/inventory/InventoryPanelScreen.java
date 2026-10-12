@@ -65,7 +65,7 @@ public final class InventoryPanelScreen extends Screen {
     private void slot(GuiGraphics gui, int x, int y, int w, int h, boolean selected) {
         x -= 760;
         y -= 932;
-        gui.fill(x, y, x + w, y + h, 0x33000000);
+        gui.fill(x, y, x + w, y + h, 0x8C000000);
         float scale = panelScale();
         float physicalScale = scale * (float) minecraft.getWindow().getGuiScale();
         float stroke = Math.max(2F, 1.5F / physicalScale);

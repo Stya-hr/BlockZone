@@ -11,6 +11,8 @@ public final class InventoryPanelScreen extends Screen {
     private static final float PANEL_SCALE = 1.2F;
     private static final int BOTTOM_MARGIN = 122;
     private static final int FOREGROUND = 0xFFF3F7F8;
+    private static final float EMPTY_ICON_ALPHA = .25F;
+    private static final int LABEL_HEIGHT = 26;
     private static final int BORDER = 0x73666666;
     private static final String[] EQUIPMENT = {"backpack", "armor_plates", "helmet", "vest", "shield", "plus"};
 
@@ -29,25 +31,29 @@ public final class InventoryPanelScreen extends Screen {
         for (int i = 0; i < EQUIPMENT.length; i++) {
             int x = 920 + 122 * i;
             slot(gui, x, 970, 110, 80, i == 1);
-            icon(gui, EQUIPMENT[i], x + 35, 990, 40, 40, i >= 2 ? .2F : 1F);
+            icon(gui, EQUIPMENT[i], x + 35, 990, 40, 40, EMPTY_ICON_ALPHA);
         }
         for (int i = 0; i < 2; i++) {
             int x = 760 + 242 * i;
             slot(gui, x, 1060, 230, 112, false);
-            icon(gui, "rifle", x + 37, 1078, 156, 56, 1);
+            icon(gui, "rifle", x + 37, 1078, 156, 56, EMPTY_ICON_ALPHA);
         }
         String[] items = {"grenade", "battery", "medkit", "plates"};
         for (int i = 0; i < items.length; i++) {
             int x = 1244 + 142 * i;
             slot(gui, x, 1060, 130, 112, false);
-            if (i == 0) icon(gui, items[i], x + 54, 1083, 22, 46, 1);
-            else icon(gui, items[i], x + 45, 1086, 40, 42, 1);
+            if (i == 0) icon(gui, items[i], x + 54, 1083, 22, 46, EMPTY_ICON_ALPHA);
+            else icon(gui, items[i], x + 45, 1086, 40, 42, EMPTY_ICON_ALPHA);
         }
         for (int i = 0; i < 5; i++) {
             int x = Math.round(920 + 146.4F * i);
             slot(gui, x, 1182, 134, 80, false);
-            icon(gui, "ammunition", x + 47, 1187, 40, 40, i == 1 ? .22F : 1);
+            icon(gui, "ammunition", x + 47, 1187, 40, 40, EMPTY_ICON_ALPHA);
         }
+        // Text strips sit above the empty-slot silhouettes and inside the border.
+        for (int i = 0; i < 2; i++) labelBackground(gui, 760 + 242 * i, 1060, 230, 112);
+        for (int i = 0; i < 4; i++) labelBackground(gui, 1244 + 142 * i, 1060, 130, 112);
+        for (int i = 0; i < 5; i++) labelBackground(gui, Math.round(920 + 146.4F * i), 1182, 134, 80);
         icon(gui, "labels", 760, 932, 1040, 410, 1);
         gui.pose().popPose();
     }
@@ -62,7 +68,7 @@ public final class InventoryPanelScreen extends Screen {
         gui.fill(x, y, x + w, y + h, 0x33000000);
         float scale = panelScale();
         float physicalScale = scale * (float) minecraft.getWindow().getGuiScale();
-        float stroke = Math.max(1F, 1F / physicalScale);
+        float stroke = Math.max(2F, 1.5F / physicalScale);
         gui.pose().pushPose();
         gui.pose().translate(x, y, 0);
         gui.pose().scale(stroke, stroke, 1);
@@ -74,6 +80,14 @@ public final class InventoryPanelScreen extends Screen {
         gui.fill(0, 0, 1, edgeHeight, color);
         gui.fill(edgeWidth - 1, 0, edgeWidth, edgeHeight, color);
         gui.pose().popPose();
+    }
+
+    private void labelBackground(GuiGraphics gui, int x, int y, int w, int h) {
+        // 18-unit lettering plus four units of vertical padding on either side.
+        int inset = Math.max(2, (int) Math.ceil(1.5F /
+                (panelScale() * (float) minecraft.getWindow().getGuiScale())));
+        gui.fill(x - 760 + inset, y - 932 + h - LABEL_HEIGHT,
+                x - 760 + w - inset, y - 932 + h - inset, 0x66000000);
     }
 
     private void icon(GuiGraphics gui, String name, int x, int y, int w, int h, float alpha) {

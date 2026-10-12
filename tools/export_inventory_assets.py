@@ -30,7 +30,20 @@ def export(name, indices, bounds, enabled=False):
         node = copy.deepcopy(nodes[index])
         if enabled:
             node.attrib.pop('opacity', None)
-        svg.append(node)
+        if name == 'labels':
+            label_index = indices.index(index)
+            # Enlarge outlined text about its alignment anchor, preserving slot alignment.
+            anchors = [(1280, 946), (770, 1160), (978, 1160), (1012, 1160),
+                       (1220, 1160), (1309, 1159), (1451, 1159), (1593, 1159),
+                       (1735, 1159), (987, 1248), (1134, 1248), (1280, 1248),
+                       (1426, 1248), (1573, 1248)]
+            ax, ay = anchors[label_index] if label_index < 14 else (1280, 1329)
+            factor = 1.25 if label_index < 14 else 1.15
+            group = ET.SubElement(svg, f'{{{NS}}}g',
+                                  transform=f'translate({ax} {ay}) scale({factor}) translate({-ax} {-ay})')
+            group.append(node)
+        else:
+            svg.append(node)
     # Include only referenced definitions, never the embedded world screenshot.
     definitions = ET.SubElement(svg, f'{{{NS}}}defs')
     pending = ET.tostring(svg).decode()

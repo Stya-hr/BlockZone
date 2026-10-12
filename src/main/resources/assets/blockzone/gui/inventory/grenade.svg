@@ -1,13 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="43" height="92" viewBox="0 0 22 46" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="48" viewBox="0 0 24 48" fill="none">
   <title>Fragmentation grenade</title>
   <g fill="#F3F7F8">
-    <!-- Fuse, safety lever and pull ring. -->
-    <path d="M7 9H15V15H7Z M8 6H15L19 12V29H17V13L14 9H8Z"/>
-    <path fill-rule="evenodd" d="M5 3H10L12 5V9L10 11H5L3 9V5ZM6 5L5 6V8L6 9H9L10 8V6L9 5Z"/>
-    <!-- Segmented body. The gaps stay transparent at every resolution. -->
-    <path d="M5 15H10V22H2L3 18Z M12 15H17L19 18L20 22H12Z
-             M2 24H10V30H2Z M12 24H20V30H12Z
-             M2 32H10V39H3L2 36Z M12 32H20V36L19 39H12Z
-             M4 41H10V44H7Z M12 41H18L14 44H12Z"/>
+    <!-- Squared pull ring, fuse and distinct safety lever. -->
+    <path fill-rule="evenodd" d="M3 2H12V11H3ZM6 5V8H9V5Z"/>
+    <path d="M8 11H16V17H8Z M12 7H18L23 17V36H20V18L16 10H12Z"/>
+    <!-- Beveled canister with the same broad cutouts as the equipment icons. -->
+    <path fill-rule="evenodd" d="M6 18H16L19 22V42L15 46H6L2 42V22ZM6 27V31H15V27Z M6 35V39H15V35Z"/>
   </g>
 </svg>

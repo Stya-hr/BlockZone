@@ -1,22 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="312" height="113" viewBox="0 0 312 113" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" width="156" height="56" viewBox="0 0 156 56" fill="none">
   <title>Assault rifle</title>
-  <g transform="translate(0 -15) scale(4.8 1.87)" fill="#F3F7F8">
-    <!-- Barrel and front sight. -->
-    <path d="M2 29.5H6.5V34.5H2Z M6.5 31H17V33H6.5Z"/>
-    <path d="M16 30L18.4 23H20.5L22.4 30H20.5V35H17.8V31.5H16Z"/>
-    <!-- Gas tube and handguard, with a few broad rail notches. -->
-    <path d="M20 28.5H38V30H21.5V38H20Z"/>
-    <path d="M21.5 30H37V38H21.5Z"/>
-    <path d="M23 27H26V30H23Z M28.5 27H31.5V30H28.5Z M34 27H37V30H34Z"/>
-    <!-- Receiver, rear sight and stock. -->
-    <path d="M36.5 29H49L51 31V38.5H45L42.5 40H37L35.5 37.5V31Z"/>
-    <path fill-rule="evenodd" d="M39 31.5H46.5V35.5H39ZM40.5 33V34H45V33Z"/>
-    <path d="M46 27.5H49V30H46Z"/>
-    <path fill-rule="evenodd" d="M49 30H59.5L62 32.5V40H58.5L54 36.5H49ZM55 32V34.5L58.5 37V32Z"/>
-    <!-- Curved magazine and angled pistol grip, matching the source silhouette. -->
-    <path d="M36.5 38H43.5V41.5L41.5 45.5L40 50L35.5 52L29.5 49.5L32 45L34.5 41Z"/>
-    <path d="M45 38H49L53 46.5L49 49L46 43Z"/>
-    <!-- Open trigger guard keeps the grip and magazine visually distinct. -->
-    <path fill-rule="evenodd" d="M43 37.5H48V41.5H46.5V39H44.5V41H43Z"/>
+  <g fill="#F3F7F8">
+    <!-- Continuous geometric silhouette with the original rifle's proportions. -->
+    <path d="M3 21H12V27H3Z M12 23H40V26H12Z M34 22V12H38V22Z"/>
+    <path fill-rule="evenodd" d="M40 18L44 14H78L82 12H104L111 18V30H97L92 34H76L70 30H40ZM47 20V24H70V20Z M84 18V22H99V18Z"/>
+    <path d="M46 11H76V14H46Z M98 8H103V13H98Z"/>
+    <!-- Shoulder stock with one broad cutout. -->
+    <path fill-rule="evenodd" d="M109 20H132L137 16H153V37H144L130 29H109ZM137 23V27L147 32V23Z"/>
+    <!-- Angular curved magazine, separate grip and open trigger guard. -->
+    <path d="M73 31H88L87 39L82 49L75 53L64 47L70 39Z M99 31H109L118 47L108 52L101 40Z"/>
+    <path fill-rule="evenodd" d="M88 30H101V40H91L88 37ZM92 33V36H98V33Z"/>
   </g>
 </svg>

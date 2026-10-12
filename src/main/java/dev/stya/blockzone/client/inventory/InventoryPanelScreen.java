@@ -1,0 +1,88 @@
+package dev.stya.blockzone.client.inventory;
+
+import com.mojang.blaze3d.systems.RenderSystem;
+import dev.stya.blockzone.BlockZone;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import org.lwjgl.glfw.GLFW;
+
+/** Static Figma inventory preview. No inventory operations or server packets. */
+public final class InventoryPanelScreen extends Screen {
+    private static final int FOREGROUND = 0xFFF3F7F8;
+    private static final int BORDER = 0x73666666;
+    private static final String[] EQUIPMENT = {"backpack", "armor_plates", "helmet", "vest", "shield", "plus"};
+
+    public InventoryPanelScreen() {
+        super(Component.translatable("screen.blockzone.inventory_preview"));
+    }
+
+    @Override
+    public void render(GuiGraphics gui, int mouseX, int mouseY, float partialTick) {
+        // Work in the export's 2560 x 1440 coordinates, anchored to the bottom center.
+        float scale = Math.min(width / 2560F, height / 1440F);
+        gui.pose().pushPose();
+        gui.pose().translate((width - 1040 * scale) / 2F, height - 508 * scale, 0);
+        gui.pose().scale(scale, scale, 1);
+        slot(gui, 920, 932, 720, 28, false);
+        for (int i = 0; i < EQUIPMENT.length; i++) {
+            int x = 920 + 122 * i;
+            slot(gui, x, 970, 110, 80, i == 1);
+            icon(gui, EQUIPMENT[i], x + 35, 990, 40, 40, i >= 2 ? .2F : 1F);
+        }
+        for (int i = 0; i < 2; i++) {
+            int x = 760 + 242 * i;
+            slot(gui, x, 1060, 230, 112, false);
+            icon(gui, "rifle", x + 37, 1078, 156, 56, 1);
+        }
+        String[] items = {"grenade", "battery", "medkit", "plates"};
+        for (int i = 0; i < items.length; i++) {
+            int x = 1244 + 142 * i;
+            slot(gui, x, 1060, 130, 112, false);
+            if (i == 0) icon(gui, items[i], x + 54, 1083, 22, 46, 1);
+            else icon(gui, items[i], x + 45, 1086, 40, 42, 1);
+        }
+        for (int i = 0; i < 5; i++) {
+            int x = Math.round(920 + 146.4F * i);
+            slot(gui, x, 1182, 134, 80, false);
+            icon(gui, "ammunition", x + 47, 1187, 40, 40, i == 1 ? .22F : 1);
+        }
+        icon(gui, "labels", 760, 932, 1040, 410, 1);
+        gui.pose().popPose();
+    }
+
+    private static void slot(GuiGraphics gui, int x, int y, int w, int h, boolean selected) {
+        x -= 760;
+        y -= 932;
+        gui.fill(x, y, x + w, y + h, 0x33000000);
+        int color = selected ? FOREGROUND : BORDER;
+        gui.fill(x, y, x + w, y + 1, color);
+        gui.fill(x, y + h - 1, x + w, y + h, color);
+        gui.fill(x, y, x + 1, y + h, color);
+        gui.fill(x + w - 1, y, x + w, y + h, color);
+    }
+
+    private static void icon(GuiGraphics gui, String name, int x, int y, int w, int h, float alpha) {
+        ResourceLocation texture = ResourceLocation.fromNamespaceAndPath(BlockZone.MOD_ID, "textures/gui/inventory/" + name + ".png");
+        RenderSystem.enableBlend();
+        gui.setColor(1, 1, 1, alpha);
+        int textureWidth = name.equals("grenade") ? 43 : w * 2;
+        int textureHeight = name.equals("rifle") ? 113 : h * 2;
+        gui.blit(texture, x - 760, y - 932, w, h, 0, 0, textureWidth, textureHeight, textureWidth, textureHeight);
+        gui.setColor(1, 1, 1, 1);
+        RenderSystem.disableBlend();
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == GLFW.GLFW_KEY_TAB || InventoryPreviewKeys.OPEN.matches(keyCode, scanCode)) {
+            onClose();
+            return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public boolean isPauseScreen() { return false; }
+}

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="48" viewBox="0 0 24 48" fill="none">
+  <title>Fragmentation grenade</title>
+  <g fill="#F3F7F8">
+    <!-- Squared pull ring, fuse and distinct safety lever. -->
+    <path fill-rule="evenodd" d="M3 2H12V11H3ZM6 5V8H9V5Z"/>
+    <path d="M8 11H16V17H8Z M12 7H18L23 17V36H20V18L16 10H12Z"/>
+    <!-- Beveled canister with the same broad cutouts as the equipment icons. -->
+    <path fill-rule="evenodd" d="M6 18H16L19 22V42L15 46H6L2 42V22ZM6 27V31H15V27Z M6 35V39H15V35Z"/>
+  </g>
+</svg>

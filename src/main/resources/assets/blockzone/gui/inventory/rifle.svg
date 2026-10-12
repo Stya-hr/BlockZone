@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="156" height="56" viewBox="0 0 156 56" fill="none">
+  <title>Assault rifle</title>
+  <g fill="#F3F7F8">
+    <!-- Simple continuous silhouette: barrel, receiver and solid shoulder stock. -->
+    <path d="M3 21H12V27H3Z M12 23H40V26H12Z M40 18L46 12H103L111 19H132L138 16H153V37H144L130 29H109L102 33H76L70 30H40Z"/>
+    <!-- Magazine and grip are separated by a broad, readable gap. -->
+    <path d="M73 30H88L86 40L78 52L65 46L71 37Z M99 30H109L118 47L108 52L101 40Z"/>
+  </g>
+</svg>

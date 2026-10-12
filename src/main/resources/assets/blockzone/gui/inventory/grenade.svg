@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
   <title>Fragmentation grenade</title>
-  <g transform="translate(12 0) scale(1.7 1.39)" fill="#F3F7F8">
+  <g transform="translate(8 0) scale(2.25 1.39)" fill="#F3F7F8">
     <!-- Fuse, safety lever and pull ring. -->
     <path d="M7 9H15V15H7Z M8 6H15L19 12V29H17V13L14 9H8Z"/>
     <path fill-rule="evenodd" d="M5 3H10L12 5V9L10 11H5L3 9V5ZM6 5L5 6V8L6 9H9L10 8V6L9 5Z"/>

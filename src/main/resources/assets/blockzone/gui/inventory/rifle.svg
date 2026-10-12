@@ -2,12 +2,12 @@
   <title>Assault rifle</title>
   <g fill="#F3F7F8">
     <!-- Keep the original PNG's long barrel, front post, ribbed handguard, curved magazine, grip and stock. -->
-    <path d="M2 30H6V34H2Z M6 31H15V33H6Z M15 29L17 23H19L21 30V34H18V32H15Z"/>
-    <path d="M20 29H37V36H20Z M21 27H24V29H21Z M26 27H29V29H26Z M31 27H34V29H31Z M36 28H51V31H36Z"/>
-    <path fill-rule="evenodd" d="M36 30H49L51 32V38H45L43 40H38L36 37ZM39 32V34H46V32Z"/>
-    <path d="M49 32H61V34H63V39H60L55 36H49Z"/>
+    <path d="M1 29H7V35H1Z M7 31H14V34H7Z M14 27H17V22H21V29L23 31V36H18V34H14Z"/>
+    <path d="M21 27H38V38H21Z M22 24H26V27H22Z M28 24H32V27H28Z M34 24H38V27H34Z M37 26H52V31H37Z"/>
+    <path fill-rule="evenodd" d="M37 30H50L53 33V40H46L44 42H38L36 38V32ZM40 33V36H47V33Z"/>
+    <path d="M51 32H60V35H63V42H59L54 38H51Z"/>
     <!-- Curved magazine and pistol grip echo the distinctive original silhouette. -->
-    <path d="M38 38H43L42 43L39 48L35 47L33 45L36 41Z M45 38H49L52 46L48 48L45 42Z"/>
-    <path fill-rule="evenodd" d="M42 37H47V41H43ZM43 38.5V39.5H46V38.5Z"/>
+    <path d="M38 39H45L44 45L40 52H35L32 48L35 42Z M46 39H51L54 49L49 52L46 44Z"/>
+    <path fill-rule="evenodd" d="M43 38H48V43H44ZM44 39.5V41.5H47V39.5Z"/>
   </g>
 </svg>

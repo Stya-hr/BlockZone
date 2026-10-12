@@ -2,6 +2,7 @@
 
 Usage: python tools/export_inventory_assets.py /path/to/BlockZone.zip
 No screenshot or world background is included.
+The hand-drawn rifle.svg and grenade.svg are preserved.
 """
 import copy
 import pathlib
@@ -32,15 +33,6 @@ def export(name, indices, bounds, enabled=False):
         svg.append(node)
     # Include only referenced definitions, never the embedded world screenshot.
     definitions = ET.SubElement(svg, f'{{{NS}}}defs')
-    if name == 'rifle':
-        # The export uses lighten blending over the panel. Represent its black
-        # background as transparency for Minecraft's standard alpha blending.
-        svg[0].attrib.pop('style', None)
-        svg[0].set('filter', 'url(#rifle-alpha)')
-        effect = ET.SubElement(definitions, f'{{{NS}}}filter', id='rifle-alpha',
-                               **{'color-interpolation-filters': 'sRGB'})
-        ET.SubElement(effect, f'{{{NS}}}feColorMatrix', type='matrix',
-                      values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  .26 .875 .088 0 -.12')
     pending = ET.tostring(svg).decode()
     included = set()
     while True:
@@ -64,8 +56,6 @@ for name, index, bounds in [
     ('vest', 16, (1321, 990, 40, 40)),
     ('shield', 19, (1443, 990, 40, 40)),
     ('plus', 22, (1565, 990, 40, 40)),
-    ('rifle', 25, (797, 1077.77, 156, 56.4663)),
-    ('grenade', 35, (1298.22, 1083, 21.5625, 46)),
     ('battery', 39, (1431, 1086, 40, 42)),
     ('medkit', 43, (1573, 1086, 40, 42)),
     ('plates', 47, (1715, 1086, 40, 42)),

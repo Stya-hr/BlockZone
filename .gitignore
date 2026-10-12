@@ -3,7 +3,7 @@
 /build/
 /out/
 /run/
-/src/generated/
+/src/generated/**/.cache/
 /bin/
 /tmp/
 
@@ -11,11 +11,23 @@
 /.idea/
 /.vscode/
 /.settings/
+/.metadata/
 /.eclipse/
+/eclipse/
 /.classpath
 /.project
 /*.launch
 *.iml
+*.ipr
+*.iws
 *.log
 /logs/
 /crash-reports/
+
+# agent files
+/.agents/
+/.codex/
+/.claude/
+
+# Forge MDK changelog files.
+forge*changelog.txt

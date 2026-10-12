@@ -18,7 +18,7 @@
 - FPSMatch 1.3.0 Forge snapshot
 - TaCZ、Kotlin for Forge、Modern UI
 
-项目使用官方 Forge 47.4.10 MDK 的 ForgeGradle 6 与 Gradle 8.8 Wrapper。开发依赖版本见 `gradle.properties`，Gradle 会下载开发运行所需依赖，无须复制本机缓存或手动放入依赖 JAR。
+项目以[官方 Forge 1.20.1-47.4.10 MDK](https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.4.10/forge-1.20.1-47.4.10-mdk.zip) 为底稿，保留其构建脚本结构、Maven 发布配置、资源替换与 JAR 元数据配置，使用 ForgeGradle 6 与 Gradle 8.8 Wrapper。现有 Java 代码、资源与测试迁入 MDK 的 `src/` 目录，并接入 FPSMatch 等依赖、Mixin 和独立资源包任务。开发依赖版本见 `gradle.properties`，Gradle 会下载开发运行所需依赖，无须复制本机缓存或手动放入依赖 JAR。
 
 ## 开发
 
@@ -38,3 +38,5 @@ Windows 使用 `gradlew.bat` 替代 `./gradlew`。IDE 的项目 SDK 与 Gradle J
 构建产物位于 `build/libs/`。客户端和服务端运行目录分别为 `run/client/` 与 `run/server/`，地图需要通过 FPSMatch 配置。
 
 客户端测试流程见 [AGENTS.md](AGENTS.md)，提交规范见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+MDK 原始压缩包 SHA-256：`73e0122becd05e39b47eced54e030380d66411850ed86786a2d58ecd886b0451`。Wrapper 文件直接取自该压缩包；MDK 的 Example Mod 示例代码由现有 BlockZone 实现替代。

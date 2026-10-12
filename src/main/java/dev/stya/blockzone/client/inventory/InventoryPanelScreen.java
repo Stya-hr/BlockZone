@@ -1,15 +1,15 @@
 package dev.stya.blockzone.client.inventory;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import dev.stya.blockzone.BlockZone;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import org.lwjgl.glfw.GLFW;
 
 /** Static Figma inventory preview. No inventory operations or server packets. */
 public final class InventoryPanelScreen extends Screen {
+    private static final float PANEL_SCALE = 1.2F;
+    private static final int BOTTOM_MARGIN = 122;
     private static final int FOREGROUND = 0xFFF3F7F8;
     private static final int BORDER = 0x73666666;
     private static final String[] EQUIPMENT = {"backpack", "armor_plates", "helmet", "vest", "shield", "plus"};
@@ -21,9 +21,9 @@ public final class InventoryPanelScreen extends Screen {
     @Override
     public void render(GuiGraphics gui, int mouseX, int mouseY, float partialTick) {
         // Work in the export's 2560 x 1440 coordinates, anchored to the bottom center.
-        float scale = Math.min(width / 2560F, height / 1440F);
+        float scale = panelScale();
         gui.pose().pushPose();
-        gui.pose().translate((width - 1040 * scale) / 2F, height - 508 * scale, 0);
+        gui.pose().translate((width - 1040 * scale) / 2F, height - (410 + BOTTOM_MARGIN) * scale, 0);
         gui.pose().scale(scale, scale, 1);
         slot(gui, 920, 932, 720, 28, false);
         for (int i = 0; i < EQUIPMENT.length; i++) {
@@ -52,26 +52,49 @@ public final class InventoryPanelScreen extends Screen {
         gui.pose().popPose();
     }
 
-    private static void slot(GuiGraphics gui, int x, int y, int w, int h, boolean selected) {
+    private float panelScale() {
+        return PANEL_SCALE * Math.min(width / 2560F, height / 1440F);
+    }
+
+    private void slot(GuiGraphics gui, int x, int y, int w, int h, boolean selected) {
         x -= 760;
         y -= 932;
         gui.fill(x, y, x + w, y + h, 0x33000000);
+        float scale = panelScale();
+        float physicalScale = scale * (float) minecraft.getWindow().getGuiScale();
+        float stroke = Math.max(1F, 1F / physicalScale);
+        gui.pose().pushPose();
+        gui.pose().translate(x, y, 0);
+        gui.pose().scale(stroke, stroke, 1);
+        int edgeWidth = Math.round(w / stroke);
+        int edgeHeight = Math.round(h / stroke);
         int color = selected ? FOREGROUND : BORDER;
-        gui.fill(x, y, x + w, y + 1, color);
-        gui.fill(x, y + h - 1, x + w, y + h, color);
-        gui.fill(x, y, x + 1, y + h, color);
-        gui.fill(x + w - 1, y, x + w, y + h, color);
+        gui.fill(0, 0, edgeWidth, 1, color);
+        gui.fill(0, edgeHeight - 1, edgeWidth, edgeHeight, color);
+        gui.fill(0, 0, 1, edgeHeight, color);
+        gui.fill(edgeWidth - 1, 0, edgeWidth, edgeHeight, color);
+        gui.pose().popPose();
     }
 
-    private static void icon(GuiGraphics gui, String name, int x, int y, int w, int h, float alpha) {
-        ResourceLocation texture = ResourceLocation.fromNamespaceAndPath(BlockZone.MOD_ID, "textures/gui/inventory/" + name + ".png");
-        RenderSystem.enableBlend();
+    private void icon(GuiGraphics gui, String name, int x, int y, int w, int h, float alpha) {
+        float scale = panelScale();
+        double pixelScale = scale * minecraft.getWindow().getGuiScale();
+        var texture = InventorySvgAssets.get(name, Math.max(1, (int) Math.ceil(w * pixelScale)),
+                Math.max(1, (int) Math.ceil(h * pixelScale)));
+        // Flush the slot fills before switching shader color and drawing the SVG texture.
+        gui.flush();
         gui.setColor(1, 1, 1, alpha);
-        int textureWidth = name.equals("grenade") ? 43 : w * 2;
-        int textureHeight = name.equals("rifle") ? 113 : h * 2;
-        gui.blit(texture, x - 760, y - 932, w, h, 0, 0, textureWidth, textureHeight, textureWidth, textureHeight);
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        gui.blit(texture.id(), x - 760, y - 932, w, h, 0, 0,
+                texture.width(), texture.height(), texture.width(), texture.height());
         gui.setColor(1, 1, 1, 1);
         RenderSystem.disableBlend();
+    }
+
+    @Override
+    public void removed() {
+        InventorySvgAssets.clear();
     }
 
     @Override

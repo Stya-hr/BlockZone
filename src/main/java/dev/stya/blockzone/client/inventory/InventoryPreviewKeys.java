@@ -5,6 +5,7 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
+import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
 import net.minecraftforge.client.event.RenderGuiOverlayEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -37,5 +38,10 @@ public final class InventoryPreviewKeys {
         private Registration() { }
         @SubscribeEvent
         public static void register(RegisterKeyMappingsEvent event) { event.register(OPEN); }
+        @SubscribeEvent
+        public static void reload(RegisterClientReloadListenersEvent event) {
+            event.registerReloadListener((net.minecraft.server.packs.resources.ResourceManagerReloadListener)
+                    manager -> InventorySvgAssets.clear());
+        }
     }
 }

@@ -84,7 +84,13 @@ repositories {
     }
 }
 
+jarJar.enable()
+
 dependencies {
+    implementation(jarJar('com.github.weisj:jsvg:2.2.0')) {
+        jarJar.ranged(it, '[2.2.0,2.3.0)')
+    }
+    minecraftLibrary 'com.github.weisj:jsvg:2.2.0'
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
 
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
@@ -186,6 +192,15 @@ tasks.register('resourcePack', Zip) {
     from('src/main/resources/resourcepacks/blockzone')
 }
 
+reobf {
+    jarJar {}
+}
+
+tasks.named('jarJar') {
+    finalizedBy 'reobfJarJar'
+}
+
 tasks.named('assemble') {
+    dependsOn tasks.named('jarJar')
     dependsOn tasks.named('resourcePack')
 }

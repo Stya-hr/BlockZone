@@ -1,11 +1,10 @@
 """Extract the supplied Figma SVG export into standalone UI assets.
 
 Usage: python tools/export_inventory_assets.py /path/to/BlockZone.zip
-Requires rsvg-convert. No screenshot or world background is included.
+No screenshot or world background is included.
 """
 import copy
 import pathlib
-import subprocess
 import sys
 import zipfile
 import xml.etree.ElementTree as ET
@@ -19,9 +18,7 @@ nodes = list(source[0])
 defs = {node.get('id'): node for node in source[1]}
 root = pathlib.Path(__file__).resolve().parents[1] / 'src/main/resources/assets/blockzone'
 svg_dir = root / 'gui/inventory'
-png_dir = root / 'textures/gui/inventory'
 svg_dir.mkdir(parents=True, exist_ok=True)
-png_dir.mkdir(parents=True, exist_ok=True)
 
 
 def export(name, indices, bounds, enabled=False):
@@ -43,7 +40,7 @@ def export(name, indices, bounds, enabled=False):
         effect = ET.SubElement(definitions, f'{{{NS}}}filter', id='rifle-alpha',
                                **{'color-interpolation-filters': 'sRGB'})
         ET.SubElement(effect, f'{{{NS}}}feColorMatrix', type='matrix',
-                      values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  .242 .815 .082 0 -.06')
+                      values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  .26 .875 .088 0 -.12')
     pending = ET.tostring(svg).decode()
     included = set()
     while True:
@@ -57,8 +54,7 @@ def export(name, indices, bounds, enabled=False):
             pending += ET.tostring(node).decode()
     svg_path = svg_dir / f'{name}.svg'
     ET.ElementTree(svg).write(svg_path, encoding='utf-8', xml_declaration=True)
-    subprocess.run(['rsvg-convert', '-w', str(round(width * 2)), '-h', str(round(height * 2)),
-                    '-o', str(png_dir / f'{name}.png'), str(svg_path)], check=True)
+
 
 
 for name, index, bounds in [

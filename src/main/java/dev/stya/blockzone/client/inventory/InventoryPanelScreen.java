@@ -17,8 +17,16 @@ public final class InventoryPanelScreen extends Screen {
     private static final int FOREGROUND = 0xFFF3F7F8;
     private InventoryPanelLayout.Cell hovered;
     private Component attachmentName;
+    private boolean preserveSneak;
 
-    public InventoryPanelScreen() { super(Component.translatable("screen.blockzone.inventory_preview")); }
+    public InventoryPanelScreen() {
+        super(Component.translatable("screen.blockzone.inventory_preview"));
+        preserveSneak = net.minecraft.client.Minecraft.getInstance().options.keyShift.isDown();
+    }
+    @Override protected void init() {
+        if (preserveSneak) minecraft.options.keyShift.setDown(true);
+        preserveSneak = false;
+    }
     private float scale() { return 1.2F * Math.min(width / 2560F, height / 1440F); }
     private float originX() { return (width - 1040 * scale()) / 2; }
     private float originY() { return height - 532 * scale(); }
@@ -64,7 +72,7 @@ public final class InventoryPanelScreen extends Screen {
         Component name = attachmentName != null ? attachmentName : hovered == null ? getTitle()
                 : stack(hovered.slot()).isEmpty() ? slotName(hovered.slot()) : stack(hovered.slot()).getHoverName();
         text(gui, font.plainSubstrByWidth(name.getString(), 470), 168, 6, 1.5F, FOREGROUND);
-        InventoryPromptRenderer.render(gui, font, hasShiftDown());
+        InventoryPromptRenderer.render(gui, font, InventoryPreviewKeys.bulkDropDown(minecraft));
         gui.pose().popPose();
     }
 
@@ -106,19 +114,27 @@ public final class InventoryPanelScreen extends Screen {
         gui.setColor(1, 1, 1, 1); RenderSystem.disableBlend();
     }
     @Override public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (minecraft.options.keyInventory.matchesMouse(button)) { onClose(); return true; }
         var cell = at(mouseX, mouseY);
         if (cell == null) { onClose(); return true; }
-        if (button != 0 && button != 1) return false;
+        boolean all = minecraft.options.keyUse.matchesMouse(button);
+        if (!all && !minecraft.options.keyAttack.matchesMouse(button)) return false;
+        discard(cell, all);
+        return true;
+    }
+    private void discard(InventoryPanelLayout.Cell cell, boolean all) {
+        if (cell == null) return;
         var data = data(); var stack = stack(cell.slot());
         if (data != null && !stack.isEmpty()) BattlezoneNetwork.discard(new DiscardInventoryC2SPacket(
-                cell.slot().index(), button == 1 ? 2 : hasShiftDown() ? 1 : 0, data.round(), stack.copy()));
-        return true;
+                cell.slot().index(), all ? 2 : InventoryPreviewKeys.bulkDropDown(minecraft) ? 1 : 0, data.round(), stack.copy()));
     }
     @Override public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (InventoryPreviewKeys.movementKeys(minecraft).stream().anyMatch(key -> key.matches(keyCode, scanCode))) {
             onClose(); return false; // Forward the same movement key after KeyboardHandler sees screen == null.
         }
-        if (InventoryPreviewKeys.OPEN.matches(keyCode, scanCode)) { onClose(); return true; }
+        if (minecraft.options.keyInventory.matches(keyCode, scanCode)) { onClose(); return true; }
+        boolean all = minecraft.options.keyUse.matches(keyCode, scanCode);
+        if (all || minecraft.options.keyAttack.matches(keyCode, scanCode)) { discard(hovered, all); return true; }
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
     @Override public void removed() { InventorySvgAssets.clear(); }

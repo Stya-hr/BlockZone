@@ -102,7 +102,7 @@ public final class InventoryPanelScreen extends Screen {
         }
     }
 
-    private Component slotName(InventorySlot slot) { return Component.translatable("slot.blockzone." + slot.id()); }
+    private Component slotName(InventorySlot slot) { return Component.translatable("slot.blockzone." + slot.category()); }
     private void attachments(GuiGraphics gui, InventoryPanelLayout.Cell cell, List<GunAttachmentView.Attachment> attachments, double px, double py) {
         int size = 24, gap = 4;
         int rowWidth = attachments.size() * size + Math.max(0, attachments.size() - 1) * gap;

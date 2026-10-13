@@ -1,6 +1,6 @@
 # 饰品、玩家装备与完整初始背包
 
-第一行从左到右为 `accessory.1`、`accessory.2`、`equipment.helmet`、`equipment.vest`、
+第一行从左到右为 `accessory`、`accessory`、`equipment.helmet`、`equipment.vest`、
 `equipment.legs`、`equipment.feet`。四个装备格直接读写玩家原版 HEAD、CHEST、LEGS、FEET，
 没有额外装备副本。两个饰品槽各容纳一个饰品。
 
@@ -25,24 +25,24 @@
   {"slot":"equipment.vest","item":"blockzone:plate_carrier"},
   {"slot":"equipment.legs","item":"blockzone:tactical_leggings"},
   {"slot":"equipment.feet","item":"blockzone:tactical_boots"},
-  {"slot":"weapon.primary","item":"tacz:modern_kinetic_gun","nbt":"{GunId:\"tacz:ak47\",GunCurrentAmmoCount:0,GunFireMode:\"AUTO\"}"},
+  {"slot":"weapon","item":"tacz:modern_kinetic_gun","nbt":"{GunId:\"tacz:ak47\",GunCurrentAmmoCount:0,GunFireMode:\"AUTO\"}"},
   {"slot":"item.armor_plates","item":"blockzone:armor_plate","count":2},
-  {"slot":"ammo.1","item":"tacz:ammo","count":64,"nbt":"{AmmoId:\"tacz:762x39\"}"}
+  {"slot":"ammo","item":"tacz:ammo","count":64,"nbt":"{AmmoId:\"tacz:762x39\"}"}
 ]
 ```
 
 添加饰品时，使用实际已注册的饰品物品，例如
-`{"slot":"accessory.1","item":"yourmod:charm","nbt":"{Quality:2}"}`。
+`{"slot":"accessory","item":"yourmod:charm","nbt":"{Quality:2}"}`。
 仅有基类不会自动注册或生成一个有战斗效果的饰品。
 
-初始装备仅接受当前正式槽位 ID。旧别名与已移除槽位直接报错，不自动迁移。
+初始装备仅接受当前槽位类型。旧别名与已移除槽位直接报错，不自动迁移。
 
 ## 类型与数量校验
 
-槽位规则新增可选 `type` 字段。未填写时按槽位 ID 推导；显式填写错误类型会拒绝整次更新。
+槽位规则新增可选 `type` 字段。未填写时按配置键对应的槽位类型推导；显式填写错误类型会拒绝整次更新。
 
 ```json
-{"accessory.1":{"type":"accessory","allowed":["#curios:ring"],"limit":1}}
+{"accessory":{"type":"accessory","allowed":["#curios:ring"],"limit":1}}
 ```
 
 | 类型 | 允许对象 | 数量 |
@@ -124,3 +124,5 @@ Curios 安装与未安装使用两个独立运行环境；测试辅助物品只�
 验证结果：122 项单元测试；Curios 5.14.1 + 铳械协议环境与未安装 Curios 环境各 34 项 GameTest。
 真实客户端通过 minecraft-mod-mcp 检查 E 键、第一行 2+4 布局、原生及第三方饰品拾取、
 Curios 原生 tick，以及动态 NBT 饰品的左键丢弃和第三方饰品右键清空。测试服已保存退出。
+
+初始装备条目的 `slot` 填槽位类型（如 `accessory`、`weapon`、`item.tactical`、`ammo`），同类条目按列表顺序分配到该类型的空格。条目数超过该类型格子数时拒绝配置；同种弹药仍然只能占一个格子。

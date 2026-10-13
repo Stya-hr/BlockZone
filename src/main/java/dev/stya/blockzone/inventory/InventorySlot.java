@@ -76,6 +76,23 @@ public enum InventorySlot {
     }
 
     public String id() { return id; }
+    /** Shared configuration and display key; physical IDs remain internal destinations. */
+    public String category() {
+        if (ACCESSORIES.contains(this)) return "accessory";
+        if (WEAPONS.contains(this)) return "weapon";
+        if (AMMUNITION.contains(this)) return "ammo";
+        if (this == TACTICAL_1 || this == TACTICAL_2) return "item.tactical";
+        return id;
+    }
+
+    public static List<String> categories() { return ALL.stream().map(InventorySlot::category).distinct().toList(); }
+
+    public static List<InventorySlot> byCategory(String category) {
+        var slots = ALL.stream().filter(slot -> slot.category().equals(category)).toList();
+        if (slots.isEmpty()) throw new IllegalArgumentException("Unknown inventory slot category: " + category);
+        return slots;
+    }
+
     public String icon() { return icon; }
     public int index() { return ordinal(); }
     public int defaultLimit() { return defaultLimit; }

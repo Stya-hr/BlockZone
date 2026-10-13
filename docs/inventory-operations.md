@@ -33,10 +33,10 @@
 
 ## 配置诊断
 
-库存整套配置与单槽命令的错误会包含槽位，例如：
+库存整套配置与类型命令的错误会包含配置类型，例如：
 
 ```text
-inventory[item.tactical.2]: ... limit ...
+inventory[item.tactical]: ... limit ...
 inventory[equipment.helmet]: item minecraft:diamond_boots; expected equipment for head
 ```
 
@@ -44,13 +44,13 @@ inventory[equipment.helmet]: item minecraft:diamond_boots; expected equipment fo
 
 ```text
 loadout[slot=equipment.helmet, item=minecraft:diamond_boots]: expected equipment for head
-loadout[slot=item.tactical.2, item=minecraft:apple]: count 8 exceeds slot limit 3
-loadout[slot=ammo.2, item=minecraft:paper]: ammunition type already occupies ammo.1
+loadout[slot=item.tactical, item=minecraft:apple]: count 8 exceeds slot limit 3
+loadout[slot=ammo, item=minecraft:paper]: ammunition type already occupies ammo
 ```
 
 分别报告未注册物品、错误 NBT、错误部位、未命中允许规则、超出物品或槽位数量、重复槽位和重复弹种。
 标签类型校验会同时指出标签和其中不兼容的实际物品。错误配置不替换当前配置。
-只接受当前正式槽位 ID，不兼容旧别名或旧存档格式。网络协议为 23。
+配置只接受当前槽位类型，不兼容旧的逐格配置键或旧存档格式。网络协议为 23。
 
 ## 验证
 

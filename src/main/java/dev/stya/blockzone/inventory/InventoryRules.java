@@ -12,7 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Serializable, validated map configuration. Omitted slots keep their defaults. */
+/** Serializable, validated map configuration. Omitted categories keep their defaults. */
 public record InventoryRules(Map<String, Definition> slots) {
     public record Definition(List<String> allowed, int limit, Map<String, Integer> itemLimits, String type) {
         // Codec.optionalFieldOf treats malformed fields as absent; quantity errors must reject the update.
@@ -77,9 +77,9 @@ public record InventoryRules(Map<String, Definition> slots) {
     public InventoryRules {
         var merged = new LinkedHashMap<String, Definition>();
         for (var slot : InventorySlot.ALL)
-            merged.put(slot.id(), new Definition(slot.defaults(), slot.defaultLimit(), Map.of(), slot.type()));
+            merged.put(slot.category(), new Definition(slot.defaults(), slot.defaultLimit(), Map.of(), slot.type()));
         slots.forEach((id, definition) -> {
-            var slot = InventorySlot.byId(id);
+            var slot = InventorySlot.byCategory(id).get(0);
             java.util.Objects.requireNonNull(definition);
             if (!definition.type().isEmpty() && !definition.type().equals(slot.type()))
                 throw new IllegalArgumentException("Wrong type for " + id + ": expected " + slot.type() + ", received " + definition.type());
@@ -96,20 +96,28 @@ public record InventoryRules(Map<String, Definition> slots) {
     /** Run after registries/tags are available; runtime admission still checks dynamic tags. */
     public void validateTypes() {
         slots.forEach((id, definition) -> {
-            var slot = InventorySlot.byId(id);
+            var slot = InventorySlot.byCategory(id).get(0);
             definition.allowed().forEach(selector -> ItemSelector.parse(selector).validateType(slot));
         });
     }
 
     public InventoryRules withSlot(InventorySlot slot, Definition definition) {
+        return withCategory(slot.category(), definition);
+    }
+
+    public InventoryRules withCategory(String category, Definition definition) {
+        InventorySlot.byCategory(category);
         var changed = new LinkedHashMap<>(slots);
-        changed.put(slot.id(), definition);
+        changed.put(category, definition);
         return new InventoryRules(changed);
     }
 
     public Map<InventorySlot, SlotRule> compile() {
         var result = new EnumMap<InventorySlot, SlotRule>(InventorySlot.class);
-        slots.forEach((id, definition) -> result.put(InventorySlot.byId(id), definition.compile()));
+        slots.forEach((id, definition) -> {
+            var rule = definition.compile();
+            InventorySlot.byCategory(id).forEach(slot -> result.put(slot, rule));
+        });
         return Map.copyOf(result);
     }
 }

@@ -41,7 +41,9 @@ public final class StartingLoadout {
         return entries.stream().map(entry -> {
             String context = "loadout[slot=" + entry.slot + ", item=" + entry.item + "]: ";
             dev.stya.blockzone.inventory.InventorySlot panel;
-            try { panel = dev.stya.blockzone.inventory.InventorySlot.byId(entry.slot); }
+            try { panel = dev.stya.blockzone.inventory.InventorySlot.byCategory(entry.slot).stream()
+                    .filter(candidate -> !occupied.contains(candidate.id())).findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("no free slot of category " + entry.slot)); }
             catch (IllegalArgumentException failure) { throw new IllegalArgumentException(context + failure.getMessage()); }
             String destination = panel.id();
             if (!occupied.add(destination)) throw new IllegalArgumentException(context + "destination is configured more than once");

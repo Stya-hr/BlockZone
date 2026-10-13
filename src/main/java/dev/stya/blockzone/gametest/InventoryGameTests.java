@@ -210,12 +210,12 @@ public final class InventoryGameTests {
     @GameTest(template = "empty")
     public static void tightenedRulesPreserveStoredItemsAndStillAllowExtraction(GameTestHelper helper) {
         var cap = new BattlezoneInventoryCapability(null);
-        cap.write(new InventoryRules(Map.of("item.tactical.2", new InventoryRules.Definition(List.of("minecraft:stick"), 8))));
+        cap.write(new InventoryRules(Map.of("item.tactical", new InventoryRules.Definition(List.of("minecraft:stick"), 8))));
         var inventory = cap.createInventory();
         int slot = InventorySlot.TACTICAL_2.index();
         inventory.insertItem(slot, new ItemStack(Items.STICK, 5), false);
         var saved = inventory.serializeNBT();
-        cap.write(new InventoryRules(Map.of("item.tactical.2", new InventoryRules.Definition(List.of(), 1))));
+        cap.write(new InventoryRules(Map.of("item.tactical", new InventoryRules.Definition(List.of(), 1))));
         var restored = cap.createInventory();
         restored.deserializeNBT(saved);
         assertEquals(InventorySlot.ALL.size(), restored.getSlots());

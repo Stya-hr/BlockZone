@@ -16,7 +16,7 @@ class StartingLoadoutTest {
     }
     @Test void gunNbtAndCountSurviveConfigurationRoundTrip() {
         var json = JsonParser.parseString("""
-                {"slot":"weapon.primary","item":"tacz:modern_kinetic_gun","count":1,
+                {"slot":"weapon","item":"tacz:modern_kinetic_gun","count":1,
                  "nbt":"{GunId:\\"tacz:ak47\\",GunCurrentAmmoCount:30}"}
                 """);
         var entry = StartingLoadout.Entry.CODEC.parse(JsonOps.INSTANCE, json).result().orElseThrow();

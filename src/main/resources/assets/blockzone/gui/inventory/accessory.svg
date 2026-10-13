@@ -1,1 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><path d="M14 7h12l6 9-12 17L8 16zM8 16h24M14 7l6 9 6-9M20 16v17" fill="none" stroke="#e5edf1" stroke-width="3" stroke-linejoin="miter"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="#F3F7F8">
+  <title>Accessory charm</title>
+  <path fill-rule="evenodd" d="M11 6H29L36 17L20 35L4 17ZM13 10L9 16H17L14 10ZM18 10L20 15L22 10ZM26 10L23 16H31L27 10ZM10 20L17 28L15 20ZM19 20L20 28L21 20ZM25 20L23 28L30 20Z"/>
+</svg>

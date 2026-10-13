@@ -15,6 +15,10 @@ import net.minecraft.world.item.ItemStack;
 /** Non-pausing, server-authoritative inventory with shared render/hit-test geometry. */
 public final class InventoryPanelScreen extends Screen {
     private static final int FOREGROUND = 0xFFF3F7F8;
+    private static final int SLOT_ICON_SIZE = 40;
+    private static final int CAPTION_HEIGHT = 30;
+    private static final int GUN_MARGIN_X = 12;
+    private static final int GUN_MARGIN_Y = 6;
     private InventoryPanelLayout.Cell hovered;
     private Component attachmentName;
     private boolean preserveSneak;
@@ -55,20 +59,20 @@ public final class InventoryPanelScreen extends Screen {
             box(gui, cell.x(), cell.y(), cell.width(), cell.height(), cell == hovered || dragging && cell == pressedCell);
             boolean equipment = InventorySlot.FIRST_ROW.contains(cell.slot());
             boolean weapon = InventorySlot.WEAPONS.contains(cell.slot());
-            if (!equipment) gui.fill(cell.x() + 3, cell.y() + cell.height() - 30, cell.x() + cell.width() - 3, cell.y() + cell.height() - 3, 0x66000000);
+            int imageHeight = cell.height() - (equipment ? 0 : CAPTION_HEIGHT);
+            if (!equipment) gui.fill(cell.x() + 3, cell.y() + cell.height() - CAPTION_HEIGHT, cell.x() + cell.width() - 3, cell.y() + cell.height() - 3, 0x66000000);
             if (item.isEmpty()) {
-                int w = weapon ? 156 : cell.slot() == InventorySlot.GRENADE ? 24 : 40;
-                int h = weapon ? 56 : cell.slot() == InventorySlot.GRENADE ? 48 : 40;
-                icon(gui, cell.slot().icon(), cell.x() + (cell.width() - w) / 2, cell.y() + (equipment ? 20 : weapon ? 28 : 8), w, h);
-            } else if (!weapon || !GunHudIcon.draw(gui, item, cell.x() + 3, cell.y() + 3, cell.width() - 6, cell.height() - 36)) {
+                int w = weapon ? 156 : SLOT_ICON_SIZE;
+                int h = weapon ? 56 : SLOT_ICON_SIZE;
+                icon(gui, cell.slot().icon(), cell.x() + (cell.width() - w) / 2, cell.y() + (imageHeight - h) / 2, w, h);
+            } else if (!weapon || !GunHudIcon.draw(gui, item, cell.x() + GUN_MARGIN_X, cell.y() + GUN_MARGIN_Y, cell.width() - 2 * GUN_MARGIN_X, imageHeight - 2 * GUN_MARGIN_Y)) {
                 gui.pose().pushPose();
-                gui.pose().translate(cell.x() + (cell.width() - 48) / 2F, cell.y() + (equipment ? 16 : weapon ? 32 : 5), 0);
-                gui.pose().scale(3, 3, 1); gui.renderItem(item, 0, 0); gui.pose().popPose();
+                gui.pose().translate(cell.x() + (cell.width() - SLOT_ICON_SIZE) / 2F, cell.y() + (imageHeight - SLOT_ICON_SIZE) / 2F, 0);
+                gui.pose().scale(SLOT_ICON_SIZE / 16F, SLOT_ICON_SIZE / 16F, 1); gui.renderItem(item, 0, 0); gui.pose().popPose();
             }
             if (weapon) {
                 String label = font.plainSubstrByWidth((item.isEmpty() ? slotName(cell.slot()) : item.getHoverName()).getString(), (cell.width() - 12) / 2);
                 text(gui, label, cell.x() + (cell.width() - font.width(label) * 2F) / 2, cell.y() + cell.height() - 25, 2F, FOREGROUND);
-                attachments(gui, cell, GunAttachmentView.of(item), px, py);
             } else if (!equipment) {
                 int limit = data() == null ? cell.slot().defaultLimit() : data().limit(cell.slot());
                 String count = item.getCount() + " / " + limit;
@@ -76,6 +80,12 @@ public final class InventoryPanelScreen extends Screen {
                         item.getCount() > limit ? 0xFFFF9E81 : FOREGROUND);
             }
         }
+        // Draw flat attachment status last, above every item/HUD render pass.
+        gui.flush();
+        gui.pose().pushPose(); gui.pose().translate(0, 0, 400);
+        for (var cell : InventoryPanelLayout.CELLS) if (InventorySlot.WEAPONS.contains(cell.slot()))
+            attachments(gui, cell, GunAttachmentView.of(stack(cell.slot())), px, py);
+        gui.flush(); gui.pose().popPose();
         Component name = attachmentName != null ? attachmentName : hovered == null ? getTitle()
                 : stack(hovered.slot()).isEmpty() ? slotName(hovered.slot()) : stack(hovered.slot()).getHoverName();
         String description = font.plainSubstrByWidth(name.getString(), (int) ((1040 - 24) / 2.2F));
@@ -94,21 +104,19 @@ public final class InventoryPanelScreen extends Screen {
 
     private Component slotName(InventorySlot slot) { return Component.translatable("slot.blockzone." + slot.id()); }
     private void attachments(GuiGraphics gui, InventoryPanelLayout.Cell cell, List<GunAttachmentView.Attachment> attachments, double px, double py) {
-        gui.pose().pushPose();
-        gui.pose().translate(0, 0, 300); // Keep status cells above gun models that write depth while rendering.
-        int x = cell.x() + cell.width() - 6 - attachments.size() * 23;
+        int size = 24, gap = 4;
+        int rowWidth = attachments.size() * size + Math.max(0, attachments.size() - 1) * gap;
+        int x = cell.x() + cell.width() - GUN_MARGIN_X - rowWidth;
         for (var attachment : attachments) {
-            int y = cell.y() + 6;
-            boolean pointed = px >= x && px < x + 20 && py >= y && py < y + 20;
-            gui.fill(x, y, x + 20, y + 20, pointed ? 0xAA7A8A94 : attachment.item().isEmpty() ? 0x66353F45 : 0xAA647D89);
-            gui.renderOutline(x, y, 20, 20, pointed ? FOREGROUND : 0x998B9CA5);
-            if (attachment.item().isEmpty()) text(gui, "·", x + 7, y + 3, 1.2F, 0x889BA9AF);
-            else gui.renderItem(attachment.item(), x + 2, y + 2);
+            int y = cell.y() + GUN_MARGIN_Y;
+            boolean pointed = px >= x && px < x + size && py >= y && py < y + size;
+            box(gui, x, y, size, size, pointed);
+            icon(gui, attachment.icon(), x + 4, y + 4, 16, 16, attachment.item().isEmpty() ? .25F : .9F);
             if (pointed) attachmentName = attachment.item().isEmpty() ? attachment.name() : attachment.item().getHoverName();
-            x += 23;
+            x += size + gap;
         }
-        gui.pose().popPose();
     }
+
     private void text(GuiGraphics gui, String value, float x, float y, float scale, int color) {
         gui.pose().pushPose(); gui.pose().translate(x, y, 0); gui.pose().scale(scale, scale, 1);
         gui.drawString(font, value, 0, 0, color, false); gui.pose().popPose();
@@ -123,11 +131,14 @@ public final class InventoryPanelScreen extends Screen {
         gui.fill(0, 0, 1, eh, color); gui.fill(ew - 1, 0, ew, eh, color); gui.pose().popPose();
     }
     private void icon(GuiGraphics gui, String name, int x, int y, int w, int h) {
+        icon(gui, name, x, y, w, h, .25F);
+    }
+    private void icon(GuiGraphics gui, String name, int x, int y, int w, int h, float opacity) {
         double pixelScale = scale() * minecraft.getWindow().getGuiScale();
         var texture = InventorySvgAssets.get(name, Math.max(1, (int) Math.ceil(w * pixelScale)), Math.max(1, (int) Math.ceil(h * pixelScale)));
-        gui.flush(); gui.setColor(1, 1, 1, .25F); RenderSystem.enableBlend(); RenderSystem.defaultBlendFunc();
+        gui.flush(); gui.setColor(1, 1, 1, opacity); RenderSystem.enableBlend(); RenderSystem.defaultBlendFunc();
         gui.blit(texture.id(), x, y, w, h, 0, 0, texture.width(), texture.height(), texture.width(), texture.height());
-        gui.setColor(1, 1, 1, 1); RenderSystem.disableBlend();
+        gui.flush(); gui.setColor(1, 1, 1, 1); RenderSystem.disableBlend();
     }
     @Override public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (minecraft.options.keyInventory.matchesMouse(button)) { onClose(); return true; }

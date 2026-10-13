@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="48" viewBox="0 0 24 48" fill="#F3F7F8">
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="#F3F7F8">
   <title>Fragmentation grenade</title>
-  <path fill-rule="evenodd" d="M3 2H13V12H3ZM6 5V9H10V5Z"/>
-  <path d="M8 12H17V18H8Z M13 8H19L23 17V36H20V18L17 11H13Z"/>
-  <path fill-rule="evenodd" d="M6 19H16L19 23V42L15 46H6L2 42V23ZM6 27V31H15V27ZM6 35V39H15V35Z"/>
+  <path fill-rule="evenodd" d="M9 3H20V13H9ZM12 6V10H17V6Z"/>
+  <path d="M13 13H25V18H13Z M18 9H28L34 19V33H30V20L26 13H18Z"/>
+  <path fill-rule="evenodd" d="M11 19H25L29 23V34L24 38H11L6 34V23ZM11 25V29H24V25ZM11 32V35H24V32Z"/>
 </svg>

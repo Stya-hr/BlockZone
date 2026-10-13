@@ -2,7 +2,6 @@ package dev.stya.blockzone.client.equipment;
 
 import com.google.gson.JsonParser;
 import dev.stya.blockzone.equipment.TacticalArmorItem;
-import dev.stya.blockzone.equipment.PlateCapacity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.model.geom.builders.*;
@@ -24,7 +23,6 @@ public final class TacticalArmorExtension implements IClientItemExtensions {
     @Override public HumanoidModel<?> getHumanoidArmorModel(LivingEntity entity, ItemStack stack,
             EquipmentSlot slot, HumanoidModel<?> original) {
         String name = ((TacticalArmorItem) stack.getItem()).model();
-        if (name.equals("carrier") && PlateCapacity.expanded(stack)) name = "advanced_carrier";
         return MODELS.computeIfAbsent(name, TacticalArmorExtension::load);
     }
 

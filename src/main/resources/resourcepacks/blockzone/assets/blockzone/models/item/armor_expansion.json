@@ -1,38 +1,6 @@
 {
-  "loader": "forge:separate_transforms",
-  "gui_light": "front",
+  "parent": "minecraft:item/generated",
   "textures": {
-    "particle": "blockzone:item/icons/armor_expansion"
-  },
-  "base": {
-    "parent": "blockzone:item/held/armor_expansion"
-  },
-  "perspectives": {
-    "gui": {
-      "parent": "minecraft:item/generated",
-      "textures": {
-        "layer0": "blockzone:item/icons/armor_expansion"
-      },
-      "gui_light": "front",
-      "display": {
-        "gui": {
-          "rotation": [
-            0,
-            0,
-            0
-          ],
-          "translation": [
-            0.0,
-            0.0,
-            0
-          ],
-          "scale": [
-            1,
-            1,
-            1
-          ]
-        }
-      }
-    }
+    "layer0": "blockzone:item/icons/advanced_armor"
   }
 }

@@ -26,5 +26,10 @@
   "attachment.blockzone.stock": "枪托",
   "attachment.blockzone.grip": "握把",
   "attachment.blockzone.laser": "激光",
-  "attachment.blockzone.extended_mag": "弹匣"
+  "attachment.blockzone.extended_mag": "弹匣",
+  "slot.blockzone.accessory.1": "饰品 1",
+  "slot.blockzone.accessory.2": "饰品 2",
+  "slot.blockzone.equipment.legs": "护腿",
+  "slot.blockzone.equipment.feet": "靴子",
+  "curios.identifier.blockzone_accessory": "战局饰品"
 }

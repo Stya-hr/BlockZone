@@ -4,6 +4,12 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class InventoryPanelLayoutTest {
+    @Test void firstRowIsTwoAccessoriesAndFourNativeArmorParts() {
+        assertEquals(InventorySlot.FIRST_ROW, InventoryPanelLayout.CELLS.subList(0, 6).stream().map(InventoryPanelLayout.Cell::slot).toList());
+        assertEquals(java.util.List.of(net.minecraft.world.entity.EquipmentSlot.HEAD, net.minecraft.world.entity.EquipmentSlot.CHEST,
+                net.minecraft.world.entity.EquipmentSlot.LEGS, net.minecraft.world.entity.EquipmentSlot.FEET),
+                InventorySlot.ARMOR.stream().map(InventorySlot::equipmentSlot).toList());
+    }
     @Test void allSlotsHaveOneDisjointClickableRegion() {
         assertEquals(17, InventoryPanelLayout.CELLS.size());
         assertEquals(17, InventoryPanelLayout.CELLS.stream().map(InventoryPanelLayout.Cell::slot).distinct().count());

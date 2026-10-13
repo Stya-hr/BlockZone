@@ -8,6 +8,16 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class InventoryRulesTest {
+    @Test void typesAreFixedAndOldUntypedRulesAreInferred() {
+        var rules = new InventoryRules(Map.of("accessory.1", new InventoryRules.Definition(List.of("*"), 1)));
+        assertEquals("accessory", rules.slots().get("accessory.1").type());
+        assertThrows(IllegalArgumentException.class, () -> new InventoryRules(Map.of("accessory.1",
+                new InventoryRules.Definition(List.of("*"), 1, Map.of(), "weapon"))));
+        assertThrows(IllegalArgumentException.class, () -> rules.withSlot(InventorySlot.ACCESSORY_1,
+                new InventoryRules.Definition(List.of("*"), 2)));
+        assertThrows(IllegalArgumentException.class, () -> rules.withSlot(InventorySlot.BOOTS,
+                new InventoryRules.Definition(List.of("*"), 1, Map.of("*", 2))));
+    }
     @Test void itemLimitsRoundTripAndOldConfigurationsKeepTheirFallback() {
         var cap = new BattlezoneInventoryCapability(null);
         var definition = new InventoryRules.Definition(List.of("minecraft:golden_apple", "minecraft:paper"), 4,
@@ -34,14 +44,14 @@ class InventoryRulesTest {
     }
 
     @Test void allPanelSlotsHaveStableUniqueIdsAndIndices() {
-        assertEquals(17, InventorySlot.ALL.size());
-        assertEquals(17, InventoryRules.defaults().slots().size());
+        assertEquals(21, InventorySlot.ALL.size());
+        assertEquals(21, InventoryRules.defaults().slots().size());
         for (var slot : InventorySlot.ALL) {
             assertSame(slot, InventorySlot.byIndex(slot.index()));
             assertSame(slot, InventorySlot.byId(slot.id()));
         }
         assertThrows(IllegalArgumentException.class, () -> InventorySlot.byId("weapon.typo"));
-        assertThrows(IllegalArgumentException.class, () -> InventorySlot.byIndex(17));
+        assertThrows(IllegalArgumentException.class, () -> InventorySlot.byIndex(21));
     }
 
     @Test void capabilityRoundTripsAndSingleSlotUpdatePreservesOtherRules() {
@@ -73,12 +83,12 @@ class InventoryRulesTest {
         var first = new BattlezoneInventoryCapability(null);
         var second = new BattlezoneInventoryCapability(null);
         first.begin();
-        var active = first.rule(InventorySlot.HELMET);
-        first.write(new InventoryRules(Map.of("equipment.helmet", new InventoryRules.Definition(List.of("*"), 3))));
-        assertSame(active, first.rule(InventorySlot.HELMET));
-        assertEquals(1, second.rule(InventorySlot.HELMET).limit());
+        var active = first.rule(InventorySlot.MEDKIT);
+        first.write(new InventoryRules(Map.of("item.medkit", new InventoryRules.Definition(List.of("*"), 3))));
+        assertSame(active, first.rule(InventorySlot.MEDKIT));
+        assertEquals(64, second.rule(InventorySlot.MEDKIT).limit());
         first.reset();
-        assertEquals(3, first.rule(InventorySlot.HELMET).limit());
+        assertEquals(3, first.rule(InventorySlot.MEDKIT).limit());
         assertEquals(first.read(), new InventoryRules(first.read().slots()));
     }
 }

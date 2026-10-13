@@ -16,6 +16,7 @@ public final class BattlezoneLoadoutCapability extends MapCapability
     private List<StartingLoadout.Entry> configured = StartingLoadout.defaults();
     private List<StartingLoadout.Prepared> active = List.of();
     private boolean matchActive;
+    private boolean readingSavedConfiguration;
 
     public BattlezoneLoadoutCapability(BaseMap map) { super(map); }
 
@@ -30,15 +31,29 @@ public final class BattlezoneLoadoutCapability extends MapCapability
     }
 
     @Override public Codec<List<StartingLoadout.Entry>> codec() { return StartingLoadout.Entry.CODEC.listOf(); }
+    @Override public void decode(com.google.gson.JsonElement json) {
+        boolean previous = readingSavedConfiguration;
+        readingSavedConfiguration = true;
+        try { FPSMCapability.Savable.super.decode(json); }
+        finally { readingSavedConfiguration = previous; }
+    }
     @Override public List<StartingLoadout.Entry> read() { return configured; }
     @Override public List<StartingLoadout.Entry> write(List<StartingLoadout.Entry> entries) {
         var copy = List.copyOf(entries);
-        StartingLoadout.prepare(copy); // Reject the whole update before changing configuration.
+        // The inventory capability may be decoded later. Validate structure/types now, cross-check after restore at start.
+        var permissive = dev.stya.blockzone.inventory.SlotRule.parse(List.of("*"), 1024);
+        StartingLoadout.prepare(copy, readingSavedConfiguration ? slot -> permissive : configuredRules());
         configured = copy;
         return configured;
     }
 
-    public List<StartingLoadout.Prepared> prepare() { return StartingLoadout.prepare(configured); }
+    public List<StartingLoadout.Prepared> prepare() { return StartingLoadout.prepare(configured, configuredRules()); }
+    private java.util.function.Function<dev.stya.blockzone.inventory.InventorySlot, dev.stya.blockzone.inventory.SlotRule> configuredRules() {
+        var rules = map == null ? dev.stya.blockzone.inventory.InventoryRules.defaults()
+                : com.ptcrys.fpsmatch.core.capability.CapabilityMap.getMapCapability(map, BattlezoneInventoryCapability.class)
+                    .map(BattlezoneInventoryCapability::read).orElseGet(dev.stya.blockzone.inventory.InventoryRules::defaults);
+        return rules.compile()::get;
+    }
 
     /** Activate only after BaseMap accepted the start, using the already validated stacks. */
     public void begin(List<StartingLoadout.Prepared> prepared) {

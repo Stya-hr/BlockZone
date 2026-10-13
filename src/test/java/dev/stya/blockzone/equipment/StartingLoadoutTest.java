@@ -6,6 +6,13 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class StartingLoadoutTest {
+    @Test void canonicalDestinationsUnifyNativeAndPanelAliases() {
+        assertEquals(StartingLoadout.panelSlot("head"), StartingLoadout.panelSlot("equipment.helmet"));
+        assertEquals(StartingLoadout.panelSlot("legs"), StartingLoadout.panelSlot("equipment.legs"));
+        assertEquals(StartingLoadout.panelSlot("hotbar.0"), StartingLoadout.panelSlot("weapon.primary"));
+        assertEquals(StartingLoadout.panelSlot("hotbar.5"), StartingLoadout.panelSlot("item.armor_plates"));
+        assertEquals(dev.stya.blockzone.inventory.InventorySlot.ACCESSORY_2, StartingLoadout.panelSlot("accessory.2"));
+    }
     @Test void inventoryAndHotbarSlotsDoNotOverlap() {
         assertEquals(0, StartingLoadout.inventoryIndex("hotbar.0"));
         assertEquals(8, StartingLoadout.inventoryIndex("hotbar.8"));

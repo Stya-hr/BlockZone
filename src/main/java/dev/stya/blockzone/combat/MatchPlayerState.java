@@ -2,7 +2,6 @@ package dev.stya.blockzone.combat;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -44,17 +43,12 @@ final class MatchPlayerState {
         player.setExperienceLevels(0);
         player.totalExperience = 0;
         player.experienceProgress = 0;
-        player.getInventory().clearContent();
-        player.getInventory().selected = 0;
-        player.inventoryMenu.setCarried(ItemStack.EMPTY);
-        for (int slot = 0; slot <= 4; slot++) player.inventoryMenu.getSlot(slot).set(ItemStack.EMPTY);
         ForgeRegistries.ITEMS.getValues().stream().filter(player.getCooldowns()::isOnCooldown)
                 .forEach(player.getCooldowns()::removeCooldown);
         player.resetAttackStrengthTicker();
         CombatHealth.initialize(player, maxHealth);
         player.setAbsorptionAmount(0);
         player.inventoryMenu.broadcastChanges();
-        player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket(0));
     }
 
     static CompoundTag fullFood() {

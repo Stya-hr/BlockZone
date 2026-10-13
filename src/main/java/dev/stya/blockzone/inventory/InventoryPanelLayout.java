@@ -11,7 +11,7 @@ public final class InventoryPanelLayout {
     public static final List<Cell> CELLS;
     static {
         var cells = new ArrayList<Cell>();
-        for (int i = 0; i < 6; i++) cells.add(new Cell(InventorySlot.EQUIPMENT.get(i), 160 + 122 * i, 38, 110, 80));
+        for (int i = 0; i < 6; i++) cells.add(new Cell(InventorySlot.FIRST_ROW.get(i), 160 + 122 * i, 38, 110, 80));
         for (int i = 0; i < 2; i++) cells.add(new Cell(InventorySlot.WEAPONS.get(i), 242 * i, 128, 230, 112));
         for (int i = 0; i < 4; i++) cells.add(new Cell(InventorySlot.ITEMS.get(i), 484 + 142 * i, 128, 130, 112));
         for (int i = 0; i < 5; i++) cells.add(new Cell(InventorySlot.AMMUNITION.get(i), Math.round(160 + 146.4F * i), 250, 134, 80));

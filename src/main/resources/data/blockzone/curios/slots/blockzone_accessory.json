@@ -1,0 +1,9 @@
+{
+  "replace": true,
+  "size": 2,
+  "order": 5,
+  "icon": "curios:slot/empty_curio_slot",
+  "validators": ["blockzone:accessory"],
+  "add_cosmetic": false,
+  "use_native_gui": false
+}

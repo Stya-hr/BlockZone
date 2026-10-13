@@ -25,6 +25,7 @@ public final class BlockZone {
     }
     private void commonSetup(net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent event) {
         event.enqueueWork(() -> {
+            dev.stya.blockzone.equipment.AccessoryCompat.register();
             dev.stya.blockzone.map.battlezone.capability.BattlezoneLoadoutCapability.register();
             dev.stya.blockzone.map.battlezone.capability.BattlezoneInventoryCapability.register();
             dev.stya.blockzone.map.battlezone.capability.BattlezoneCombatCapability.register();

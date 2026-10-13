@@ -27,43 +27,65 @@ public final class PlayerInventoryEvents {
     @SubscribeEvent public static void attach(AttachCapabilitiesEvent<Entity> event) {
         if (!(event.getObject() instanceof Player player)) return;
         var data = new PlayerPanelInventory(player);
-        var optional = LazyOptional.of(() -> data);
-        event.addCapability(ResourceLocation.fromNamespaceAndPath(BlockZone.MOD_ID, "inventory"), new ICapabilitySerializable<CompoundTag>() {
+        class Provider implements ICapabilitySerializable<CompoundTag> {
+            private LazyOptional<PlayerPanelInventory> optional = LazyOptional.of(() -> data);
             @Override public <T> LazyOptional<T> getCapability(Capability<T> type, Direction side) {
-                return type == PlayerPanelInventory.CAPABILITY ? optional.cast() : LazyOptional.empty();
+                if (type != PlayerPanelInventory.CAPABILITY) return LazyOptional.empty();
+                // Entity.reviveCaps can be called after another mod already invalidated its lazy views during cloning.
+                // The entity gates capability access while invalid; renew only when the provider is queried again.
+                if (!optional.isPresent()) optional = LazyOptional.of(() -> data);
+                return optional.cast();
             }
             @Override public CompoundTag serializeNBT() { return data.save(); }
             @Override public void deserializeNBT(CompoundTag nbt) { data.load(nbt, false); }
-        });
-        event.addListener(() -> { optional.invalidate(); data.invalidate(); });
+            void invalidate() { optional.invalidate(); data.invalidate(); }
+        }
+        var provider = new Provider();
+        event.addCapability(ResourceLocation.fromNamespaceAndPath(BlockZone.MOD_ID, "inventory"), provider);
+        event.addListener(provider::invalidate);
     }
 
-    @SubscribeEvent public static void clonePlayer(PlayerEvent.Clone event) {
+    @SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.LOWEST)
+    public static void clonePlayer(PlayerEvent.Clone event) {
         // Match deaths normally become elimination, but dimension/respawn clones must not duplicate reserves.
         event.getOriginal().reviveCaps();
         try {
             PlayerPanelInventory.get(event.getOriginal()).ifPresent(old -> PlayerPanelInventory.get(event.getEntity()).ifPresent(next -> {
-                next.load(old.save(), false);
+                var state = old.save();
+                next.load(state, false);
                 old.end();
+                next.restoreClonedAccessories(state.getList("AccessoryView", net.minecraft.nbt.Tag.TAG_COMPOUND));
             }));
         } finally { event.getOriginal().invalidateCaps(); }
     }
 
-    @SubscribeEvent public static void actualDeath(net.minecraftforge.event.entity.living.LivingDropsEvent event) {
+    @SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.LOWEST)
+    public static void actualDeath(net.minecraftforge.event.entity.living.LivingDropsEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
         PlayerPanelInventory.get(player).filter(PlayerPanelInventory::active).ifPresent(data -> {
+            for (var slot : InventorySlot.ACCESSORIES) {
+                var stack = data.removeAccessory(slot);
+                if (!stack.isEmpty()) event.getDrops().add(new net.minecraft.world.entity.item.ItemEntity(
+                        player.level(), player.getX(), player.getY(), player.getZ(), stack));
+            }
             for (var slot : InventorySlot.AMMUNITION) {
                 var stack = data.storage().extractItem(slot.index(), Integer.MAX_VALUE, false);
                 if (!stack.isEmpty()) event.getDrops().add(new net.minecraft.world.entity.item.ItemEntity(
                         player.level(), player.getX(), player.getY(), player.getZ(), stack));
             }
-            data.end();
+            data.endAfterDeath();
         });
     }
 
     @SubscribeEvent public static void tick(TickEvent.PlayerTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || !(event.player instanceof ServerPlayer player)) return;
+        if (event.phase != TickEvent.Phase.END) return;
+        if (event.player.level().isClientSide) {
+            PlayerPanelInventory.get(event.player).ifPresent(PlayerPanelInventory::tickAccessories);
+            return;
+        }
+        if (!(event.player instanceof ServerPlayer player)) return;
         PlayerPanelInventory.get(player).ifPresent(data -> {
+            data.restorePendingAccessories();
             if (data.hasSession()) {
                 var map = MatchRegeneration.map(player).filter(data::matches)
                         .filter(m -> !MatchRegeneration.allowed(player));
@@ -73,6 +95,7 @@ public final class PlayerInventoryEvents {
                 }
                 else data.end();
             }
+            data.tickAccessories();
             var tag = data.save();
             // Weapons already synchronize through vanilla inventory packets. Reserves need their own snapshot.
             if (!tag.equals(LAST.get(player))) {

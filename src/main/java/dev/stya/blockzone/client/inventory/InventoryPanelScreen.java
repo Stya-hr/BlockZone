@@ -47,7 +47,7 @@ public final class InventoryPanelScreen extends Screen {
         for (var cell : InventoryPanelLayout.CELLS) {
             var item = stack(cell.slot());
             box(gui, cell.x(), cell.y(), cell.width(), cell.height(), cell == hovered);
-            boolean equipment = InventorySlot.EQUIPMENT.contains(cell.slot());
+            boolean equipment = InventorySlot.FIRST_ROW.contains(cell.slot());
             boolean weapon = InventorySlot.WEAPONS.contains(cell.slot());
             if (!equipment) gui.fill(cell.x() + 3, cell.y() + cell.height() - 26, cell.x() + cell.width() - 3, cell.y() + cell.height() - 3, 0x66000000);
             if (item.isEmpty()) {
@@ -126,7 +126,7 @@ public final class InventoryPanelScreen extends Screen {
         if (cell == null) return;
         var data = data(); var stack = stack(cell.slot());
         if (data != null && !stack.isEmpty()) BattlezoneNetwork.discard(new DiscardInventoryC2SPacket(
-                cell.slot().index(), all ? 2 : InventoryPreviewKeys.bulkDropDown(minecraft) ? 1 : 0, data.round(), stack.copy()));
+                cell.slot().index(), all ? 2 : InventoryPreviewKeys.bulkDropDown(minecraft) ? 1 : 0, data.round(), data.revision(cell.slot())));
     }
     @Override public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (InventoryPreviewKeys.movementKeys(minecraft).stream().anyMatch(key -> key.matches(keyCode, scanCode))) {

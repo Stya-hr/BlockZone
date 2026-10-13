@@ -26,6 +26,7 @@ public final class PlayerPanelInventory {
     private boolean pendingValidation;
     private String mapName = "";
     private UUID round;
+    private int[] displayLimits = InventorySlot.ALL.stream().mapToInt(InventorySlot::defaultLimit).toArray();
     private final LazyOptional<IItemHandler> ammunition = LazyOptional.of(() -> new IItemHandler() {
         private int index(int slot) {
             if (slot < 0 || slot >= getSlots()) throw new IllegalArgumentException("Invalid ammunition slot");
@@ -43,6 +44,13 @@ public final class PlayerPanelInventory {
     public static java.util.Optional<PlayerPanelInventory> get(Player player) { return player.getCapability(CAPABILITY).resolve(); }
     public boolean active() { return active && !pendingValidation; }
     public boolean hasSession() { return active; }
+    public UUID round() { return round; }
+    public int limit(InventorySlot slot) {
+        if (player.level().isClientSide) return displayLimits[slot.index()];
+        var stack = getStack(slot);
+        return stack.isEmpty() ? rules.apply(slot).maximumLimit()
+                : Math.min(stack.getMaxStackSize(), rules.apply(slot).limitFor(stack));
+    }
     public PanelInventory storage() { return storage; }
     public LazyOptional<IItemHandler> ammunition() { return ammunition; }
     public void invalidate() { ammunition.invalidate(); }
@@ -80,13 +88,31 @@ public final class PlayerPanelInventory {
 
     public boolean manages(ItemStack stack) {
         return !stack.isEmpty() && (GunCompatManager.isGun(stack) || AmmoType.of(stack).tacz()
-                || InventorySlot.AMMUNITION.stream().anyMatch(slot -> rules.apply(slot).accepts(stack)));
+                || InventorySlot.AMMUNITION.stream().anyMatch(slot -> rules.apply(slot).accepts(stack))
+                || InventorySlot.ITEMS.stream().anyMatch(slot -> rules.apply(slot).accepts(stack)));
     }
 
     /** Never mutates the input; callers own removing the accepted quantity from its source. */
     public ItemStack insert(ItemStack stack, boolean simulate) {
         if (!active() || stack.isEmpty()) return stack;
-        if (!GunCompatManager.isGun(stack)) return storage.insertAmmo(stack, simulate);
+        if (!GunCompatManager.isGun(stack)) {
+            if (AmmoType.of(stack).tacz() || InventorySlot.AMMUNITION.stream().anyMatch(slot -> rules.apply(slot).accepts(stack)))
+                return storage.insertAmmo(stack, simulate);
+            for (var slot : InventorySlot.ITEMS) {
+                int index = 2 + InventorySlot.ITEMS.indexOf(slot);
+                var existing = player.getInventory().getItem(index);
+                if (!rules.apply(slot).accepts(stack) || (!existing.isEmpty() && !ItemStack.isSameItemSameTags(existing, stack))) continue;
+                int count = Math.min(stack.getCount(), Math.min(stack.getMaxStackSize(), rules.apply(slot).limitFor(stack)) - existing.getCount());
+                if (count <= 0) continue;
+                if (!simulate) {
+                    var inserted = stack.copy(); inserted.setCount(existing.getCount() + count);
+                    player.getInventory().setItem(index, inserted);
+                    player.getInventory().setChanged();
+                }
+                var remainder = stack.copy(); remainder.shrink(count); return remainder;
+            }
+            return stack;
+        }
         for (int i = 0; i < InventorySlot.WEAPONS.size(); i++) {
             var rule = rules.apply(InventorySlot.WEAPONS.get(i));
             if (player.getInventory().getItem(i).isEmpty() && rule.accepts(stack)) {
@@ -107,9 +133,11 @@ public final class PlayerPanelInventory {
     /** Reconcile starting loadouts and vanilla inventory/menu transfers without copying weapons. */
     public void normalize() {
         if (!active()) return;
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < 6; i++) {
             var stack = player.getInventory().getItem(i);
-            if (!stack.isEmpty() && !GunCompatManager.isGun(stack)) {
+            var slot = i < 2 ? InventorySlot.WEAPONS.get(i) : InventorySlot.ITEMS.get(i - 2);
+            if (!stack.isEmpty() && (i < 2 ? !GunCompatManager.isGun(stack)
+                    : AmmoType.of(stack).tacz() || InventorySlot.AMMUNITION.stream().anyMatch(ammo -> rules.apply(ammo).accepts(stack)) || !rules.apply(slot).accepts(stack))) {
                 player.getInventory().setItem(i, ItemStack.EMPTY);
                 if (manages(stack)) returnRemainder(insert(stack, false));
                 else relocate(stack);
@@ -118,8 +146,11 @@ public final class PlayerPanelInventory {
         for (int i = 0; i < player.getInventory().items.size(); i++) {
             var stack = player.getInventory().getItem(i);
             if (stack.isEmpty() || !manages(stack)) continue;
-            if (i < 2 && GunCompatManager.isGun(stack) && stack.getCount() == 1
-                    && rules.apply(InventorySlot.WEAPONS.get(i)).accepts(stack)) continue;
+            if (i < 6) {
+                var slot = i < 2 ? InventorySlot.WEAPONS.get(i) : InventorySlot.ITEMS.get(i - 2);
+                boolean ammo = AmmoType.of(stack).tacz() || InventorySlot.AMMUNITION.stream().anyMatch(target -> rules.apply(target).accepts(stack));
+                if ((i < 2 || !ammo) && rules.apply(slot).accepts(stack) && stack.getCount() <= Math.min(i < 2 ? 1 : stack.getMaxStackSize(), rules.apply(slot).limitFor(stack))) continue;
+            }
             player.getInventory().setItem(i, ItemStack.EMPTY);
             returnRemainder(insert(stack, false));
         }
@@ -131,9 +162,9 @@ public final class PlayerPanelInventory {
     }
 
     private void relocate(ItemStack stack) {
-        // Reserve hotbar 0/1 for weapons; do not send ordinary equipment into ammunition storage.
+        // Reserve hotbar 0..5 for the two weapons and four item slots.
         var remainder = stack.copy();
-        for (int i = 2; i < player.getInventory().items.size() && !remainder.isEmpty(); i++) {
+        for (int i = 6; i < player.getInventory().items.size() && !remainder.isEmpty(); i++) {
             var existing = player.getInventory().getItem(i);
             if (!existing.isEmpty() && !ItemStack.isSameItemSameTags(existing, remainder)) continue;
             int count = Math.min(remainder.getCount(), remainder.getMaxStackSize() - existing.getCount());
@@ -188,6 +219,7 @@ public final class PlayerPanelInventory {
         tag.putString("Map", mapName);
         if (round != null) tag.putUUID("Round", round);
         tag.put("Inventory", storage.serializeNBT());
+        tag.putIntArray("Limits", InventorySlot.ALL.stream().mapToInt(this::limit).toArray());
         return tag;
     }
 
@@ -199,6 +231,7 @@ public final class PlayerPanelInventory {
         round = tag.hasUUID("Round") ? tag.getUUID("Round") : null;
         active = tag.getBoolean("Active") && round != null;
         pendingValidation = active && !clientSync;
+        if (clientSync && tag.getIntArray("Limits").length == InventorySlot.ALL.size()) displayLimits = tag.getIntArray("Limits");
     }
 
     public List<ItemStack> snapshot() {
@@ -208,11 +241,32 @@ public final class PlayerPanelInventory {
     public ItemStack getStack(InventorySlot slot) {
         if (InventorySlot.WEAPONS.contains(slot))
             return player.getInventory().getItem(slot.index() - InventorySlot.PRIMARY_WEAPON.index());
+        if (InventorySlot.ITEMS.contains(slot)) return player.getInventory().getItem(2 + InventorySlot.ITEMS.indexOf(slot));
         return switch (slot) {
             case HELMET -> player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.HEAD);
             case VEST -> player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST);
             case SHIELD -> player.getOffhandItem();
             default -> storage.getStackInSlot(slot.index());
         };
+    }
+
+    /** Server-authoritative discard; the client cannot supply an item, quantity, or destination. */
+    public boolean discard(InventorySlot slot, int action, UUID expectedRound, ItemStack expectedItem) {
+        if (!active() || !java.util.Objects.equals(round, expectedRound) || action < 0 || action > 2) return false;
+        var source = getStack(slot);
+        if (source.isEmpty() || !ItemStack.isSameItemSameTags(source, expectedItem)) return false;
+        int count = Math.min(source.getCount(), action == 0 ? 1 : action == 1 ? 10 : source.getCount());
+        var dropped = source.copy(); dropped.setCount(count);
+        source.shrink(count);
+        var entity = new dev.stya.blockzone.loot.LootDropEntity(dev.stya.blockzone.registry.BlockzoneEntities.LOOT_DROP.get(), player.level());
+        entity.setItem(dropped);
+        entity.setPos(player.getX(), player.getEyeY() - .3, player.getZ());
+        entity.setDeltaMovement(player.getLookAngle().scale(.25).add(0, .1, 0));
+        entity.setPickUpDelay(20);
+        if (player instanceof net.minecraft.server.level.ServerPlayer server)
+            dev.stya.blockzone.combat.MatchRegeneration.map(server).filter(this::matches).ifPresent(entity::bindToMatch);
+        if (!player.level().addFreshEntity(entity)) { source.grow(count); return false; }
+        player.getInventory().setChanged();
+        return true;
     }
 }

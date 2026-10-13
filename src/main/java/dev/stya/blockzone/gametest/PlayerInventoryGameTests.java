@@ -139,6 +139,48 @@ public final class PlayerInventoryGameTests {
         helper.succeed();
     }
 
+    @GameTest(template = "empty")
+    public static void discardValidatesIdentityAndRoundAndClampsQuantities(GameTestHelper helper) {
+        var player = player(helper);
+        var data = PlayerPanelInventory.get(player).orElseThrow();
+        data.begin("gametest", UUID.randomUUID(), slot -> SlotRule.parse(List.of("minecraft:paper"), 64));
+        data.insert(new ItemStack(Items.PAPER, 14), false);
+        var expected = data.getStack(InventorySlot.AMMO_1).copy();
+        check(!data.discard(InventorySlot.AMMO_1, 0, UUID.randomUUID(), expected), "Old rounds must not discard items");
+        check(!data.discard(InventorySlot.AMMO_1, 0, data.round(), new ItemStack(Items.STONE)), "Changed items must not be discarded");
+        check(!data.discard(InventorySlot.AMMO_1, 3, data.round(), expected), "Unknown actions must be rejected");
+        check(data.discard(InventorySlot.AMMO_1, 0, data.round(), expected), "Single discard should succeed");
+        check(data.getStack(InventorySlot.AMMO_1).getCount() == 13, "Single discard removes one");
+        check(data.discard(InventorySlot.AMMO_1, 1, data.round(), expected), "Bulk discard should succeed");
+        check(data.getStack(InventorySlot.AMMO_1).getCount() == 3, "Bulk discard removes ten");
+        check(data.discard(InventorySlot.AMMO_1, 2, data.round(), expected), "All discard should succeed");
+        check(data.getStack(InventorySlot.AMMO_1).isEmpty(), "All discard empties slot");
+        check(!data.discard(InventorySlot.AMMO_1, 2, data.round(), expected), "Replay cannot duplicate items");
+        data.insert(new ItemStack(Items.PAPER, 2), false);
+        check(data.discard(InventorySlot.AMMO_1, 1, data.round(), expected), "Bulk discard clamps to remainder");
+        check(data.getStack(InventorySlot.AMMO_1).isEmpty(), "Small stacks cannot become negative");
+        data.end();
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void utilityPickupUsesNativeHotbarAndSynchronizesLimits(GameTestHelper helper) {
+        var player = player(helper);
+        var data = PlayerPanelInventory.get(player).orElseThrow();
+        data.begin("gametest", UUID.randomUUID(), slot -> slot == InventorySlot.MEDKIT
+                ? SlotRule.parse(List.of("minecraft:apple"), 3) : SlotRule.parse(List.of(), 1));
+        var remainder = data.insert(new ItemStack(Items.APPLE, 5), false);
+        check(remainder.getCount() == 2, "Utility pickup must honor configured limit");
+        check(player.getInventory().getItem(4).getCount() == 3, "Utility must occupy actual usable hotbar slot");
+        check(data.storage().getStackInSlot(InventorySlot.MEDKIT.index()).isEmpty(), "Utility cannot have a duplicate in storage");
+        check(data.save().getIntArray("Limits")[InventorySlot.MEDKIT.index()] == 3, "UI must receive configured limit");
+        var expected = data.getStack(InventorySlot.MEDKIT).copy();
+        check(data.discard(InventorySlot.MEDKIT, 0, data.round(), expected), "Native utility should be discardable");
+        check(player.getInventory().getItem(4).getCount() == 2, "Discard must mutate actual hotbar source");
+        data.end();
+        helper.succeed();
+    }
+
     private static void check(boolean condition, String message) { if (!condition) throw new AssertionError(message); }
 
     @GameTest(template = "empty")

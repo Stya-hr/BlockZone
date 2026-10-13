@@ -1,7 +1,6 @@
 {
   "key.blockzone.inventory_preview": "Inventory panel",
   "screen.blockzone.inventory_preview": "Inventory",
-  "inventory.blockzone.close": "I / TAB CLOSE",
   "slot.blockzone.weapon.primary": "Primary weapon",
   "slot.blockzone.weapon.secondary": "Secondary weapon",
   "slot.blockzone.item.grenade": "Grenade",
@@ -12,5 +11,21 @@
   "slot.blockzone.ammo.2": "Ammo 2",
   "slot.blockzone.ammo.3": "Ammo 3",
   "slot.blockzone.ammo.4": "Ammo 4",
-  "slot.blockzone.ammo.5": "Ammo 5"
+  "slot.blockzone.ammo.5": "Ammo 5",
+  "inventory.blockzone.drop_one": "Drop one",
+  "inventory.blockzone.drop_ten": "Drop ten",
+  "inventory.blockzone.drop_all": "Drop all",
+  "inventory.blockzone.close_action": "Close",
+  "slot.blockzone.equipment.backpack": "Backpack",
+  "slot.blockzone.equipment.armor_expansion": "Armor expansion",
+  "slot.blockzone.equipment.helmet": "Helmet",
+  "slot.blockzone.equipment.vest": "Vest",
+  "slot.blockzone.equipment.shield": "Shield",
+  "slot.blockzone.equipment.utility": "Utility",
+  "attachment.blockzone.scope": "Scope",
+  "attachment.blockzone.muzzle": "Muzzle",
+  "attachment.blockzone.stock": "Stock",
+  "attachment.blockzone.grip": "Grip",
+  "attachment.blockzone.laser": "Laser",
+  "attachment.blockzone.extended_mag": "Magazine"
 }

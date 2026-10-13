@@ -56,13 +56,13 @@ public final class PlayerInventoryGameTests {
         var player = player(helper);
         var data = PlayerPanelInventory.get(player).orElseThrow();
         data.end();
-        data.begin("gametest", UUID.randomUUID(), slot -> SlotRule.parse(List.of("minecraft:paper", "minecraft:stick"), slot == InventorySlot.MEDKIT ? 8 : 4));
-        data.equip(InventorySlot.MEDKIT, new ItemStack(Items.PAPER, 5));
-        check(!data.swapSlots(InventorySlot.MEDKIT, InventorySlot.BATTERY, data.round(), data.revision(InventorySlot.MEDKIT), data.revision(InventorySlot.BATTERY)), "Whole stack cannot exceed target capacity");
-        check(data.getStack(InventorySlot.MEDKIT).getCount() == 5 && data.getStack(InventorySlot.BATTERY).isEmpty(), "Capacity rejection is atomic");
-        data.equip(InventorySlot.MEDKIT, new ItemStack(Items.PAPER, 4));
-        check(data.swapSlots(InventorySlot.MEDKIT, InventorySlot.BATTERY, data.round(), data.revision(InventorySlot.MEDKIT), data.revision(InventorySlot.BATTERY)), "Move whole stack to empty item slot");
-        check(!data.swapSlots(InventorySlot.BATTERY, InventorySlot.AMMO_3, data.round(), data.revision(InventorySlot.BATTERY), data.revision(InventorySlot.AMMO_3)), "Cross-category move rejected");
+        data.begin("gametest", UUID.randomUUID(), slot -> SlotRule.parse(List.of("minecraft:paper", "minecraft:stick"), slot == InventorySlot.TACTICAL_2 ? 8 : 4));
+        data.equip(InventorySlot.TACTICAL_2, new ItemStack(Items.PAPER, 5));
+        check(!data.swapSlots(InventorySlot.TACTICAL_2, InventorySlot.TACTICAL_1, data.round(), data.revision(InventorySlot.TACTICAL_2), data.revision(InventorySlot.TACTICAL_1)), "Whole stack cannot exceed target capacity");
+        check(data.getStack(InventorySlot.TACTICAL_2).getCount() == 5 && data.getStack(InventorySlot.TACTICAL_1).isEmpty(), "Capacity rejection is atomic");
+        data.equip(InventorySlot.TACTICAL_2, new ItemStack(Items.PAPER, 4));
+        check(data.swapSlots(InventorySlot.TACTICAL_2, InventorySlot.TACTICAL_1, data.round(), data.revision(InventorySlot.TACTICAL_2), data.revision(InventorySlot.TACTICAL_1)), "Move whole stack to empty item slot");
+        check(!data.swapSlots(InventorySlot.TACTICAL_1, InventorySlot.AMMO_3, data.round(), data.revision(InventorySlot.TACTICAL_1), data.revision(InventorySlot.AMMO_3)), "Cross-category move rejected");
         data.equip(InventorySlot.AMMO_1, new ItemStack(Items.PAPER, 2));
         data.equip(InventorySlot.AMMO_2, new ItemStack(Items.STICK, 3));
         check(data.swapSlots(InventorySlot.AMMO_1, InventorySlot.AMMO_2, data.round(), data.revision(InventorySlot.AMMO_1), data.revision(InventorySlot.AMMO_2)), "Two ammunition types swap atomically");
@@ -240,15 +240,15 @@ public final class PlayerInventoryGameTests {
     public static void utilityPickupUsesNativeHotbarAndSynchronizesLimits(GameTestHelper helper) {
         var player = player(helper);
         var data = PlayerPanelInventory.get(player).orElseThrow();
-        data.begin("gametest", UUID.randomUUID(), slot -> slot == InventorySlot.MEDKIT
+        data.begin("gametest", UUID.randomUUID(), slot -> slot == InventorySlot.TACTICAL_2
                 ? SlotRule.parse(List.of("minecraft:apple"), 3) : SlotRule.parse(List.of(), 1));
         var remainder = data.insert(new ItemStack(Items.APPLE, 5), false);
         check(remainder.getCount() == 2, "Utility pickup must honor configured limit");
         check(player.getInventory().getItem(4).getCount() == 3, "Utility must occupy actual usable hotbar slot");
-        check(data.storage().getStackInSlot(InventorySlot.MEDKIT.index()).isEmpty(), "Utility cannot have a duplicate in storage");
-        check(data.save().getIntArray("Limits")[InventorySlot.MEDKIT.index()] == 3, "UI must receive configured limit");
-        var expected = data.getStack(InventorySlot.MEDKIT).copy();
-        check(data.discard(InventorySlot.MEDKIT, 0, data.round(), expected), "Native utility should be discardable");
+        check(data.storage().getStackInSlot(InventorySlot.TACTICAL_2.index()).isEmpty(), "Utility cannot have a duplicate in storage");
+        check(data.save().getIntArray("Limits")[InventorySlot.TACTICAL_2.index()] == 3, "UI must receive configured limit");
+        var expected = data.getStack(InventorySlot.TACTICAL_2).copy();
+        check(data.discard(InventorySlot.TACTICAL_2, 0, data.round(), expected), "Native utility should be discardable");
         check(player.getInventory().getItem(4).getCount() == 2, "Discard must mutate actual hotbar source");
         data.end();
         helper.succeed();

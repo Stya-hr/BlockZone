@@ -22,14 +22,14 @@ class InventoryRulesTest {
         var cap = new BattlezoneInventoryCapability(null);
         var definition = new InventoryRules.Definition(List.of("minecraft:golden_apple", "minecraft:paper"), 4,
                 Map.of("minecraft:golden_apple", 8, "minecraft:paper", 16));
-        cap.write(cap.read().withSlot(InventorySlot.MEDKIT, definition));
+        cap.write(cap.read().withSlot(InventorySlot.TACTICAL_2, definition));
         var restored = new BattlezoneInventoryCapability(null);
         restored.decode(cap.toJson());
         assertEquals(cap.read(), restored.read());
         assertThrows(UnsupportedOperationException.class, () -> definition.itemLimits().clear());
-        restored.decode(JsonParser.parseString("{\"item.medkit\":{\"allowed\":[\"minecraft:paper\"],\"limit\":4}}"));
-        assertTrue(restored.read().slots().get("item.medkit").itemLimits().isEmpty());
-        assertEquals(4, restored.rule(InventorySlot.MEDKIT).limit());
+        restored.decode(JsonParser.parseString("{\"item.tactical.2\":{\"allowed\":[\"minecraft:paper\"],\"limit\":4}}"));
+        assertTrue(restored.read().slots().get("item.tactical.2").itemLimits().isEmpty());
+        assertEquals(4, restored.rule(InventorySlot.TACTICAL_2).limit());
     }
 
     @Test void invalidItemLimitsCannotChangeCapability() {
@@ -37,7 +37,7 @@ class InventoryRulesTest {
         var before = cap.read();
         for (String overrides : List.of("{\"minecraft:paper\":0}", "{\"minecraft:paper\":1025}",
                 "{\"minecraft:stone\":8}", "{\"minecraft:paper\":\"bad\"}", "[]", "null")) {
-            String json = "{\"item.medkit\":{\"allowed\":[\"minecraft:paper\"],\"limit\":4,\"item_limits\":" + overrides + "}}";
+            String json = "{\"item.tactical.2\":{\"allowed\":[\"minecraft:paper\"],\"limit\":4,\"item_limits\":" + overrides + "}}";
             assertThrows(RuntimeException.class, () -> cap.decode(JsonParser.parseString(json)), overrides);
             assertEquals(before, cap.read());
         }
@@ -49,6 +49,10 @@ class InventoryRulesTest {
         for (var slot : InventorySlot.ALL) {
             assertSame(slot, InventorySlot.byIndex(slot.index()));
             assertSame(slot, InventorySlot.byId(slot.id()));
+        }
+        for (String oldId : List.of("item.grenade", "item.battery", "item.medkit")) {
+            assertThrows(IllegalArgumentException.class, () -> new InventoryRules(Map.of(oldId,
+                    new InventoryRules.Definition(List.of("minecraft:paper"), 4))));
         }
         assertThrows(IllegalArgumentException.class, () -> InventorySlot.byId("weapon.typo"));
         assertThrows(IllegalArgumentException.class, () -> InventorySlot.byIndex(17));
@@ -85,11 +89,11 @@ class InventoryRulesTest {
         for (String rule : List.of("{\"allowed\":[\"minecraft:paper\"],\"limit\":0}",
                 "{\"allowed\":[\"bad id\"],\"limit\":4}",
                 "{\"allowed\":[\"minecraft:paper\"],\"limit\":4,\"item_limits\":{\"minecraft:paper\":0}}")) {
-            var json = JsonParser.parseString("{\"item.medkit\":" + rule + "}");
+            var json = JsonParser.parseString("{\"item.tactical.2\":" + rule + "}");
             var result = InventoryRules.CODEC.parse(com.mojang.serialization.JsonOps.INSTANCE, json);
-            assertTrue(result.error().orElseThrow().message().contains("item.medkit"));
+            assertTrue(result.error().orElseThrow().message().contains("item.tactical.2"));
             var failure = assertThrows(RuntimeException.class, () -> cap.decode(json));
-            assertTrue(failure.getMessage().contains("item.medkit"), failure.getMessage());
+            assertTrue(failure.getMessage().contains("item.tactical.2"), failure.getMessage());
             assertEquals(before, cap.read());
         }
     }
@@ -98,12 +102,12 @@ class InventoryRulesTest {
         var first = new BattlezoneInventoryCapability(null);
         var second = new BattlezoneInventoryCapability(null);
         first.begin();
-        var active = first.rule(InventorySlot.MEDKIT);
-        first.write(new InventoryRules(Map.of("item.medkit", new InventoryRules.Definition(List.of("*"), 3))));
-        assertSame(active, first.rule(InventorySlot.MEDKIT));
-        assertEquals(64, second.rule(InventorySlot.MEDKIT).limit());
+        var active = first.rule(InventorySlot.TACTICAL_2);
+        first.write(new InventoryRules(Map.of("item.tactical.2", new InventoryRules.Definition(List.of("*"), 3))));
+        assertSame(active, first.rule(InventorySlot.TACTICAL_2));
+        assertEquals(64, second.rule(InventorySlot.TACTICAL_2).limit());
         first.reset();
-        assertEquals(3, first.rule(InventorySlot.MEDKIT).limit());
+        assertEquals(3, first.rule(InventorySlot.TACTICAL_2).limit());
         assertEquals(first.read(), new InventoryRules(first.read().slots()));
     }
 }

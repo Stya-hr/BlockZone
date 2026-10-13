@@ -143,15 +143,15 @@ public final class InventoryGameTests {
         var definition = new InventoryRules.Definition(List.of("minecraft:paper", "minecraft:paper{medical:1}"), 4,
                 Map.of("minecraft:paper", 16, "minecraft:paper{medical:1}", 2));
         var cap = new BattlezoneInventoryCapability(null);
-        cap.write(cap.read().withSlot(InventorySlot.MEDKIT, definition));
+        cap.write(cap.read().withSlot(InventorySlot.TACTICAL_2, definition));
         var inventory = cap.createInventory();
         var medical = new ItemStack(Items.PAPER, 5);
         medical.setTag(TagParser.parseTag("{medical:1,extra:3}"));
-        int slot = InventorySlot.MEDKIT.index();
+        int slot = InventorySlot.TACTICAL_2.index();
         assertEquals(3, inventory.insertItem(slot, medical, false).getCount());
         assertEquals(2, inventory.getStackInSlot(slot).getCount());
         var saved = inventory.serializeNBT();
-        cap.write(cap.read().withSlot(InventorySlot.MEDKIT,
+        cap.write(cap.read().withSlot(InventorySlot.TACTICAL_2,
                 new InventoryRules.Definition(definition.allowed(), 4, Map.of("minecraft:paper", 1))));
         inventory.deserializeNBT(saved);
         assertEquals(2, inventory.getStackInSlot(slot).getCount());
@@ -192,7 +192,7 @@ public final class InventoryGameTests {
 
     @GameTest(template = "empty")
     public static void insertionAndDirectReplacementEnforceRulesAndStackLimits(GameTestHelper helper) {
-        int slot = InventorySlot.MEDKIT.index();
+        int slot = InventorySlot.TACTICAL_2.index();
         var inventory = new PanelInventory(target -> SlotRule.parse(List.of("minecraft:stick"), 4));
         assertEquals(2, inventory.insertItem(slot, new ItemStack(Items.STICK, 6), true).getCount());
         assertTrue(inventory.getStackInSlot(slot).isEmpty());
@@ -210,12 +210,12 @@ public final class InventoryGameTests {
     @GameTest(template = "empty")
     public static void tightenedRulesPreserveStoredItemsAndStillAllowExtraction(GameTestHelper helper) {
         var cap = new BattlezoneInventoryCapability(null);
-        cap.write(new InventoryRules(Map.of("item.medkit", new InventoryRules.Definition(List.of("minecraft:stick"), 8))));
+        cap.write(new InventoryRules(Map.of("item.tactical.2", new InventoryRules.Definition(List.of("minecraft:stick"), 8))));
         var inventory = cap.createInventory();
-        int slot = InventorySlot.MEDKIT.index();
+        int slot = InventorySlot.TACTICAL_2.index();
         inventory.insertItem(slot, new ItemStack(Items.STICK, 5), false);
         var saved = inventory.serializeNBT();
-        cap.write(new InventoryRules(Map.of("item.medkit", new InventoryRules.Definition(List.of(), 1))));
+        cap.write(new InventoryRules(Map.of("item.tactical.2", new InventoryRules.Definition(List.of(), 1))));
         var restored = cap.createInventory();
         restored.deserializeNBT(saved);
         assertEquals(InventorySlot.ALL.size(), restored.getSlots());

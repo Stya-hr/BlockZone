@@ -171,12 +171,12 @@ public final class AccessoryGameTests {
     @GameTest(template = "empty")
     public static void fullStartingInventoryUsesActualArmorWeaponsAndReserves(GameTestHelper helper) {
         var player = player(helper);
-        var rules = InventoryRules.defaults().withSlot(InventorySlot.MEDKIT, new InventoryRules.Definition(List.of("minecraft:apple"), 3))
+        var rules = InventoryRules.defaults().withSlot(InventorySlot.TACTICAL_2, new InventoryRules.Definition(List.of("minecraft:apple"), 3))
                 .withSlot(InventorySlot.AMMO_1, new InventoryRules.Definition(List.of("minecraft:paper"), 4)).compile();
         var entries = new java.util.ArrayList<>(StartingLoadout.defaults());
         entries.add(new StartingLoadout.Entry("accessory.1", NATIVE, 1, "{Identity:7}"));
         entries.add(new StartingLoadout.Entry("weapon.primary", ResourceLocation.parse("tacz:modern_kinetic_gun"), 1, "{GunId:\"tacz:ak47\"}"));
-        entries.add(new StartingLoadout.Entry("item.medkit", ResourceLocation.parse("minecraft:apple"), 3, "{}"));
+        entries.add(new StartingLoadout.Entry("item.tactical.2", ResourceLocation.parse("minecraft:apple"), 3, "{}"));
         entries.add(new StartingLoadout.Entry("ammo.1", ResourceLocation.parse("minecraft:paper"), 4, "{}"));
         var prepared = StartingLoadout.prepare(entries, rules::get);
         var data = PlayerPanelInventory.get(player).orElseThrow();
@@ -329,10 +329,10 @@ public final class AccessoryGameTests {
     @GameTest(template = "empty")
     public static void savedInitialInventoryCanLoadBeforeItsSlotRules(GameTestHelper helper) {
         var loadout = new dev.stya.blockzone.map.battlezone.capability.BattlezoneLoadoutCapability(null);
-        loadout.decode(com.google.gson.JsonParser.parseString("[{\"slot\":\"item.medkit\",\"item\":\"minecraft:apple\",\"count\":3}]"));
+        loadout.decode(com.google.gson.JsonParser.parseString("[{\"slot\":\"item.tactical.2\",\"item\":\"minecraft:apple\",\"count\":3}]"));
         check(loadout.read().size() == 1, "Saved loadout restores without assuming its inventory capability is decoded first");
         var rules = new dev.stya.blockzone.map.battlezone.capability.BattlezoneInventoryCapability(null);
-        rules.decode(com.google.gson.JsonParser.parseString("{\"item.medkit\":{\"allowed\":[\"minecraft:apple\"],\"limit\":3}}"));
+        rules.decode(com.google.gson.JsonParser.parseString("{\"item.tactical.2\":{\"allowed\":[\"minecraft:apple\"],\"limit\":3}}"));
         check(StartingLoadout.prepare(loadout.read(), rules.read().compile()::get).size() == 1, "Combined restored configuration validates");
         rejects(() -> StartingLoadout.prepare(loadout.read()));
         helper.succeed();

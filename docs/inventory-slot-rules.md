@@ -15,8 +15,8 @@
 ```text
 /fpsm map modify battlezone <地图名> capability inventory get
 /fpsm map modify battlezone <地图名> capability inventory slot weapon.primary {"allowed":["@gun:tacz:ak47","@gun:tacz:m4a1"],"limit":1}
-/fpsm map modify battlezone <地图名> capability inventory slot item.medkit {"allowed":["minecraft:golden_apple","#my_pack:medical_items"],"limit":8}
-/fpsm map modify battlezone <地图名> capability inventory slot item.battery {"allowed":[],"limit":64}
+/fpsm map modify battlezone <地图名> capability inventory slot item.tactical.2 {"allowed":["minecraft:golden_apple","#my_pack:medical_items"],"limit":8}
+/fpsm map modify battlezone <地图名> capability inventory slot item.tactical.1 {"allowed":[],"limit":64}
 /fpsm map modify battlezone <地图名> capability inventory reset
 ```
 
@@ -48,10 +48,10 @@
 | `*` | 当前槽位类型内的任意非空物品 |
 
 `limit` 为未单独配置数量的物品提供默认上限。可选的 `item_limits` 为 `allowed` 中的
-选择器设置独立上限，例如同一医疗槽放金苹果最多 8 个、纸最多 16 个、蜂蜜瓶最多 2 个：
+选择器设置独立上限，例如同一战术道具槽放金苹果最多 8 个、纸最多 16 个、蜂蜜瓶最多 2 个：
 
 ```text
-/fpsm map modify battlezone <地图名> capability inventory slot item.medkit {"allowed":["minecraft:golden_apple","minecraft:paper","minecraft:honey_bottle"],"limit":4,"item_limits":{"minecraft:golden_apple":8,"minecraft:paper":16,"minecraft:honey_bottle":2}}
+/fpsm map modify battlezone <地图名> capability inventory slot item.tactical.2 {"allowed":["minecraft:golden_apple","minecraft:paper","minecraft:honey_bottle"],"limit":4,"item_limits":{"minecraft:golden_apple":8,"minecraft:paper":16,"minecraft:honey_bottle":2}}
 ```
 
 `item_limits` 的键必须与 `allowed` 中某个选择器完全一致，也支持标签、NBT 与枪型选择器。
@@ -104,13 +104,15 @@ TaCZ 弹药通过 `IAmmo.getAmmoId()` 识别，弹药箱通过 `IAmmoBox.getAmmo
 | 5 | `equipment.feet` | `blockzone:tactical_boots` | 1 |
 | 6 | `weapon.primary` | `@gun:*` | 1 |
 | 7 | `weapon.secondary` | `@gun:*` | 1 |
-| 8 | `item.grenade` | 空列表，待整合包指定 | 64 |
-| 9 | `item.battery` | 空列表，待整合包指定 | 64 |
-| 10 | `item.medkit` | 空列表，待整合包指定 | 64 |
+| 8 | `item.throwable` | 空列表，待整合包指定 | 64 |
+| 9 | `item.tactical.1` | 空列表，待整合包指定 | 64 |
+| 10 | `item.tactical.2` | 空列表，待整合包指定 | 64 |
 | 11 | `item.armor_plates` | `blockzone:armor_plate` | 64 |
 | 12..16 | `ammo.1` .. `ammo.5` | `tacz:ammo`，各槽可独立修改 | 64 |
 
-空列表默认值避免猜测其他模组的背包、手雷、电池和医疗物品 ID。
+中间四格从左至右为投掷物、战术道具、战术道具、护甲板。两个战术道具槽可分别配置允许物品和数量上限。
+
+投掷物和战术道具默认允许列表为空，由整合包指定物品或标签；旧的 `item.grenade`、`item.battery`、`item.medkit` ID 不再接受。
 
 ## 复用和接入
 
@@ -160,7 +162,7 @@ TaCZ 的 `GunSmithTableIngredient` 只包装配方 Ingredient 和数量，都不
 
 - 接管 Forge 原版背包打开事件（生存和创造背包），不注册独立打开键。
   开关和关闭提示使用 `options.keyInventory`，默认 E，原版改键立即生效。
-- 道具槽使用实际快捷栏第 3 至 6 格（手雷、电池、医疗包、护甲片），可用原版物品使用流程。
+- 道具槽使用实际快捷栏第 3 至 6 格（投掷物、战术道具、战术道具、护甲板），可用原版物品使用流程。
   匹配弹药规则的物品优先进入备弹槽。道具和备弹显示当前数量 / 服务端配置上限；空槽显示 0 / 上限。
 - 悬停高亮，顶部显示物品名称。TaCZ 枪械右上角按其 API 显示配件与内置配件。
 - 攻击绑定丢 1 个，潜行 + 攻击绑定丢最多 10 个，使用绑定全部丢弃（默认左键、Shift + 左键、右键）。

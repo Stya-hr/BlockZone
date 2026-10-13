@@ -36,7 +36,7 @@
 库存整套配置与单槽命令的错误会包含槽位，例如：
 
 ```text
-inventory[item.medkit]: ... limit ...
+inventory[item.tactical.2]: ... limit ...
 inventory[equipment.helmet]: item minecraft:diamond_boots; expected equipment for head
 ```
 
@@ -44,7 +44,7 @@ inventory[equipment.helmet]: item minecraft:diamond_boots; expected equipment fo
 
 ```text
 loadout[slot=equipment.helmet, item=minecraft:diamond_boots]: expected equipment for head
-loadout[slot=item.medkit, item=minecraft:apple]: count 8 exceeds slot limit 3
+loadout[slot=item.tactical.2, item=minecraft:apple]: count 8 exceeds slot limit 3
 loadout[slot=ammo.2, item=minecraft:paper]: ammunition type already occupies ammo.1
 ```
 

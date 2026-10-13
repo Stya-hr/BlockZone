@@ -17,7 +17,7 @@ public final class PanelInventory extends ItemStackHandler {
     @Override
     public boolean isItemValid(int slot, ItemStack stack) {
         var target = InventorySlot.byIndex(slot);
-        if (!rules.apply(target).accepts(stack)) return false;
+        if (!target.acceptsType(stack) || !rules.apply(target).accepts(stack)) return false;
         if (InventorySlot.AMMUNITION.contains(target)) {
             var type = AmmoType.of(stack);
             for (var other : InventorySlot.AMMUNITION) {
@@ -50,7 +50,8 @@ public final class PanelInventory extends ItemStackHandler {
 
     @Override
     protected int getStackLimit(int slot, ItemStack stack) {
-        return Math.min(rules.apply(InventorySlot.byIndex(slot)).limitFor(stack), stack.getMaxStackSize());
+        return Math.min(InventorySlot.ACCESSORIES.contains(InventorySlot.byIndex(slot)) ? 1 : stack.getMaxStackSize(),
+                rules.apply(InventorySlot.byIndex(slot)).limitFor(stack));
     }
 
     @Override
@@ -64,15 +65,21 @@ public final class PanelInventory extends ItemStackHandler {
 
     @Override
     public void setSize(int size) {
-        if (size != InventorySlot.ALL.size()) throw new IllegalArgumentException("Panel inventory must have 17 slots");
+        if (size != InventorySlot.ALL.size()) throw new IllegalArgumentException("Panel storage must have " + InventorySlot.ALL.size() + " slots");
         super.setSize(size);
     }
 
     @Override
+    public net.minecraft.nbt.CompoundTag serializeNBT() {
+        var nbt = super.serializeNBT();
+        nbt.putInt("Schema", 2);
+        return nbt;
+    }
+
+    @Override
     public void deserializeNBT(net.minecraft.nbt.CompoundTag nbt) {
-        // Validate before mutating this inventory; never discard or merge legacy duplicate stacks.
-        if (nbt.getInt("Size") != InventorySlot.ALL.size())
-            throw new IllegalArgumentException("Panel inventory must have 17 slots");
+        if (nbt.getInt("Schema") != 2 || nbt.getInt("Size") != InventorySlot.ALL.size())
+            throw new IllegalArgumentException("Unsupported panel storage schema or size");
         var loaded = new ItemStackHandler(InventorySlot.ALL.size());
         loaded.deserializeNBT(nbt);
         var types = new java.util.HashSet<AmmoType>();

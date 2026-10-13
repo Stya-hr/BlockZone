@@ -8,7 +8,17 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class InventoryRulesTest {
-    @Test void itemLimitsRoundTripAndOldConfigurationsKeepTheirFallback() {
+    @Test void typesAreFixedAndOmittedTypesAreInferred() {
+        var rules = new InventoryRules(Map.of("accessory.1", new InventoryRules.Definition(List.of("*"), 1)));
+        assertEquals("accessory", rules.slots().get("accessory.1").type());
+        assertThrows(IllegalArgumentException.class, () -> new InventoryRules(Map.of("accessory.1",
+                new InventoryRules.Definition(List.of("*"), 1, Map.of(), "weapon"))));
+        assertThrows(IllegalArgumentException.class, () -> rules.withSlot(InventorySlot.ACCESSORY_1,
+                new InventoryRules.Definition(List.of("*"), 2)));
+        assertThrows(IllegalArgumentException.class, () -> rules.withSlot(InventorySlot.BOOTS,
+                new InventoryRules.Definition(List.of("*"), 1, Map.of("*", 2))));
+    }
+    @Test void itemLimitsRoundTripAndOmittedLimitsUseDefaults() {
         var cap = new BattlezoneInventoryCapability(null);
         var definition = new InventoryRules.Definition(List.of("minecraft:golden_apple", "minecraft:paper"), 4,
                 Map.of("minecraft:golden_apple", 8, "minecraft:paper", 16));
@@ -69,16 +79,31 @@ class InventoryRulesTest {
         }
     }
 
+    @Test void diagnosticsIdentifySlotAndInvalidFieldWithoutChangingConfiguration() {
+        var cap = new BattlezoneInventoryCapability(null);
+        var before = cap.read();
+        for (String rule : List.of("{\"allowed\":[\"minecraft:paper\"],\"limit\":0}",
+                "{\"allowed\":[\"bad id\"],\"limit\":4}",
+                "{\"allowed\":[\"minecraft:paper\"],\"limit\":4,\"item_limits\":{\"minecraft:paper\":0}}")) {
+            var json = JsonParser.parseString("{\"item.medkit\":" + rule + "}");
+            var result = InventoryRules.CODEC.parse(com.mojang.serialization.JsonOps.INSTANCE, json);
+            assertTrue(result.error().orElseThrow().message().contains("item.medkit"));
+            var failure = assertThrows(RuntimeException.class, () -> cap.decode(json));
+            assertTrue(failure.getMessage().contains("item.medkit"), failure.getMessage());
+            assertEquals(before, cap.read());
+        }
+    }
+
     @Test void mapsFreezeIndependentMatchRulesUntilReset() {
         var first = new BattlezoneInventoryCapability(null);
         var second = new BattlezoneInventoryCapability(null);
         first.begin();
-        var active = first.rule(InventorySlot.HELMET);
-        first.write(new InventoryRules(Map.of("equipment.helmet", new InventoryRules.Definition(List.of("*"), 3))));
-        assertSame(active, first.rule(InventorySlot.HELMET));
-        assertEquals(1, second.rule(InventorySlot.HELMET).limit());
+        var active = first.rule(InventorySlot.MEDKIT);
+        first.write(new InventoryRules(Map.of("item.medkit", new InventoryRules.Definition(List.of("*"), 3))));
+        assertSame(active, first.rule(InventorySlot.MEDKIT));
+        assertEquals(64, second.rule(InventorySlot.MEDKIT).limit());
         first.reset();
-        assertEquals(3, first.rule(InventorySlot.HELMET).limit());
+        assertEquals(3, first.rule(InventorySlot.MEDKIT).limit());
         assertEquals(first.read(), new InventoryRules(first.read().slots()));
     }
 }

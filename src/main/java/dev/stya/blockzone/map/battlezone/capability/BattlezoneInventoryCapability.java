@@ -18,6 +18,7 @@ public final class BattlezoneInventoryCapability extends MapCapability implement
     private InventoryRules configured = InventoryRules.defaults();
     private Map<InventorySlot, SlotRule> configuredRules = configured.compile();
     private Map<InventorySlot, SlotRule> activeRules;
+    private boolean readingSavedConfiguration;
 
     public BattlezoneInventoryCapability(BaseMap map) { super(map); }
 
@@ -32,9 +33,18 @@ public final class BattlezoneInventoryCapability extends MapCapability implement
     }
 
     @Override public Codec<InventoryRules> codec() { return InventoryRules.CODEC; }
+    @Override public void decode(com.google.gson.JsonElement json) {
+        boolean previous = readingSavedConfiguration;
+        readingSavedConfiguration = true;
+        try { write(codec().parse(com.mojang.serialization.JsonOps.INSTANCE, json).getOrThrow(false, message -> {})); }
+        finally { readingSavedConfiguration = previous; }
+    }
     @Override public InventoryRules read() { return configured; }
     @Override public InventoryRules write(InventoryRules value) {
+        if (map != null) Objects.requireNonNull(value).validateTypes();
         var compiled = Objects.requireNonNull(value).compile();
+        if (map != null && !readingSavedConfiguration) com.ptcrys.fpsmatch.core.capability.CapabilityMap.getMapCapability(map, BattlezoneLoadoutCapability.class)
+                .ifPresent(loadout -> dev.stya.blockzone.equipment.StartingLoadout.prepare(loadout.read(), compiled::get));
         configured = value;
         configuredRules = compiled;
         return configured;

@@ -20,7 +20,8 @@ public abstract class InventoryPickupMixin {
         if (!inventory.player.isAlive() || inventory.player.isSpectator()
                 || inventory.player instanceof ServerPlayer server && DownedController.busy(server)) return false;
         int before = stack.getCount();
-        var remainder = data.insert(stack, false);
+        var remainder = (Object) this instanceof dev.stya.blockzone.loot.LootDropEntity
+                ? data.pickUpReplacingEquipment(stack) : data.insert(stack, false);
         stack.setCount(remainder.getCount());
         return stack.getCount() < before;
     }

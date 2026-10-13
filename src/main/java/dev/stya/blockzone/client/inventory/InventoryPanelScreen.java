@@ -18,6 +18,13 @@ public final class InventoryPanelScreen extends Screen {
     private InventoryPanelLayout.Cell hovered;
     private Component attachmentName;
     private boolean preserveSneak;
+    private InventoryPanelLayout.Cell pressedCell;
+    private java.util.UUID pressedRound;
+    private int[] pressedRevisions;
+    private int pressedAction;
+    private int pressedButton = -1;
+    private double pressX, pressY;
+    private boolean dragging;
 
     public InventoryPanelScreen() {
         super(Component.translatable("screen.blockzone.inventory_preview"));
@@ -46,8 +53,8 @@ public final class InventoryPanelScreen extends Screen {
         double px = (mouseX - originX()) / scale(), py = (mouseY - originY()) / scale();
         for (var cell : InventoryPanelLayout.CELLS) {
             var item = stack(cell.slot());
-            box(gui, cell.x(), cell.y(), cell.width(), cell.height(), cell == hovered);
-            boolean equipment = InventorySlot.EQUIPMENT.contains(cell.slot());
+            box(gui, cell.x(), cell.y(), cell.width(), cell.height(), cell == hovered || dragging && cell == pressedCell);
+            boolean equipment = InventorySlot.FIRST_ROW.contains(cell.slot());
             boolean weapon = InventorySlot.WEAPONS.contains(cell.slot());
             if (!equipment) gui.fill(cell.x() + 3, cell.y() + cell.height() - 26, cell.x() + cell.width() - 3, cell.y() + cell.height() - 3, 0x66000000);
             if (item.isEmpty()) {
@@ -74,6 +81,11 @@ public final class InventoryPanelScreen extends Screen {
         text(gui, font.plainSubstrByWidth(name.getString(), 470), 168, 6, 1.5F, FOREGROUND);
         InventoryPromptRenderer.render(gui, font, InventoryPreviewKeys.bulkDropDown(minecraft));
         gui.pose().popPose();
+        if (dragging && pressedCell != null) {
+            gui.pose().pushPose(); gui.pose().translate(0, 0, 500);
+            gui.renderItem(stack(pressedCell.slot()), mouseX - 8, mouseY - 8);
+            gui.pose().popPose();
+        }
     }
 
     private Component slotName(InventorySlot slot) { return Component.translatable("slot.blockzone." + slot.id()); }
@@ -119,14 +131,41 @@ public final class InventoryPanelScreen extends Screen {
         if (cell == null) { onClose(); return true; }
         boolean all = minecraft.options.keyUse.matchesMouse(button);
         if (!all && !minecraft.options.keyAttack.matchesMouse(button)) return false;
-        discard(cell, all);
+        if (all) { discard(cell, true); return true; }
+        var data = data();
+        if (data == null || stack(cell.slot()).isEmpty()) return true;
+        pressedCell = cell; pressedButton = button; pressedRound = data.round();
+        pressedRevisions = InventorySlot.ALL.stream().mapToInt(data::revision).toArray();
+        pressedAction = InventoryPreviewKeys.bulkDropDown(minecraft) ? 1 : 0;
+        pressX = mouseX; pressY = mouseY; dragging = false;
+        return true;
+    }
+    @Override public boolean mouseDragged(double mouseX, double mouseY, int button, double dx, double dy) {
+        if (pressedCell == null || button != pressedButton) return super.mouseDragged(mouseX, mouseY, button, dx, dy);
+        if (Math.hypot(mouseX - pressX, mouseY - pressY) * minecraft.getWindow().getGuiScale() >= 4) dragging = true;
+        return true;
+    }
+    @Override public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (pressedCell == null || button != pressedButton) return super.mouseReleased(mouseX, mouseY, button);
+        var target = at(mouseX, mouseY);
+        if (target != null && target != pressedCell) dragging = true;
+        if (dragging) {
+            if (target != null && target != pressedCell)
+                BattlezoneNetwork.swapInventory(new dev.stya.blockzone.net.battlezone.SwapInventoryC2SPacket(
+                        pressedCell.slot().index(), target.slot().index(), pressedRound,
+                        pressedRevisions[pressedCell.slot().index()], pressedRevisions[target.slot().index()]));
+        } else if (target == pressedCell) {
+            BattlezoneNetwork.discard(new DiscardInventoryC2SPacket(pressedCell.slot().index(), pressedAction,
+                    pressedRound, pressedRevisions[pressedCell.slot().index()]));
+        }
+        pressedCell = null; pressedRevisions = null; pressedButton = -1; dragging = false;
         return true;
     }
     private void discard(InventoryPanelLayout.Cell cell, boolean all) {
         if (cell == null) return;
         var data = data(); var stack = stack(cell.slot());
         if (data != null && !stack.isEmpty()) BattlezoneNetwork.discard(new DiscardInventoryC2SPacket(
-                cell.slot().index(), all ? 2 : InventoryPreviewKeys.bulkDropDown(minecraft) ? 1 : 0, data.round(), stack.copy()));
+                cell.slot().index(), all ? 2 : InventoryPreviewKeys.bulkDropDown(minecraft) ? 1 : 0, data.round(), data.revision(cell.slot())));
     }
     @Override public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (InventoryPreviewKeys.movementKeys(minecraft).stream().anyMatch(key -> key.matches(keyCode, scanCode))) {

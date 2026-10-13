@@ -65,4 +65,25 @@ public final class ItemSelector {
         }
         return compiled.matches(stack);
     }
+
+    public void validateType(InventorySlot slot) {
+        if (gun) {
+            if (!InventorySlot.WEAPONS.contains(slot)) throw new IllegalArgumentException("inventory[" + slot.id() + "]: selector @gun:" + id + " requires a weapon slot");
+            return;
+        }
+        if (id == null) return; // Wildcards are narrowed by the slot's immutable admission type.
+        if (tag) {
+            BuiltInRegistries.ITEM.getTag(TagKey.create(Registries.ITEM, id)).ifPresent(items -> items.forEach(holder -> {
+                if (!slot.acceptsType(new ItemStack(holder.value())))
+                    throw new IllegalArgumentException("inventory[" + slot.id() + "]: tag #" + id + " contains incompatible item "
+                            + BuiltInRegistries.ITEM.getKey(holder.value()) + "; expected " + slot.type()
+                            + (slot.equipmentSlot() == null ? "" : " for " + slot.equipmentSlot().getName()));
+            }));
+        } else BuiltInRegistries.ITEM.getOptional(id).ifPresent(item -> {
+            var sample = new ItemStack(item);
+            if (requiredNbt != null) sample.setTag(requiredNbt.copy());
+            if (!slot.acceptsType(sample)) throw new IllegalArgumentException("inventory[" + slot.id() + "]: item " + id + "; expected " + slot.type()
+                    + (slot.equipmentSlot() == null ? "" : " for " + slot.equipmentSlot().getName()));
+        });
+    }
 }

@@ -265,7 +265,10 @@ public final class BattlezoneMap extends BaseMap {
             return false;
         }
         List<StartingLoadout.Prepared> loadout;
-        try { loadout = loadout().prepare(); }
+        try {
+            loadout = loadout().prepare();
+            getMapTeams().getNormalTeams().forEach(team -> team.getOnline().forEach(dev.stya.blockzone.equipment.AccessoryCompat::requireSlots));
+        }
         catch (IllegalArgumentException exception) {
             broadcast(Component.literal("Battlezone cannot start: invalid loadout capability: " + exception.getMessage()));
             return false;
@@ -279,7 +282,13 @@ public final class BattlezoneMap extends BaseMap {
         loadout().begin(loadout);
         CapabilityMap.getMapCapability(this, BattlezoneCombatCapability.class).orElseThrow().begin();
         CapabilityMap.getMapCapability(this, BattlezoneInventoryCapability.class).orElseThrow().begin();
-        getMapTeams().getNormalTeams().forEach(team -> team.getOnline().forEach(this::initializeParticipant));
+        try {
+            getMapTeams().getNormalTeams().forEach(team -> team.getOnline().forEach(this::initializeParticipant));
+        } catch (IllegalArgumentException exception) {
+            reset();
+            broadcast(Component.literal("Battlezone initial inventory rejected: " + exception.getMessage()));
+            return false;
+        }
         phaseTicks = 0;
         victoryAnnounced = false;
         resetMatchClock();
@@ -593,8 +602,9 @@ public final class BattlezoneMap extends BaseMap {
 
     private void initializeParticipant(ServerPlayer player) {
         combat().initialize(player);
+        dev.stya.blockzone.inventory.PlayerPanelInventory.get(player).ifPresent(data -> data.begin(this));
         loadout().give(player);
-        dev.stya.blockzone.inventory.PlayerPanelInventory.get(player).ifPresent(data -> { data.begin(this); data.normalize(); });
+        dev.stya.blockzone.inventory.PlayerPanelInventory.get(player).ifPresent(dev.stya.blockzone.inventory.PlayerPanelInventory::normalize);
     }
 
     @Override

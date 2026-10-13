@@ -26,8 +26,13 @@ public final class PlayerPanelInventory {
     private boolean pendingValidation;
     private String mapName = "";
     private UUID round;
+    private net.minecraft.nbt.ListTag originalCuriosInventory = new net.minecraft.nbt.ListTag();
+    private boolean hasOriginalCuriosInventory;
+    private boolean restoreAccessoriesAfterDeath;
+    private final ItemStack[] observedStacks = new ItemStack[InventorySlot.ALL.size()];
+    private int[] slotRevisions = new int[InventorySlot.ALL.size()];
     private int[] displayLimits = InventorySlot.ALL.stream().mapToInt(InventorySlot::defaultLimit).toArray();
-    private final LazyOptional<IItemHandler> ammunition = LazyOptional.of(() -> new IItemHandler() {
+    private final IItemHandler ammunitionView = new IItemHandler() {
         private int index(int slot) {
             if (slot < 0 || slot >= getSlots()) throw new IllegalArgumentException("Invalid ammunition slot");
             return InventorySlot.AMMUNITION.get(slot).index();
@@ -38,21 +43,40 @@ public final class PlayerPanelInventory {
         @Override public ItemStack extractItem(int slot, int amount, boolean simulate) { return storage.extractItem(index(slot), amount, simulate); }
         @Override public int getSlotLimit(int slot) { return storage.getSlotLimit(index(slot)); }
         @Override public boolean isItemValid(int slot, ItemStack stack) { return storage.isItemValid(index(slot), stack); }
-    });
+    };
+    private LazyOptional<IItemHandler> ammunition = LazyOptional.of(() -> ammunitionView);
 
     public PlayerPanelInventory(Player player) { this.player = player; }
     public static java.util.Optional<PlayerPanelInventory> get(Player player) { return player.getCapability(CAPABILITY).resolve(); }
     public boolean active() { return active && !pendingValidation; }
     public boolean hasSession() { return active; }
     public UUID round() { return round; }
+    /** Item identity, independent of ticking NBT or count changes; replaced stacks invalidate old clicks. */
+    public int revision(InventorySlot slot) {
+        if (!player.level().isClientSide) {
+            var stack = getStack(slot);
+            if (observedStacks[slot.index()] != stack) {
+                observedStacks[slot.index()] = stack;
+                slotRevisions[slot.index()]++;
+            }
+        }
+        return slotRevisions[slot.index()];
+    }
+    public boolean accepts(InventorySlot slot, ItemStack stack) {
+        return slot.acceptsType(stack) && rules.apply(slot).accepts(stack);
+    }
     public int limit(InventorySlot slot) {
         if (player.level().isClientSide) return displayLimits[slot.index()];
         var stack = getStack(slot);
+        if (InventorySlot.ACCESSORIES.contains(slot) || InventorySlot.WEAPONS.contains(slot) || InventorySlot.ARMOR.contains(slot)) return 1;
         return stack.isEmpty() ? rules.apply(slot).maximumLimit()
                 : Math.min(stack.getMaxStackSize(), rules.apply(slot).limitFor(stack));
     }
     public PanelInventory storage() { return storage; }
-    public LazyOptional<IItemHandler> ammunition() { return ammunition; }
+    public LazyOptional<IItemHandler> ammunition() {
+        if (!ammunition.isPresent()) ammunition = LazyOptional.of(() -> ammunitionView);
+        return ammunition;
+    }
     public void invalidate() { ammunition.invalidate(); }
 
     public void begin(BattlezoneMap map) {
@@ -60,6 +84,16 @@ public final class PlayerPanelInventory {
     }
 
     public void begin(String name, UUID roundId, Function<InventorySlot, SlotRule> rules) {
+        dev.stya.blockzone.equipment.AccessoryCompat.requireSlots(player);
+        if (active) end();
+        if (hasOriginalCuriosInventory) {
+            restoreOriginalAccessories();
+            if (hasOriginalCuriosInventory) throw new IllegalArgumentException("Curios is needed to restore the saved outside-match inventory");
+        }
+        var original = dev.stya.blockzone.equipment.AccessoryCompat.captureOriginal(player);
+        originalCuriosInventory = original.orElseGet(net.minecraft.nbt.ListTag::new);
+        hasOriginalCuriosInventory = original.isPresent();
+        restoreAccessoriesAfterDeath = false;
         this.rules = java.util.Objects.requireNonNull(rules);
         storage = new PanelInventory(slot -> this.rules.apply(slot));
         mapName = name;
@@ -74,11 +108,28 @@ public final class PlayerPanelInventory {
 
     public void resume(BattlezoneMap map) {
         rules = CapabilityMap.getMapCapability(map, BattlezoneInventoryCapability.class).orElseThrow()::rule;
+        var external = dev.stya.blockzone.equipment.AccessoryCompat.inventory(player);
+        if (external.isPresent()) for (var slot : InventorySlot.ACCESSORIES) {
+            var saved = storage.getStackInSlot(slot.index());
+            if (saved.isEmpty()) continue;
+            storage.setStackInSlot(slot.index(), ItemStack.EMPTY);
+            int index = InventorySlot.ACCESSORIES.indexOf(slot);
+            if (index < external.get().getSlots() && external.get().getStackInSlot(index).isEmpty())
+                external.get().setStackInSlot(index, saved);
+            else returnRemainder(saved);
+        }
+        else for (var slot : InventorySlot.ACCESSORIES) {
+            var saved = storage.getStackInSlot(slot.index());
+            if (saved.getItem() instanceof dev.stya.blockzone.equipment.AccessoryItem item)
+                item.onEquip(player, InventorySlot.ACCESSORIES.indexOf(slot), saved);
+        }
         pendingValidation = false;
     }
 
     public void end() {
+        if (active) for (var slot : InventorySlot.ACCESSORIES) setAccessory(slot, ItemStack.EMPTY);
         active = false;
+        restoreOriginalAccessories();
         pendingValidation = false;
         mapName = "";
         round = null;
@@ -86,22 +137,117 @@ public final class PlayerPanelInventory {
         storage = new PanelInventory(slot -> rules.apply(slot));
     }
 
+    public void endAfterDeath() {
+        var originals = originalCuriosInventory.copy();
+        boolean hadOriginal = hasOriginalCuriosInventory;
+        end();
+        originalCuriosInventory = originals;
+        hasOriginalCuriosInventory = hadOriginal;
+        restoreAccessoriesAfterDeath = hadOriginal;
+    }
+
+    public void restoreOriginalAccessories() {
+        if (hasOriginalCuriosInventory && !dev.stya.blockzone.equipment.AccessoryCompat.restoreOriginal(player, originalCuriosInventory)) {
+            restoreAccessoriesAfterDeath = true;
+            return;
+        }
+        originalCuriosInventory = new net.minecraft.nbt.ListTag();
+        hasOriginalCuriosInventory = false;
+        restoreAccessoriesAfterDeath = false;
+    }
+
+    private void setAccessory(InventorySlot slot, ItemStack stack) {
+        int index = InventorySlot.ACCESSORIES.indexOf(slot);
+        var external = dev.stya.blockzone.equipment.AccessoryCompat.inventory(player);
+        if (external.isPresent() && index < external.get().getSlots()) external.get().setStackInSlot(index, stack.copy());
+        else {
+            var previous = storage.getStackInSlot(slot.index()).copy();
+            storage.setStackInSlot(slot.index(), stack);
+            if (previous.getItem() instanceof dev.stya.blockzone.equipment.AccessoryItem item) item.onUnequip(player, index, previous);
+            if (stack.getItem() instanceof dev.stya.blockzone.equipment.AccessoryItem item) item.onEquip(player, index, stack);
+        }
+    }
+
+    /** Exact destination used by the frozen initial-inventory capability. */
+    public void equip(InventorySlot slot, ItemStack stack) {
+        if (!active() || !accepts(slot, stack) || stack.getCount() > Math.min(stack.getMaxStackSize(), rules.apply(slot).limitFor(stack)))
+            throw new IllegalArgumentException("Initial item violates slot rule: " + slot.id());
+        if (InventorySlot.ACCESSORIES.contains(slot)) {
+            if (stack.getCount() != 1 || !dev.stya.blockzone.equipment.AccessoryCompat.canEquip(player, InventorySlot.ACCESSORIES.indexOf(slot), stack))
+                throw new IllegalArgumentException("Accessory cannot equip: " + slot.id());
+            setAccessory(slot, stack);
+        } else if (slot.equipmentSlot() != null) player.setItemSlot(slot.equipmentSlot(), stack.copy());
+        else if (InventorySlot.WEAPONS.contains(slot)) player.getInventory().setItem(InventorySlot.WEAPONS.indexOf(slot), stack.copy());
+        else if (InventorySlot.ITEMS.contains(slot)) player.getInventory().setItem(2 + InventorySlot.ITEMS.indexOf(slot), stack.copy());
+        else storage.setStackInSlot(slot.index(), stack);
+        player.getInventory().setChanged();
+    }
+
+    public void tickAccessories() {
+        if (!active() || dev.stya.blockzone.equipment.AccessoryCompat.inventory(player).isPresent()) return;
+        for (var slot : InventorySlot.ACCESSORIES) {
+            var stack = storage.getStackInSlot(slot.index());
+            if (stack.getItem() instanceof dev.stya.blockzone.equipment.AccessoryItem item)
+                item.accessoryTick(player, InventorySlot.ACCESSORIES.indexOf(slot), stack);
+        }
+    }
+
+    public ItemStack removeAccessory(InventorySlot slot) {
+        var copy = getStack(slot).copy();
+        setAccessory(slot, ItemStack.EMPTY);
+        return copy;
+    }
+
+    public void restorePendingAccessories() {
+        if (!active && restoreAccessoriesAfterDeath && player.isAlive()) restoreOriginalAccessories();
+    }
+
+    /** Called at LOWEST clone priority after Curios copied its handler and the original session ended. */
+    public void restoreClonedAccessories(net.minecraft.nbt.ListTag stacks) {
+        if (!hasSession() || !dev.stya.blockzone.equipment.AccessoryCompat.loaded()) return;
+        var external = dev.stya.blockzone.equipment.AccessoryCompat.inventory(player);
+        if (external.isEmpty()) return;
+        // A third-party clone may have copied the original's restored outside inventory.
+        // The original snapshot is already preserved above; only the two match items are live during the match.
+        dev.stya.blockzone.equipment.AccessoryCompat.captureOriginal(player);
+        for (int i = 0; i < Math.min(2, external.get().getSlots()); i++)
+            external.get().setStackInSlot(i, i < stacks.size() ? ItemStack.of(stacks.getCompound(i)) : ItemStack.EMPTY);
+    }
+
     public boolean manages(ItemStack stack) {
-        return !stack.isEmpty() && (GunCompatManager.isGun(stack) || AmmoType.of(stack).tacz()
-                || InventorySlot.AMMUNITION.stream().anyMatch(slot -> rules.apply(slot).accepts(stack))
-                || InventorySlot.ITEMS.stream().anyMatch(slot -> rules.apply(slot).accepts(stack)));
+        return !stack.isEmpty() && (stack.getItem() instanceof net.minecraft.world.item.ArmorItem
+                || dev.stya.blockzone.equipment.AccessoryCompat.isAccessory(stack) || GunCompatManager.isGun(stack) || AmmoType.of(stack).tacz()
+                || InventorySlot.AMMUNITION.stream().anyMatch(slot -> accepts(slot, stack))
+                || InventorySlot.ITEMS.stream().anyMatch(slot -> accepts(slot, stack)));
     }
 
     /** Never mutates the input; callers own removing the accepted quantity from its source. */
     public ItemStack insert(ItemStack stack, boolean simulate) {
         if (!active() || stack.isEmpty()) return stack;
+        if (stack.getItem() instanceof net.minecraft.world.item.ArmorItem) {
+            for (var slot : InventorySlot.ARMOR) {
+                if (!getStack(slot).isEmpty() || !accepts(slot, stack)) continue;
+                if (!simulate) { var equipped = stack.copy(); equipped.setCount(1); equip(slot, equipped); }
+                var remainder = stack.copy(); remainder.shrink(1); return remainder;
+            }
+            return stack;
+        }
+        if (dev.stya.blockzone.equipment.AccessoryCompat.isAccessory(stack)) {
+            for (var slot : InventorySlot.ACCESSORIES) {
+                if (!getStack(slot).isEmpty() || !accepts(slot, stack)
+                        || !dev.stya.blockzone.equipment.AccessoryCompat.canEquip(player, InventorySlot.ACCESSORIES.indexOf(slot), stack)) continue;
+                if (!simulate) { var equipped = stack.copy(); equipped.setCount(1); setAccessory(slot, equipped); }
+                var remainder = stack.copy(); remainder.shrink(1); return remainder;
+            }
+            return stack;
+        }
         if (!GunCompatManager.isGun(stack)) {
-            if (AmmoType.of(stack).tacz() || InventorySlot.AMMUNITION.stream().anyMatch(slot -> rules.apply(slot).accepts(stack)))
+            if (AmmoType.of(stack).tacz() || InventorySlot.AMMUNITION.stream().anyMatch(slot -> accepts(slot, stack)))
                 return storage.insertAmmo(stack, simulate);
             for (var slot : InventorySlot.ITEMS) {
                 int index = 2 + InventorySlot.ITEMS.indexOf(slot);
                 var existing = player.getInventory().getItem(index);
-                if (!rules.apply(slot).accepts(stack) || (!existing.isEmpty() && !ItemStack.isSameItemSameTags(existing, stack))) continue;
+                if (!accepts(slot, stack) || (!existing.isEmpty() && !ItemStack.isSameItemSameTags(existing, stack))) continue;
                 int count = Math.min(stack.getCount(), Math.min(stack.getMaxStackSize(), rules.apply(slot).limitFor(stack)) - existing.getCount());
                 if (count <= 0) continue;
                 if (!simulate) {
@@ -115,7 +261,7 @@ public final class PlayerPanelInventory {
         }
         for (int i = 0; i < InventorySlot.WEAPONS.size(); i++) {
             var rule = rules.apply(InventorySlot.WEAPONS.get(i));
-            if (player.getInventory().getItem(i).isEmpty() && rule.accepts(stack)) {
+            if (player.getInventory().getItem(i).isEmpty() && accepts(InventorySlot.WEAPONS.get(i), stack)) {
                 if (!simulate) {
                     var weapon = stack.copy();
                     weapon.setCount(1);
@@ -130,6 +276,123 @@ public final class PlayerPanelInventory {
         return stack;
     }
 
+    /** Explicit loot interaction only; walking over vanilla items never replaces equipment. */
+    public ItemStack pickUpReplacingEquipment(ItemStack incoming) {
+        if (!active() || !player.isAlive() || player.isSpectator() || player.isUsingItem()) return incoming;
+        var remainder = insert(incoming, false);
+        if (remainder.getCount() != incoming.getCount()) return remainder;
+        var candidates = incoming.getItem() instanceof net.minecraft.world.item.ArmorItem ? InventorySlot.ARMOR
+                : dev.stya.blockzone.equipment.AccessoryCompat.isAccessory(incoming) ? InventorySlot.ACCESSORIES
+                : GunCompatManager.isGun(incoming) ? (player.getInventory().selected == 1
+                    ? List.of(InventorySlot.SECONDARY_WEAPON, InventorySlot.PRIMARY_WEAPON) : InventorySlot.WEAPONS)
+                : List.<InventorySlot>of();
+        if (GunCompatManager.isGun(incoming) && net.minecraftforge.fml.ModList.get().isLoaded("tacz") && TaczActions.busy(player)) return incoming;
+        for (var slot : candidates) {
+            var previous = getStack(slot).copy();
+            if (previous.isEmpty() || !accepts(slot, incoming) || rules.apply(slot).limitFor(incoming) < 1) continue;
+            if (InventorySlot.ARMOR.contains(slot) && !player.isCreative()
+                    && net.minecraft.world.item.enchantment.EnchantmentHelper.hasBindingCurse(previous)) continue;
+            if (InventorySlot.ACCESSORIES.contains(slot)) {
+                int index = InventorySlot.ACCESSORIES.indexOf(slot);
+                if (!dev.stya.blockzone.equipment.AccessoryCompat.canUnequip(player, index, getStack(slot))
+                        || !dev.stya.blockzone.equipment.AccessoryCompat.canEquip(player, index, incoming)) continue;
+            }
+            var replacement = incoming.copy(); replacement.setCount(1);
+            var drop = createDiscardEntity(previous);
+            if (!player.level().addFreshEntity(drop)) return incoming;
+            try { equip(slot, replacement); }
+            catch (RuntimeException failure) {
+                drop.discard();
+                if (InventorySlot.ACCESSORIES.contains(slot)) setAccessory(slot, previous);
+                else if (slot.equipmentSlot() != null) player.setItemSlot(slot.equipmentSlot(), previous);
+                else player.getInventory().setItem(InventorySlot.WEAPONS.indexOf(slot), previous);
+                throw failure;
+            }
+            var result = incoming.copy(); result.shrink(1);
+            return result;
+        }
+        return incoming;
+    }
+
+    /** Drag swaps whole stacks, never partially merges or broadens the destination rules. */
+    public boolean swapSlots(InventorySlot from, InventorySlot to, UUID expectedRound, int fromRevision, int toRevision) {
+        if (!active() || !player.isAlive() || player.isSpectator() || player.isUsingItem() || from == to
+                || !java.util.Objects.equals(round, expectedRound)
+                || revision(from) != fromRevision || revision(to) != toRevision) return false;
+        boolean sameGroup = List.of(InventorySlot.WEAPONS, InventorySlot.ACCESSORIES, InventorySlot.ITEMS, InventorySlot.AMMUNITION)
+                .stream().anyMatch(group -> group.contains(from) && group.contains(to));
+        if (!sameGroup) return false;
+        var source = getStack(from).copy();
+        var target = getStack(to).copy();
+        if (source.isEmpty() || !canMove(to, source) || !canMove(from, target)) return false;
+        if (InventorySlot.ACCESSORIES.contains(from)) {
+            int sourceIndex = InventorySlot.ACCESSORIES.indexOf(from), targetIndex = InventorySlot.ACCESSORIES.indexOf(to);
+            if (!dev.stya.blockzone.equipment.AccessoryCompat.canUnequip(player, sourceIndex, getStack(from))
+                    || !dev.stya.blockzone.equipment.AccessoryCompat.canEquip(player, targetIndex, source)
+                    || !target.isEmpty() && (!dev.stya.blockzone.equipment.AccessoryCompat.canUnequip(player, targetIndex, getStack(to))
+                    || !dev.stya.blockzone.equipment.AccessoryCompat.canEquip(player, sourceIndex, target))) return false;
+        }
+        // Empty both first so ammunition exclusivity cannot reject a move against its own source.
+        // Weapon/item stacks retain their object identities, preserving an in-progress held-gun operation.
+        var originalSource = getStack(from);
+        var originalTarget = getStack(to);
+        writeSlot(from, ItemStack.EMPTY); writeSlot(to, ItemStack.EMPTY);
+        try { writeSlot(from, originalTarget); writeSlot(to, originalSource); }
+        catch (RuntimeException failure) {
+            writeSlot(from, ItemStack.EMPTY); writeSlot(to, ItemStack.EMPTY);
+            writeSlot(from, originalSource); writeSlot(to, originalTarget);
+            throw failure;
+        }
+        int sourceHotbar = hotbarIndex(from), targetHotbar = hotbarIndex(to);
+        int selected = player.getInventory().selected;
+        if (sourceHotbar >= 0 && targetHotbar >= 0 && (selected == sourceHotbar || selected == targetHotbar)) {
+            int next = selected == sourceHotbar ? targetHotbar : sourceHotbar;
+            player.getInventory().selected = next;
+            if (player instanceof net.minecraft.server.level.ServerPlayer server && server.connection != null)
+                server.connection.send(new net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket(next));
+        }
+        player.getInventory().setChanged();
+        player.inventoryMenu.broadcastChanges();
+        return true;
+    }
+
+    private int hotbarIndex(InventorySlot slot) {
+        if (InventorySlot.WEAPONS.contains(slot)) return InventorySlot.WEAPONS.indexOf(slot);
+        if (InventorySlot.ITEMS.contains(slot)) return 2 + InventorySlot.ITEMS.indexOf(slot);
+        return -1;
+    }
+
+    private void writeSlot(InventorySlot slot, ItemStack stack) {
+        if (InventorySlot.ACCESSORIES.contains(slot)) setAccessory(slot, stack);
+        else if (hotbarIndex(slot) >= 0) player.getInventory().setItem(hotbarIndex(slot), stack);
+        else storage.setStackInSlot(slot.index(), stack);
+    }
+
+    private boolean canMove(InventorySlot destination, ItemStack stack) {
+        int maximum = InventorySlot.FIRST_ROW.contains(destination) || InventorySlot.WEAPONS.contains(destination) ? 1 : stack.getMaxStackSize();
+        return stack.isEmpty() || accepts(destination, stack)
+                && stack.getCount() <= Math.min(maximum, rules.apply(destination).limitFor(stack));
+    }
+
+    private static final class TaczActions {
+        static boolean busy(Player player) {
+            var operator = com.tacz.guns.api.entity.IGunOperator.fromLivingEntity(player);
+            var reload = operator.getSynReloadState();
+            return reload != null && reload.getStateType().isReloading() || operator.getSynIsBolting();
+        }
+    }
+
+    private dev.stya.blockzone.loot.LootDropEntity createDiscardEntity(ItemStack stack) {
+        var entity = new dev.stya.blockzone.loot.LootDropEntity(dev.stya.blockzone.registry.BlockzoneEntities.LOOT_DROP.get(), player.level());
+        entity.setItem(stack.copy());
+        entity.setPos(player.getX(), player.getEyeY() - .3, player.getZ());
+        entity.setDeltaMovement(player.getLookAngle().scale(.25).add(0, .1, 0));
+        entity.setPickUpDelay(20);
+        if (player instanceof net.minecraft.server.level.ServerPlayer server)
+            dev.stya.blockzone.combat.MatchRegeneration.map(server).filter(this::matches).ifPresent(entity::bindToMatch);
+        return entity;
+    }
+
     /** Reconcile starting loadouts and vanilla inventory/menu transfers without copying weapons. */
     public void normalize() {
         if (!active()) return;
@@ -137,7 +400,7 @@ public final class PlayerPanelInventory {
             var stack = player.getInventory().getItem(i);
             var slot = i < 2 ? InventorySlot.WEAPONS.get(i) : InventorySlot.ITEMS.get(i - 2);
             if (!stack.isEmpty() && (i < 2 ? !GunCompatManager.isGun(stack)
-                    : AmmoType.of(stack).tacz() || InventorySlot.AMMUNITION.stream().anyMatch(ammo -> rules.apply(ammo).accepts(stack)) || !rules.apply(slot).accepts(stack))) {
+                    : AmmoType.of(stack).tacz() || InventorySlot.AMMUNITION.stream().anyMatch(ammo -> accepts(ammo, stack)) || !accepts(slot, stack))) {
                 player.getInventory().setItem(i, ItemStack.EMPTY);
                 if (manages(stack)) returnRemainder(insert(stack, false));
                 else relocate(stack);
@@ -148,8 +411,8 @@ public final class PlayerPanelInventory {
             if (stack.isEmpty() || !manages(stack)) continue;
             if (i < 6) {
                 var slot = i < 2 ? InventorySlot.WEAPONS.get(i) : InventorySlot.ITEMS.get(i - 2);
-                boolean ammo = AmmoType.of(stack).tacz() || InventorySlot.AMMUNITION.stream().anyMatch(target -> rules.apply(target).accepts(stack));
-                if ((i < 2 || !ammo) && rules.apply(slot).accepts(stack) && stack.getCount() <= Math.min(i < 2 ? 1 : stack.getMaxStackSize(), rules.apply(slot).limitFor(stack))) continue;
+                boolean ammo = AmmoType.of(stack).tacz() || InventorySlot.AMMUNITION.stream().anyMatch(target -> accepts(target, stack));
+                if ((i < 2 || !ammo) && accepts(slot, stack) && stack.getCount() <= Math.min(i < 2 ? 1 : stack.getMaxStackSize(), rules.apply(slot).limitFor(stack))) continue;
             }
             player.getInventory().setItem(i, ItemStack.EMPTY);
             returnRemainder(insert(stack, false));
@@ -187,6 +450,10 @@ public final class PlayerPanelInventory {
     }
 
     public void dropOnElimination(BattlezoneMap map) {
+        for (var slot : InventorySlot.ACCESSORIES) {
+            var stack = removeAccessory(slot);
+            if (!stack.isEmpty()) drop(map, stack);
+        }
         for (var slot : InventorySlot.AMMUNITION) {
             var stack = storage.getStackInSlot(slot.index());
             if (!stack.isEmpty()) {
@@ -220,6 +487,13 @@ public final class PlayerPanelInventory {
         if (round != null) tag.putUUID("Round", round);
         tag.put("Inventory", storage.serializeNBT());
         tag.putIntArray("Limits", InventorySlot.ALL.stream().mapToInt(this::limit).toArray());
+        tag.putIntArray("Revisions", InventorySlot.ALL.stream().mapToInt(this::revision).toArray());
+        var accessories = new net.minecraft.nbt.ListTag();
+        for (var slot : InventorySlot.ACCESSORIES) accessories.add(getStack(slot).save(new CompoundTag()));
+        tag.put("AccessoryView", accessories);
+        tag.put("OriginalCuriosInventory", originalCuriosInventory.copy());
+        tag.putBoolean("HasOriginalCuriosInventory", hasOriginalCuriosInventory);
+        tag.putBoolean("RestoreAccessories", restoreAccessoriesAfterDeath);
         return tag;
     }
 
@@ -232,6 +506,30 @@ public final class PlayerPanelInventory {
         active = tag.getBoolean("Active") && round != null;
         pendingValidation = active && !clientSync;
         if (clientSync && tag.getIntArray("Limits").length == InventorySlot.ALL.size()) displayLimits = tag.getIntArray("Limits");
+        if (clientSync && tag.getIntArray("Revisions").length == InventorySlot.ALL.size()) slotRevisions = tag.getIntArray("Revisions");
+        originalCuriosInventory = tag.getList("OriginalCuriosInventory", net.minecraft.nbt.Tag.TAG_COMPOUND).copy();
+        hasOriginalCuriosInventory = tag.getBoolean("HasOriginalCuriosInventory");
+        restoreAccessoriesAfterDeath = tag.getBoolean("RestoreAccessories");
+        if (clientSync || !dev.stya.blockzone.equipment.AccessoryCompat.loaded()) {
+            var views = tag.getList("AccessoryView", net.minecraft.nbt.Tag.TAG_COMPOUND);
+            // This is a client render snapshot, or recovery when an optional API was removed.
+            // Server Curios inventories remain the only authoritative owner when installed.
+            var contents = storage.serializeNBT();
+            var items = contents.getList("Items", net.minecraft.nbt.Tag.TAG_COMPOUND);
+            if (!views.isEmpty()) {
+                for (int i = items.size() - 1; i >= 0; i--) {
+                    int storedSlot = items.getCompound(i).getInt("Slot");
+                    if (InventorySlot.ACCESSORIES.stream().anyMatch(slot -> slot.index() == storedSlot)) items.remove(i);
+                }
+                for (int i = 0; i < Math.min(2, views.size()); i++) {
+                    var item = views.getCompound(i).copy();
+                    item.putInt("Slot", InventorySlot.ACCESSORIES.get(i).index());
+                    items.add(item);
+                }
+                contents.put("Items", items);
+                storage.deserializeNBT(contents);
+            }
+        }
     }
 
     public List<ItemStack> snapshot() {
@@ -239,33 +537,39 @@ public final class PlayerPanelInventory {
     }
 
     public ItemStack getStack(InventorySlot slot) {
+        if (InventorySlot.ACCESSORIES.contains(slot) && !player.level().isClientSide) {
+            var external = dev.stya.blockzone.equipment.AccessoryCompat.inventory(player);
+            int index = InventorySlot.ACCESSORIES.indexOf(slot);
+            if (external.isPresent() && index < external.get().getSlots()) return external.get().getStackInSlot(index);
+        }
+        if (slot.equipmentSlot() != null) return player.getItemBySlot(slot.equipmentSlot());
         if (InventorySlot.WEAPONS.contains(slot))
             return player.getInventory().getItem(slot.index() - InventorySlot.PRIMARY_WEAPON.index());
         if (InventorySlot.ITEMS.contains(slot)) return player.getInventory().getItem(2 + InventorySlot.ITEMS.indexOf(slot));
-        return switch (slot) {
-            case HELMET -> player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.HEAD);
-            case VEST -> player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST);
-            case SHIELD -> player.getOffhandItem();
-            default -> storage.getStackInSlot(slot.index());
-        };
+        return storage.getStackInSlot(slot.index());
     }
 
     /** Server-authoritative discard; the client cannot supply an item, quantity, or destination. */
+    public boolean discard(InventorySlot slot, int action, UUID expectedRound, int expectedRevision) {
+        return revision(slot) == expectedRevision && discard(slot, action, expectedRound, getStack(slot).copy());
+    }
+
     public boolean discard(InventorySlot slot, int action, UUID expectedRound, ItemStack expectedItem) {
         if (!active() || !java.util.Objects.equals(round, expectedRound) || action < 0 || action > 2) return false;
         var source = getStack(slot);
         if (source.isEmpty() || !ItemStack.isSameItemSameTags(source, expectedItem)) return false;
+        if (InventorySlot.ARMOR.contains(slot) && !player.isCreative()
+                && net.minecraft.world.item.enchantment.EnchantmentHelper.hasBindingCurse(source)) return false;
+        if (InventorySlot.ACCESSORIES.contains(slot) && !dev.stya.blockzone.equipment.AccessoryCompat.canUnequip(player, InventorySlot.ACCESSORIES.indexOf(slot), source)) return false;
         int count = Math.min(source.getCount(), action == 0 ? 1 : action == 1 ? 10 : source.getCount());
         var dropped = source.copy(); dropped.setCount(count);
         source.shrink(count);
-        var entity = new dev.stya.blockzone.loot.LootDropEntity(dev.stya.blockzone.registry.BlockzoneEntities.LOOT_DROP.get(), player.level());
-        entity.setItem(dropped);
-        entity.setPos(player.getX(), player.getEyeY() - .3, player.getZ());
-        entity.setDeltaMovement(player.getLookAngle().scale(.25).add(0, .1, 0));
-        entity.setPickUpDelay(20);
-        if (player instanceof net.minecraft.server.level.ServerPlayer server)
-            dev.stya.blockzone.combat.MatchRegeneration.map(server).filter(this::matches).ifPresent(entity::bindToMatch);
+        var entity = createDiscardEntity(dropped);
         if (!player.level().addFreshEntity(entity)) { source.grow(count); return false; }
+        if (InventorySlot.ACCESSORIES.contains(slot) && source.isEmpty()
+                && dev.stya.blockzone.equipment.AccessoryCompat.inventory(player).isEmpty()
+                && dropped.getItem() instanceof dev.stya.blockzone.equipment.AccessoryItem accessory)
+            accessory.onUnequip(player, InventorySlot.ACCESSORIES.indexOf(slot), dropped);
         player.getInventory().setChanged();
         return true;
     }

@@ -40,7 +40,7 @@ public final class InventoryCapabilityCommand extends ConfigurationCapabilityCom
                                 c.getSource().sendSuccess(() -> Component.literal("Inventory slot saved; applies to the next match."), false);
                                 return 1;
                             } catch (RuntimeException failure) {
-                                c.getSource().sendFailure(Component.literal("Cannot save inventory slot: " + failure.getMessage()));
+                                c.getSource().sendFailure(Component.literal("Cannot save inventory[" + StringArgumentType.getString(c, "slot") + "]: " + failure.getMessage()));
                                 return 0;
                             }
                         }))));

@@ -106,7 +106,9 @@ public final class InventoryGameTests {
         var invalid = new net.minecraftforge.items.ItemStackHandler(17);
         invalid.setStackInSlot(InventorySlot.AMMO_1.index(), new ItemStack(Items.PAPER));
         invalid.setStackInSlot(InventorySlot.AMMO_2.index(), new ItemStack(Items.PAPER));
-        assertThrows(IllegalArgumentException.class, () -> inventory.deserializeNBT(invalid.serializeNBT()));
+        var invalidNbt = invalid.serializeNBT();
+        invalidNbt.putInt("Schema", 2);
+        assertThrows(IllegalArgumentException.class, () -> inventory.deserializeNBT(invalidNbt));
         assertTrue(inventory.getStackInSlot(InventorySlot.AMMO_1.index()).is(Items.STICK));
         assertEquals(2, inventory.getStackInSlot(InventorySlot.AMMO_1.index()).getCount());
         var restored = new PanelInventory(slot -> SlotRule.parse(List.of("*"), 4));
@@ -120,19 +122,19 @@ public final class InventoryGameTests {
         var rule = SlotRule.parse(List.of("minecraft:golden_apple", "minecraft:paper", "minecraft:stick", "minecraft:iron_sword"),
                 4, Map.of("minecraft:golden_apple", 8, "minecraft:paper", 16, "minecraft:iron_sword", 2));
         var inventory = new PanelInventory(slot -> rule);
-        assertEquals(2, inventory.insertItem(0, new ItemStack(Items.GOLDEN_APPLE, 10), true).getCount());
-        assertTrue(inventory.getStackInSlot(0).isEmpty());
-        assertEquals(2, inventory.insertItem(0, new ItemStack(Items.GOLDEN_APPLE, 10), false).getCount());
-        assertEquals(8, inventory.getStackInSlot(0).getCount());
-        assertEquals(4, inventory.insertItem(1, new ItemStack(Items.PAPER, 20), false).getCount());
-        assertEquals(16, inventory.getStackInSlot(1).getCount());
-        assertEquals(2, inventory.insertItem(2, new ItemStack(Items.STICK, 6), false).getCount());
-        assertEquals(1, inventory.insertItem(3, new ItemStack(Items.IRON_SWORD, 2), false).getCount());
-        assertThrows(IllegalArgumentException.class, () -> inventory.setStackInSlot(0, new ItemStack(Items.GOLDEN_APPLE, 9)));
-        assertThrows(IllegalArgumentException.class, () -> inventory.setStackInSlot(3, new ItemStack(Items.IRON_SWORD, 2)));
-        inventory.extractItem(0, 8, false);
-        inventory.setStackInSlot(0, new ItemStack(Items.PAPER, 16));
-        assertEquals(16, inventory.getStackInSlot(0).getCount());
+        assertEquals(2, inventory.insertItem(8, new ItemStack(Items.GOLDEN_APPLE, 10), true).getCount());
+        assertTrue(inventory.getStackInSlot(8).isEmpty());
+        assertEquals(2, inventory.insertItem(8, new ItemStack(Items.GOLDEN_APPLE, 10), false).getCount());
+        assertEquals(8, inventory.getStackInSlot(8).getCount());
+        assertEquals(4, inventory.insertItem(9, new ItemStack(Items.PAPER, 20), false).getCount());
+        assertEquals(16, inventory.getStackInSlot(9).getCount());
+        assertEquals(2, inventory.insertItem(10, new ItemStack(Items.STICK, 6), false).getCount());
+        assertEquals(1, inventory.insertItem(11, new ItemStack(Items.IRON_SWORD, 2), false).getCount());
+        assertThrows(IllegalArgumentException.class, () -> inventory.setStackInSlot(8, new ItemStack(Items.GOLDEN_APPLE, 9)));
+        assertThrows(IllegalArgumentException.class, () -> inventory.setStackInSlot(11, new ItemStack(Items.IRON_SWORD, 2)));
+        inventory.extractItem(8, 8, false);
+        inventory.setStackInSlot(8, new ItemStack(Items.PAPER, 16));
+        assertEquals(16, inventory.getStackInSlot(8).getCount());
         helper.succeed();
     }
 
@@ -190,17 +192,18 @@ public final class InventoryGameTests {
 
     @GameTest(template = "empty")
     public static void insertionAndDirectReplacementEnforceRulesAndStackLimits(GameTestHelper helper) {
-        var inventory = new PanelInventory(slot -> SlotRule.parse(List.of("minecraft:stick"), 4));
-        assertEquals(2, inventory.insertItem(0, new ItemStack(Items.STICK, 6), true).getCount());
-        assertTrue(inventory.getStackInSlot(0).isEmpty());
-        assertEquals(2, inventory.insertItem(0, new ItemStack(Items.STICK, 6), false).getCount());
-        assertEquals(4, inventory.getStackInSlot(0).getCount());
-        assertEquals(1, inventory.insertItem(0, new ItemStack(Items.STONE), false).getCount());
-        assertThrows(IllegalArgumentException.class, () -> inventory.setStackInSlot(0, new ItemStack(Items.STONE)));
-        assertThrows(IllegalArgumentException.class, () -> inventory.setStackInSlot(0, new ItemStack(Items.STICK, 5)));
-        assertEquals(4, inventory.getStackInSlot(0).getCount());
-        var singleItem = new PanelInventory(slot -> SlotRule.parse(List.of("*"), 64));
-        assertEquals(1, singleItem.insertItem(0, new ItemStack(Items.IRON_SWORD, 2), false).getCount());
+        int slot = InventorySlot.MEDKIT.index();
+        var inventory = new PanelInventory(target -> SlotRule.parse(List.of("minecraft:stick"), 4));
+        assertEquals(2, inventory.insertItem(slot, new ItemStack(Items.STICK, 6), true).getCount());
+        assertTrue(inventory.getStackInSlot(slot).isEmpty());
+        assertEquals(2, inventory.insertItem(slot, new ItemStack(Items.STICK, 6), false).getCount());
+        assertEquals(4, inventory.getStackInSlot(slot).getCount());
+        assertEquals(1, inventory.insertItem(slot, new ItemStack(Items.STONE), false).getCount());
+        assertThrows(IllegalArgumentException.class, () -> inventory.setStackInSlot(slot, new ItemStack(Items.STONE)));
+        assertThrows(IllegalArgumentException.class, () -> inventory.setStackInSlot(slot, new ItemStack(Items.STICK, 5)));
+        assertEquals(4, inventory.getStackInSlot(slot).getCount());
+        var singleItem = new PanelInventory(target -> SlotRule.parse(List.of("*"), 64));
+        assertEquals(1, singleItem.insertItem(slot, new ItemStack(Items.IRON_SWORD, 2), false).getCount());
         helper.succeed();
     }
 
@@ -215,7 +218,7 @@ public final class InventoryGameTests {
         cap.write(new InventoryRules(Map.of("item.medkit", new InventoryRules.Definition(List.of(), 1))));
         var restored = cap.createInventory();
         restored.deserializeNBT(saved);
-        assertEquals(17, restored.getSlots());
+        assertEquals(InventorySlot.ALL.size(), restored.getSlots());
         assertEquals(5, restored.getStackInSlot(slot).getCount());
         assertEquals(1, restored.insertItem(slot, new ItemStack(Items.STICK), false).getCount());
         assertEquals(5, restored.extractItem(slot, 5, false).getCount());

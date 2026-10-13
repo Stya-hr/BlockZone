@@ -1,1 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><path d="M7 6h10v17l4 5v7H5V23zM25 6h9v17l3 5v7H23V23z" fill="none" stroke="#e5edf1" stroke-width="3" stroke-linejoin="miter"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="#F3F7F8">
+  <title>Combat boots</title>
+  <path fill-rule="evenodd" d="M5 5H17V23L21 27V35H2V27L5 22ZM8 9V12H14V9ZM8 16V19H14V16ZM5 29V32H18V29Z"/>
+  <path fill-rule="evenodd" d="M24 5H35V23L39 27V35H22V27L24 22ZM27 9V12H32V9ZM27 16V19H32V16ZM25 29V32H36V29Z"/>
+</svg>

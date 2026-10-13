@@ -22,12 +22,21 @@
 面板组合键分开显示，按键名称来自当前注册绑定；安装 Smart Key Prompts 时沿用其渲染器。
 没有新增中键或独立按键绑定。
 
+## 面板显示
+
+说明文字居中，边框按当前物品／配件名称宽度调整；枪名与数量居中显示，说明、槽位文字及按键提示字号已放大。
+枪械格使用 TaCZ 当前枪械／皮肤的 HUD 贴图，按贴图实际宽高等比放大到枪槽图像区域的最大尺寸。
+枪图左右留 12、上下留 6 个设计像素的内边距，仍保留原比例。资源重载时清除贴图尺寸缓存。
+除枪械外，主槽位的空槽图标与实际物品均统一为 40×40，在文字条上方的内容区居中。
+配件状态格在最后的独立二维叠放层绘制，沿用面板背景和边框；统一类型图标亮表示已安装、淡表示空位，悬停仍显示实际配件名，不再渲染会产生深度和越界问题的配件 3D 物品模型。
+饰品、护腿、靴子、手雷和弹药的空槽 SVG 统一使用浅色实心剪影与宽镂空结构，透明度沿用 25%。
+
 ## 配置诊断
 
-库存整套配置与单槽命令的错误会包含槽位，例如：
+库存整套配置与类型命令的错误会包含配置类型，例如：
 
 ```text
-inventory[item.medkit]: ... limit ...
+inventory[item.tactical]: ... limit ...
 inventory[equipment.helmet]: item minecraft:diamond_boots; expected equipment for head
 ```
 
@@ -35,13 +44,13 @@ inventory[equipment.helmet]: item minecraft:diamond_boots; expected equipment fo
 
 ```text
 loadout[slot=equipment.helmet, item=minecraft:diamond_boots]: expected equipment for head
-loadout[slot=item.medkit, item=minecraft:apple]: count 8 exceeds slot limit 3
-loadout[slot=ammo.2, item=minecraft:paper]: ammunition type already occupies ammo.1
+loadout[slot=item.tactical, item=minecraft:apple]: count 8 exceeds slot limit 3
+loadout[slot=ammo, item=minecraft:paper]: ammunition type already occupies ammo
 ```
 
 分别报告未注册物品、错误 NBT、错误部位、未命中允许规则、超出物品或槽位数量、重复槽位和重复弹种。
 标签类型校验会同时指出标签和其中不兼容的实际物品。错误配置不替换当前配置。
-只接受当前正式槽位 ID，不兼容旧别名或旧存档格式。网络协议为 23。
+配置只接受当前槽位类型，不兼容旧的逐格配置键或旧存档格式。网络协议为 23。
 
 ## 验证
 

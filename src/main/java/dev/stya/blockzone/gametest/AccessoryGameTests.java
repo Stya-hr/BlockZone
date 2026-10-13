@@ -145,11 +145,11 @@ public final class AccessoryGameTests {
                     && failure.getMessage().contains("head"), "Wrong armor names destination, item and expected part");
         }
         try {
-            StartingLoadout.prepare(List.of(new StartingLoadout.Entry("ammo.1", ResourceLocation.parse("minecraft:paper"), 1, "{}"),
-                    new StartingLoadout.Entry("ammo.2", ResourceLocation.parse("minecraft:paper"), 1, "{}")), slot -> permissive);
+            StartingLoadout.prepare(List.of(new StartingLoadout.Entry("ammo", ResourceLocation.parse("minecraft:paper"), 1, "{}"),
+                    new StartingLoadout.Entry("ammo", ResourceLocation.parse("minecraft:paper"), 1, "{}")), slot -> permissive);
             throw new AssertionError("Duplicate ammo accepted");
         } catch (IllegalArgumentException failure) {
-            check(failure.getMessage().contains("ammo.1") && failure.getMessage().contains("ammo.2")
+            check(failure.getMessage().contains("ammo.1") && failure.getMessage().contains("slot=ammo,")
                     && failure.getMessage().contains("minecraft:paper"), "Duplicate ammo identifies both slots and item");
         }
         helper.succeed();
@@ -163,29 +163,34 @@ public final class AccessoryGameTests {
         check(!inventory.isItemValid(InventorySlot.HELMET.index(), new ItemStack(Items.DIAMOND_BOOTS)), "Wrong armor part rejected");
         check(inventory.isItemValid(InventorySlot.ACCESSORY_1.index(), accessory()), "Native accessory admitted");
         check(inventory.isItemValid(InventorySlot.BOOTS.index(), new ItemStack(Items.DIAMOND_BOOTS)), "Correct armor part admitted");
-        rejects(() -> new InventoryRules(Map.of("accessory.1", new InventoryRules.Definition(List.of("minecraft:stone"), 1))).validateTypes());
-        rejects(() -> new InventoryRules(Map.of("weapon.primary", new InventoryRules.Definition(List.of("minecraft:stone"), 1))).validateTypes());
+        rejects(() -> new InventoryRules(Map.of("accessory", new InventoryRules.Definition(List.of("minecraft:stone"), 1))).validateTypes());
+        rejects(() -> new InventoryRules(Map.of("weapon", new InventoryRules.Definition(List.of("minecraft:stone"), 1))).validateTypes());
         helper.succeed();
     }
 
     @GameTest(template = "empty")
     public static void fullStartingInventoryUsesActualArmorWeaponsAndReserves(GameTestHelper helper) {
         var player = player(helper);
-        var rules = InventoryRules.defaults().withSlot(InventorySlot.MEDKIT, new InventoryRules.Definition(List.of("minecraft:apple"), 3))
+        var rules = InventoryRules.defaults().withSlot(InventorySlot.TACTICAL_2, new InventoryRules.Definition(List.of("minecraft:apple"), 3))
                 .withSlot(InventorySlot.AMMO_1, new InventoryRules.Definition(List.of("minecraft:paper"), 4)).compile();
         var entries = new java.util.ArrayList<>(StartingLoadout.defaults());
-        entries.add(new StartingLoadout.Entry("accessory.1", NATIVE, 1, "{Identity:7}"));
-        entries.add(new StartingLoadout.Entry("weapon.primary", ResourceLocation.parse("tacz:modern_kinetic_gun"), 1, "{GunId:\"tacz:ak47\"}"));
-        entries.add(new StartingLoadout.Entry("item.medkit", ResourceLocation.parse("minecraft:apple"), 3, "{}"));
-        entries.add(new StartingLoadout.Entry("ammo.1", ResourceLocation.parse("minecraft:paper"), 4, "{}"));
+        entries.add(new StartingLoadout.Entry("accessory", NATIVE, 1, "{Identity:7}"));
+        entries.add(new StartingLoadout.Entry("weapon", ResourceLocation.parse("tacz:modern_kinetic_gun"), 1, "{GunId:\"tacz:ak47\"}"));
+        entries.add(new StartingLoadout.Entry("item.tactical", ResourceLocation.parse("minecraft:apple"), 3, "{}"));
+        entries.add(new StartingLoadout.Entry("item.tactical", ResourceLocation.parse("minecraft:apple"), 2, "{}"));
+        entries.add(new StartingLoadout.Entry("ammo", ResourceLocation.parse("minecraft:paper"), 4, "{}"));
         var prepared = StartingLoadout.prepare(entries, rules::get);
+        var overflow = new java.util.ArrayList<>(entries);
+        overflow.add(new StartingLoadout.Entry("item.tactical", ResourceLocation.parse("minecraft:apple"), 1, "{}"));
+        rejects(() -> StartingLoadout.prepare(overflow, rules::get));
         var data = PlayerPanelInventory.get(player).orElseThrow();
         data.begin("test", UUID.randomUUID(), rules::get);
         StartingLoadout.apply(player, prepared);
         check(data.getStack(InventorySlot.LEGGINGS) == player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.LEGS), "Leggings read native equipment");
         check(data.getStack(InventorySlot.BOOTS) == player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.FEET), "Boots read native equipment");
         check(!player.getInventory().getItem(0).isEmpty(), "Initial gun is usable in hotbar");
-        check(player.getInventory().getItem(4).getCount() == 3, "Initial utility uses native hotbar");
+        check(player.getInventory().getItem(3).getCount() == 3, "Initial utility uses native hotbar");
+        check(player.getInventory().getItem(4).getCount() == 2, "Second same-category entry fills next slot");
         check(data.getStack(InventorySlot.AMMO_1).getCount() == 4, "Initial ammunition uses custom reserve");
         check(data.getStack(InventorySlot.ACCESSORY_1).getTag().getInt("Identity") == 7, "Accessory NBT retained");
         if (AccessoryCompat.loaded()) {
@@ -204,9 +209,9 @@ public final class AccessoryGameTests {
     public static void invalidInitialInventoryIsRejectedBeforeMutation(GameTestHelper helper) {
         var before = StartingLoadout.defaults();
         for (var entry : List.of(
-                new StartingLoadout.Entry("accessory.1", ResourceLocation.parse("minecraft:stone"), 1, "{}"),
+                new StartingLoadout.Entry("accessory", ResourceLocation.parse("minecraft:stone"), 1, "{}"),
                 new StartingLoadout.Entry("equipment.legs", ResourceLocation.parse("blockzone:tactical_boots"), 1, "{}"),
-                new StartingLoadout.Entry("weapon.primary", ResourceLocation.parse("minecraft:apple"), 1, "{}"),
+                new StartingLoadout.Entry("weapon", ResourceLocation.parse("minecraft:apple"), 1, "{}"),
                 new StartingLoadout.Entry("item.armor_plates", ResourceLocation.parse("blockzone:armor_plate"), 17, "{}")))
             rejects(() -> StartingLoadout.prepare(List.of(entry)));
         var duplicates = new java.util.ArrayList<>(before);
@@ -215,8 +220,8 @@ public final class AccessoryGameTests {
         var rules = InventoryRules.defaults().withSlot(InventorySlot.AMMO_1, new InventoryRules.Definition(List.of("minecraft:paper"), 4))
                 .withSlot(InventorySlot.AMMO_2, new InventoryRules.Definition(List.of("minecraft:paper"), 4)).compile();
         rejects(() -> StartingLoadout.prepare(List.of(
-                new StartingLoadout.Entry("ammo.1", ResourceLocation.parse("minecraft:paper"), 2, "{}"),
-                new StartingLoadout.Entry("ammo.2", ResourceLocation.parse("minecraft:paper"), 2, "{}")), rules::get));
+                new StartingLoadout.Entry("ammo", ResourceLocation.parse("minecraft:paper"), 2, "{}"),
+                new StartingLoadout.Entry("ammo", ResourceLocation.parse("minecraft:paper"), 2, "{}")), rules::get));
         helper.succeed();
     }
 
@@ -329,10 +334,10 @@ public final class AccessoryGameTests {
     @GameTest(template = "empty")
     public static void savedInitialInventoryCanLoadBeforeItsSlotRules(GameTestHelper helper) {
         var loadout = new dev.stya.blockzone.map.battlezone.capability.BattlezoneLoadoutCapability(null);
-        loadout.decode(com.google.gson.JsonParser.parseString("[{\"slot\":\"item.medkit\",\"item\":\"minecraft:apple\",\"count\":3}]"));
+        loadout.decode(com.google.gson.JsonParser.parseString("[{\"slot\":\"item.tactical\",\"item\":\"minecraft:apple\",\"count\":3}]"));
         check(loadout.read().size() == 1, "Saved loadout restores without assuming its inventory capability is decoded first");
         var rules = new dev.stya.blockzone.map.battlezone.capability.BattlezoneInventoryCapability(null);
-        rules.decode(com.google.gson.JsonParser.parseString("{\"item.medkit\":{\"allowed\":[\"minecraft:apple\"],\"limit\":3}}"));
+        rules.decode(com.google.gson.JsonParser.parseString("{\"item.tactical\":{\"allowed\":[\"minecraft:apple\"],\"limit\":3}}"));
         check(StartingLoadout.prepare(loadout.read(), rules.read().compile()::get).size() == 1, "Combined restored configuration validates");
         rejects(() -> StartingLoadout.prepare(loadout.read()));
         helper.succeed();

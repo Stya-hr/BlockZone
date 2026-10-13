@@ -4,8 +4,7 @@
 `MapCapability`，通过 `FPSMCapability.Savable` 和现有地图配置文件保存规则。
 现有地图未配置该能力时使用默认规则；规则在每局开始时固定，修改于下一局生效。
 
-槽位规则接入武器、原版四部位护甲、饰品、道具和备弹。面板显示实际装备并支持丢弃，
-不提供鼠标拖动或交换。第一行是两个饰品槽加头、胸、腿、脚四个玩家装备槽。
+槽位规则接入武器、原版四部位护甲、饰品、道具和备弹。面板显示实际装备并支持丢弃和同组槽位拖动交换。第一行是两个饰品槽加头、胸、腿、脚四个玩家装备槽。
 完整初始背包由现有 `BattlezoneLoadoutCapability` 负责，参见 [饰品与初始背包](inventory-accessories.md)。
 
 ## 配置命令
@@ -14,23 +13,23 @@
 
 ```text
 /fpsm map modify battlezone <地图名> capability inventory get
-/fpsm map modify battlezone <地图名> capability inventory slot weapon.primary {"allowed":["@gun:tacz:ak47","@gun:tacz:m4a1"],"limit":1}
-/fpsm map modify battlezone <地图名> capability inventory slot item.medkit {"allowed":["minecraft:golden_apple","#my_pack:medical_items"],"limit":8}
-/fpsm map modify battlezone <地图名> capability inventory slot item.battery {"allowed":[],"limit":64}
+/fpsm map modify battlezone <地图名> capability inventory type weapon {"allowed":["@gun:tacz:ak47","@gun:tacz:m4a1"],"limit":1}
+/fpsm map modify battlezone <地图名> capability inventory type item.tactical {"allowed":["minecraft:golden_apple","#my_pack:medical_items"],"limit":8}
+/fpsm map modify battlezone <地图名> capability inventory type item.tactical {"allowed":[],"limit":64}
 /fpsm map modify battlezone <地图名> capability inventory reset
 ```
 
-`inventory slot <槽位ID> <JSON规则>` 只修改指定槽位，保留其他槽位配置。
+`inventory type <槽位类型> <JSON规则>` 修改该类型全部格子的规则，保留其他类型配置。
 `inventory set <JSON>` 可批量替换整份配置，例如：
 
 ```json
 {
-  "weapon.primary": {"allowed": ["@gun:*"], "limit": 1},
-  "ammo.1": {"allowed": ["tacz:ammo{AmmoId:\"tacz:9mm\"}"], "limit": 64}
+  "weapon": {"allowed": ["@gun:*"], "limit": 1},
+  "ammo": {"allowed": ["tacz:ammo{AmmoId:\"tacz:9mm\"}"], "limit": 64}
 }
 ```
 
-批量替换时未填写的槽位恢复默认规则。未知槽位 ID、错误选择器、非法数量或保存失败
+批量替换时未填写的类型恢复默认规则。未知槽位类型、错误选择器、非法数量或保存失败
 会拒绝整次更新。沿用已有 `CapabilityConfiguration` 的保存验证与失败回滚。
 
 ## 筛选规则
@@ -48,10 +47,10 @@
 | `*` | 当前槽位类型内的任意非空物品 |
 
 `limit` 为未单独配置数量的物品提供默认上限。可选的 `item_limits` 为 `allowed` 中的
-选择器设置独立上限，例如同一医疗槽放金苹果最多 8 个、纸最多 16 个、蜂蜜瓶最多 2 个：
+选择器设置独立上限，例如同一战术道具槽放金苹果最多 8 个、纸最多 16 个、蜂蜜瓶最多 2 个：
 
 ```text
-/fpsm map modify battlezone <地图名> capability inventory slot item.medkit {"allowed":["minecraft:golden_apple","minecraft:paper","minecraft:honey_bottle"],"limit":4,"item_limits":{"minecraft:golden_apple":8,"minecraft:paper":16,"minecraft:honey_bottle":2}}
+/fpsm map modify battlezone <地图名> capability inventory type item.tactical {"allowed":["minecraft:golden_apple","minecraft:paper","minecraft:honey_bottle"],"limit":4,"item_limits":{"minecraft:golden_apple":8,"minecraft:paper":16,"minecraft:honey_bottle":2}}
 ```
 
 `item_limits` 的键必须与 `allowed` 中某个选择器完全一致，也支持标签、NBT 与枪型选择器。
@@ -89,28 +88,30 @@ TaCZ 弹药通过 `IAmmo.getAmmoId()` 识别，弹药箱通过 `IAmmoBox.getAmmo
 参考：[Unidict 官方弹药匹配实现](https://github.com/Scarasol/Tacz-Unidict/blob/master/src/main/java/com/scarasol/tud/mixin/AmmoItemMixin.java)、
 [普通物品弹药实现](https://github.com/Scarasol/Tacz-Unidict/blob/master/src/main/java/com/scarasol/tud/mixin/AbstractGunItemMixin.java)。
 
-## 槽位 ID
+## 槽位类型
 
 下表按存储索引列出；第一行的显示顺序为两个饰品加头、胸、腿、脚。
-存储与面板顺序一致，共 17 格；旧槽位 ID 不再接受。
+存储与面板顺序一致，共 17 格，按下表类型配置。同类格子不加编号，并共用规则；带编号的旧配置键不再接受。
 
-| 索引 | ID | 默认允许 | 默认数量上限 |
+| 索引 | 配置类型 | 默认允许 | 默认数量上限 |
 | --- | --- | --- | --- |
-| 0 | `accessory.1` | `*`，仍须是饰品 | 1 |
-| 1 | `accessory.2` | `*`，仍须是饰品 | 1 |
+| 0 | `accessory` | `*`，仍须是饰品 | 1 |
+| 1 | `accessory` | `*`，仍须是饰品 | 1 |
 | 2 | `equipment.helmet` | `blockzone:tactical_helmet` | 1 |
 | 3 | `equipment.vest` | `blockzone:plate_carrier` | 1 |
 | 4 | `equipment.legs` | `blockzone:tactical_leggings` | 1 |
 | 5 | `equipment.feet` | `blockzone:tactical_boots` | 1 |
-| 6 | `weapon.primary` | `@gun:*` | 1 |
-| 7 | `weapon.secondary` | `@gun:*` | 1 |
-| 8 | `item.grenade` | 空列表，待整合包指定 | 64 |
-| 9 | `item.battery` | 空列表，待整合包指定 | 64 |
-| 10 | `item.medkit` | 空列表，待整合包指定 | 64 |
+| 6 | `weapon` | `@gun:*` | 1 |
+| 7 | `weapon` | `@gun:*` | 1 |
+| 8 | `item.throwable` | 空列表，待整合包指定 | 64 |
+| 9 | `item.tactical` | 空列表，待整合包指定 | 64 |
+| 10 | `item.tactical` | 空列表，待整合包指定 | 64 |
 | 11 | `item.armor_plates` | `blockzone:armor_plate` | 64 |
-| 12..16 | `ammo.1` .. `ammo.5` | `tacz:ammo`，各槽可独立修改 | 64 |
+| 12..16 | `ammo` | `tacz:ammo`，同类格子共用规则 | 64 |
 
-空列表默认值避免猜测其他模组的背包、手雷、电池和医疗物品 ID。
+中间四格从左至右为投掷物、战术道具、战术道具、护甲板。两个战术道具槽共用允许物品和数量上限配置。
+
+投掷物和战术道具默认允许列表为空，由整合包指定物品或标签。
 
 ## 复用和接入
 
@@ -160,7 +161,7 @@ TaCZ 的 `GunSmithTableIngredient` 只包装配方 Ingredient 和数量，都不
 
 - 接管 Forge 原版背包打开事件（生存和创造背包），不注册独立打开键。
   开关和关闭提示使用 `options.keyInventory`，默认 E，原版改键立即生效。
-- 道具槽使用实际快捷栏第 3 至 6 格（手雷、电池、医疗包、护甲片），可用原版物品使用流程。
+- 道具槽使用实际快捷栏第 3 至 6 格（投掷物、战术道具、战术道具、护甲板），可用原版物品使用流程。
   匹配弹药规则的物品优先进入备弹槽。道具和备弹显示当前数量 / 服务端配置上限；空槽显示 0 / 上限。
 - 悬停高亮，顶部显示物品名称。TaCZ 枪械右上角按其 API 显示配件与内置配件。
 - 攻击绑定丢 1 个，潜行 + 攻击绑定丢最多 10 个，使用绑定全部丢弃（默认左键、Shift + 左键、右键）。

@@ -13,9 +13,9 @@ public enum InventorySlot {
     BOOTS("equipment.feet", "boots", 1, "blockzone:tactical_boots"),
     PRIMARY_WEAPON("weapon.primary", "rifle", 1, "@gun:*"),
     SECONDARY_WEAPON("weapon.secondary", "rifle", 1, "@gun:*"),
-    GRENADE("item.grenade", "grenade", 64),
-    BATTERY("item.battery", "battery", 64),
-    MEDKIT("item.medkit", "medkit", 64),
+    THROWABLE("item.throwable", "grenade", 64),
+    TACTICAL_1("item.tactical.1", "tactical", 64),
+    TACTICAL_2("item.tactical.2", "tactical", 64),
     ARMOR_PLATES("item.armor_plates", "plates", 64, "blockzone:armor_plate"),
     AMMO_1("ammo.1", "ammunition", 64, "tacz:ammo"),
     AMMO_2("ammo.2", "ammunition", 64, "tacz:ammo"),
@@ -76,6 +76,23 @@ public enum InventorySlot {
     }
 
     public String id() { return id; }
+    /** Shared configuration and display key; physical IDs remain internal destinations. */
+    public String category() {
+        if (ACCESSORIES.contains(this)) return "accessory";
+        if (WEAPONS.contains(this)) return "weapon";
+        if (AMMUNITION.contains(this)) return "ammo";
+        if (this == TACTICAL_1 || this == TACTICAL_2) return "item.tactical";
+        return id;
+    }
+
+    public static List<String> categories() { return ALL.stream().map(InventorySlot::category).distinct().toList(); }
+
+    public static List<InventorySlot> byCategory(String category) {
+        var slots = ALL.stream().filter(slot -> slot.category().equals(category)).toList();
+        if (slots.isEmpty()) throw new IllegalArgumentException("Unknown inventory slot category: " + category);
+        return slots;
+    }
+
     public String icon() { return icon; }
     public int index() { return ordinal(); }
     public int defaultLimit() { return defaultLimit; }

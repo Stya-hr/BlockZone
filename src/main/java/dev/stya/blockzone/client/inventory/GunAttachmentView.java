@@ -7,13 +7,13 @@ import net.minecraftforge.fml.ModList;
 
 /** Optional gun API adapter for installed and built-in attachments. */
 public final class GunAttachmentView {
-    public record Attachment(Component name, ItemStack item) {}
+    public record Attachment(Component name, ItemStack item, String icon) {}
     public static List<Attachment> of(ItemStack stack) {
         return !stack.isEmpty() && ModList.get().isLoaded("tacz") ? Tacz.of(stack) : empty();
     }
     private static List<Attachment> empty() {
         return List.of("scope", "muzzle", "stock", "grip", "laser", "extended_mag").stream()
-                .map(type -> new Attachment(Component.translatable("attachment.blockzone." + type), ItemStack.EMPTY)).toList();
+                .map(type -> new Attachment(Component.translatable("attachment.blockzone." + type), ItemStack.EMPTY, "attachment_" + type)).toList();
     }
     private static final class Tacz {
         static List<Attachment> of(ItemStack stack) {
@@ -24,7 +24,7 @@ public final class GunAttachmentView {
                     .map(type -> {
                         var item = gun.getAttachment(stack, type);
                         if (item.isEmpty()) item = gun.getBuiltinAttachment(stack, type);
-                        return new Attachment(Component.translatable("attachment.blockzone." + type.name().toLowerCase(java.util.Locale.ROOT)), item);
+                        return new Attachment(Component.translatable("attachment.blockzone." + type.name().toLowerCase(java.util.Locale.ROOT)), item, "attachment_" + type.name().toLowerCase(java.util.Locale.ROOT));
                     }).toList();
         }
     }

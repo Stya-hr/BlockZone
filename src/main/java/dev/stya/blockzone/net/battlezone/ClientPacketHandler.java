@@ -6,6 +6,12 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
 
 final class ClientPacketHandler {
+    static void handle(InventoryStateS2CPacket packet) {
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
+            var player = net.minecraft.client.Minecraft.getInstance().player;
+            if (player != null) dev.stya.blockzone.inventory.PlayerPanelInventory.get(player).ifPresent(data -> data.load(packet.state(), true));
+        });
+    }
     private ClientPacketHandler() {
     }
 

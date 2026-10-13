@@ -36,7 +36,7 @@ public final class BattlezoneInventoryCapability extends MapCapability implement
     @Override public void decode(com.google.gson.JsonElement json) {
         boolean previous = readingSavedConfiguration;
         readingSavedConfiguration = true;
-        try { FPSMCapability.Savable.super.decode(json); }
+        try { write(codec().parse(com.mojang.serialization.JsonOps.INSTANCE, json).getOrThrow(false, message -> {})); }
         finally { readingSavedConfiguration = previous; }
     }
     @Override public InventoryRules read() { return configured; }

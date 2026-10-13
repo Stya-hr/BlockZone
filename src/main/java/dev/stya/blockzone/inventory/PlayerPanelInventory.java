@@ -276,6 +276,123 @@ public final class PlayerPanelInventory {
         return stack;
     }
 
+    /** Explicit loot interaction only; walking over vanilla items never replaces equipment. */
+    public ItemStack pickUpReplacingEquipment(ItemStack incoming) {
+        if (!active() || !player.isAlive() || player.isSpectator() || player.isUsingItem()) return incoming;
+        var remainder = insert(incoming, false);
+        if (remainder.getCount() != incoming.getCount()) return remainder;
+        var candidates = incoming.getItem() instanceof net.minecraft.world.item.ArmorItem ? InventorySlot.ARMOR
+                : dev.stya.blockzone.equipment.AccessoryCompat.isAccessory(incoming) ? InventorySlot.ACCESSORIES
+                : GunCompatManager.isGun(incoming) ? (player.getInventory().selected == 1
+                    ? List.of(InventorySlot.SECONDARY_WEAPON, InventorySlot.PRIMARY_WEAPON) : InventorySlot.WEAPONS)
+                : List.<InventorySlot>of();
+        if (GunCompatManager.isGun(incoming) && net.minecraftforge.fml.ModList.get().isLoaded("tacz") && TaczActions.busy(player)) return incoming;
+        for (var slot : candidates) {
+            var previous = getStack(slot).copy();
+            if (previous.isEmpty() || !accepts(slot, incoming) || rules.apply(slot).limitFor(incoming) < 1) continue;
+            if (InventorySlot.ARMOR.contains(slot) && !player.isCreative()
+                    && net.minecraft.world.item.enchantment.EnchantmentHelper.hasBindingCurse(previous)) continue;
+            if (InventorySlot.ACCESSORIES.contains(slot)) {
+                int index = InventorySlot.ACCESSORIES.indexOf(slot);
+                if (!dev.stya.blockzone.equipment.AccessoryCompat.canUnequip(player, index, getStack(slot))
+                        || !dev.stya.blockzone.equipment.AccessoryCompat.canEquip(player, index, incoming)) continue;
+            }
+            var replacement = incoming.copy(); replacement.setCount(1);
+            var drop = createDiscardEntity(previous);
+            if (!player.level().addFreshEntity(drop)) return incoming;
+            try { equip(slot, replacement); }
+            catch (RuntimeException failure) {
+                drop.discard();
+                if (InventorySlot.ACCESSORIES.contains(slot)) setAccessory(slot, previous);
+                else if (slot.equipmentSlot() != null) player.setItemSlot(slot.equipmentSlot(), previous);
+                else player.getInventory().setItem(InventorySlot.WEAPONS.indexOf(slot), previous);
+                throw failure;
+            }
+            var result = incoming.copy(); result.shrink(1);
+            return result;
+        }
+        return incoming;
+    }
+
+    /** Drag swaps whole stacks, never partially merges or broadens the destination rules. */
+    public boolean swapSlots(InventorySlot from, InventorySlot to, UUID expectedRound, int fromRevision, int toRevision) {
+        if (!active() || !player.isAlive() || player.isSpectator() || player.isUsingItem() || from == to
+                || !java.util.Objects.equals(round, expectedRound)
+                || revision(from) != fromRevision || revision(to) != toRevision) return false;
+        boolean sameGroup = List.of(InventorySlot.WEAPONS, InventorySlot.ACCESSORIES, InventorySlot.ITEMS, InventorySlot.AMMUNITION)
+                .stream().anyMatch(group -> group.contains(from) && group.contains(to));
+        if (!sameGroup) return false;
+        var source = getStack(from).copy();
+        var target = getStack(to).copy();
+        if (source.isEmpty() || !canMove(to, source) || !canMove(from, target)) return false;
+        if (InventorySlot.ACCESSORIES.contains(from)) {
+            int sourceIndex = InventorySlot.ACCESSORIES.indexOf(from), targetIndex = InventorySlot.ACCESSORIES.indexOf(to);
+            if (!dev.stya.blockzone.equipment.AccessoryCompat.canUnequip(player, sourceIndex, getStack(from))
+                    || !dev.stya.blockzone.equipment.AccessoryCompat.canEquip(player, targetIndex, source)
+                    || !target.isEmpty() && (!dev.stya.blockzone.equipment.AccessoryCompat.canUnequip(player, targetIndex, getStack(to))
+                    || !dev.stya.blockzone.equipment.AccessoryCompat.canEquip(player, sourceIndex, target))) return false;
+        }
+        // Empty both first so ammunition exclusivity cannot reject a move against its own source.
+        // Weapon/item stacks retain their object identities, preserving an in-progress held-gun operation.
+        var originalSource = getStack(from);
+        var originalTarget = getStack(to);
+        writeSlot(from, ItemStack.EMPTY); writeSlot(to, ItemStack.EMPTY);
+        try { writeSlot(from, originalTarget); writeSlot(to, originalSource); }
+        catch (RuntimeException failure) {
+            writeSlot(from, ItemStack.EMPTY); writeSlot(to, ItemStack.EMPTY);
+            writeSlot(from, originalSource); writeSlot(to, originalTarget);
+            throw failure;
+        }
+        int sourceHotbar = hotbarIndex(from), targetHotbar = hotbarIndex(to);
+        int selected = player.getInventory().selected;
+        if (sourceHotbar >= 0 && targetHotbar >= 0 && (selected == sourceHotbar || selected == targetHotbar)) {
+            int next = selected == sourceHotbar ? targetHotbar : sourceHotbar;
+            player.getInventory().selected = next;
+            if (player instanceof net.minecraft.server.level.ServerPlayer server && server.connection != null)
+                server.connection.send(new net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket(next));
+        }
+        player.getInventory().setChanged();
+        player.inventoryMenu.broadcastChanges();
+        return true;
+    }
+
+    private int hotbarIndex(InventorySlot slot) {
+        if (InventorySlot.WEAPONS.contains(slot)) return InventorySlot.WEAPONS.indexOf(slot);
+        if (InventorySlot.ITEMS.contains(slot)) return 2 + InventorySlot.ITEMS.indexOf(slot);
+        return -1;
+    }
+
+    private void writeSlot(InventorySlot slot, ItemStack stack) {
+        if (InventorySlot.ACCESSORIES.contains(slot)) setAccessory(slot, stack);
+        else if (hotbarIndex(slot) >= 0) player.getInventory().setItem(hotbarIndex(slot), stack);
+        else storage.setStackInSlot(slot.index(), stack);
+    }
+
+    private boolean canMove(InventorySlot destination, ItemStack stack) {
+        int maximum = InventorySlot.FIRST_ROW.contains(destination) || InventorySlot.WEAPONS.contains(destination) ? 1 : stack.getMaxStackSize();
+        return stack.isEmpty() || accepts(destination, stack)
+                && stack.getCount() <= Math.min(maximum, rules.apply(destination).limitFor(stack));
+    }
+
+    private static final class TaczActions {
+        static boolean busy(Player player) {
+            var operator = com.tacz.guns.api.entity.IGunOperator.fromLivingEntity(player);
+            var reload = operator.getSynReloadState();
+            return reload != null && reload.getStateType().isReloading() || operator.getSynIsBolting();
+        }
+    }
+
+    private dev.stya.blockzone.loot.LootDropEntity createDiscardEntity(ItemStack stack) {
+        var entity = new dev.stya.blockzone.loot.LootDropEntity(dev.stya.blockzone.registry.BlockzoneEntities.LOOT_DROP.get(), player.level());
+        entity.setItem(stack.copy());
+        entity.setPos(player.getX(), player.getEyeY() - .3, player.getZ());
+        entity.setDeltaMovement(player.getLookAngle().scale(.25).add(0, .1, 0));
+        entity.setPickUpDelay(20);
+        if (player instanceof net.minecraft.server.level.ServerPlayer server)
+            dev.stya.blockzone.combat.MatchRegeneration.map(server).filter(this::matches).ifPresent(entity::bindToMatch);
+        return entity;
+    }
+
     /** Reconcile starting loadouts and vanilla inventory/menu transfers without copying weapons. */
     public void normalize() {
         if (!active()) return;
@@ -441,17 +558,13 @@ public final class PlayerPanelInventory {
         if (!active() || !java.util.Objects.equals(round, expectedRound) || action < 0 || action > 2) return false;
         var source = getStack(slot);
         if (source.isEmpty() || !ItemStack.isSameItemSameTags(source, expectedItem)) return false;
+        if (InventorySlot.ARMOR.contains(slot) && !player.isCreative()
+                && net.minecraft.world.item.enchantment.EnchantmentHelper.hasBindingCurse(source)) return false;
         if (InventorySlot.ACCESSORIES.contains(slot) && !dev.stya.blockzone.equipment.AccessoryCompat.canUnequip(player, InventorySlot.ACCESSORIES.indexOf(slot), source)) return false;
         int count = Math.min(source.getCount(), action == 0 ? 1 : action == 1 ? 10 : source.getCount());
         var dropped = source.copy(); dropped.setCount(count);
         source.shrink(count);
-        var entity = new dev.stya.blockzone.loot.LootDropEntity(dev.stya.blockzone.registry.BlockzoneEntities.LOOT_DROP.get(), player.level());
-        entity.setItem(dropped);
-        entity.setPos(player.getX(), player.getEyeY() - .3, player.getZ());
-        entity.setDeltaMovement(player.getLookAngle().scale(.25).add(0, .1, 0));
-        entity.setPickUpDelay(20);
-        if (player instanceof net.minecraft.server.level.ServerPlayer server)
-            dev.stya.blockzone.combat.MatchRegeneration.map(server).filter(this::matches).ifPresent(entity::bindToMatch);
+        var entity = createDiscardEntity(dropped);
         if (!player.level().addFreshEntity(entity)) { source.grow(count); return false; }
         if (InventorySlot.ACCESSORIES.contains(slot) && source.isEmpty()
                 && dev.stya.blockzone.equipment.AccessoryCompat.inventory(player).isEmpty()

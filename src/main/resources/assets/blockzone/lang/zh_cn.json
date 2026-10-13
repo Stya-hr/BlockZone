@@ -27,5 +27,7 @@
   "slot.blockzone.accessory.2": "饰品 2",
   "slot.blockzone.equipment.legs": "护腿",
   "slot.blockzone.equipment.feet": "靴子",
-  "curios.identifier.blockzone_accessory": "战局饰品"
+  "curios.identifier.blockzone_accessory": "战局饰品",
+  "inventory.blockzone.drag_swap": "拖动交换槽位",
+  "inventory.blockzone.swap_rejected": "无法交换：类型或数量不符、饰品锁定、物品已变化或正在使用物品。"
 }

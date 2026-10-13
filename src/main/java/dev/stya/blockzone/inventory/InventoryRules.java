@@ -51,8 +51,28 @@ public record InventoryRules(Map<String, Definition> slots) {
         public SlotRule compile() { return SlotRule.parse(allowed, limit, itemLimits); }
     }
 
-    public static final Codec<InventoryRules> CODEC = Codec.unboundedMap(Codec.STRING, Definition.CODEC)
-            .xmap(InventoryRules::new, InventoryRules::slots);
+    public static final Codec<InventoryRules> CODEC = Codec.unboundedMap(Codec.STRING, Codec.PASSTHROUGH)
+            .flatXmap(input -> {
+                var definitions = new LinkedHashMap<String, Definition>();
+                try {
+                    for (var entry : input.entrySet()) {
+                        var decoded = dev.stya.blockzone.util.ContextualCodec.wrap(Definition.CODEC,
+                                ignored -> "inventory[" + entry.getKey() + "]").parse(entry.getValue());
+                        definitions.put(entry.getKey(), decoded.getOrThrow(false, message -> {}));
+                    }
+                    return DataResult.success(new InventoryRules(definitions));
+                } catch (RuntimeException failure) {
+                    return DataResult.error(failure::getMessage);
+                }
+            }, rules -> {
+                var encoded = new LinkedHashMap<String, com.mojang.serialization.Dynamic<?>>();
+                for (var entry : rules.slots().entrySet()) {
+                    var json = Definition.CODEC.encodeStart(com.mojang.serialization.JsonOps.INSTANCE, entry.getValue())
+                            .getOrThrow(false, message -> {});
+                    encoded.put(entry.getKey(), new com.mojang.serialization.Dynamic<>(com.mojang.serialization.JsonOps.INSTANCE, json));
+                }
+                return DataResult.success(encoded);
+            });
 
     public InventoryRules {
         var merged = new LinkedHashMap<String, Definition>();
@@ -62,7 +82,7 @@ public record InventoryRules(Map<String, Definition> slots) {
             var slot = InventorySlot.byId(id);
             java.util.Objects.requireNonNull(definition);
             if (!definition.type().isEmpty() && !definition.type().equals(slot.type()))
-                throw new IllegalArgumentException("Wrong type for " + id + ": expected " + slot.type());
+                throw new IllegalArgumentException("Wrong type for " + id + ": expected " + slot.type() + ", received " + definition.type());
             if ((InventorySlot.ACCESSORIES.contains(slot) || InventorySlot.WEAPONS.contains(slot) || InventorySlot.ARMOR.contains(slot))
                     && (definition.limit() != 1 || definition.itemLimits().values().stream().anyMatch(limit -> limit != 1)))
                 throw new IllegalArgumentException("Equipment, weapons and accessories have one item per slot: " + id);

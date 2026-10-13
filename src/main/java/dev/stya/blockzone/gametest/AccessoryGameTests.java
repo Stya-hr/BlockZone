@@ -84,6 +84,78 @@ public final class AccessoryGameTests {
     }
 
     @GameTest(template = "empty")
+    public static void replacementHonorsLockedAccessoriesAndArmorBinding(GameTestHelper helper) {
+        var player = player(helper);
+        player.setGameMode(net.minecraft.world.level.GameType.ADVENTURE);
+        var data = PlayerPanelInventory.get(player).orElseThrow();
+        data.begin("test", UUID.randomUUID(), slot -> SlotRule.parse(List.of("*"), 1));
+        var locked = accessory(); locked.getOrCreateTag().putBoolean("Locked", true);
+        data.equip(InventorySlot.ACCESSORY_1, locked); data.equip(InventorySlot.ACCESSORY_2, locked);
+        check(data.pickUpReplacingEquipment(accessory()).getCount() == 1, "Both locked accessories reject replacement");
+        check(!data.swapSlots(InventorySlot.ACCESSORY_1, InventorySlot.ACCESSORY_2, data.round(), data.revision(InventorySlot.ACCESSORY_1), data.revision(InventorySlot.ACCESSORY_2)), "Drag cannot bypass locked accessory");
+        data.getStack(InventorySlot.ACCESSORY_2).getOrCreateTag().putBoolean("Locked", false);
+        var replacement = accessory(); replacement.getOrCreateTag().putString("Identity", "new");
+        check(data.pickUpReplacingEquipment(replacement).isEmpty(), "Unlocked accessory is replaced");
+        check(data.getStack(InventorySlot.ACCESSORY_1).getTag().getBoolean("Locked"), "Locked slot unchanged");
+        check(ItemStack.isSameItemSameTags(replacement, data.getStack(InventorySlot.ACCESSORY_2)), "Replacement preserves NBT");
+        data.getStack(InventorySlot.ACCESSORY_1).getOrCreateTag().putBoolean("Locked", false);
+        check(data.swapSlots(InventorySlot.ACCESSORY_1, InventorySlot.ACCESSORY_2, data.round(), data.revision(InventorySlot.ACCESSORY_1), data.revision(InventorySlot.ACCESSORY_2)), "Unlocked accessories can swap through their real handler");
+        check(ItemStack.isSameItemSameTags(replacement, data.getStack(InventorySlot.ACCESSORY_1)), "Accessory swap preserves NBT");
+        var oldHelmet = new ItemStack(Items.IRON_HELMET);
+        oldHelmet.enchant(net.minecraft.world.item.enchantment.Enchantments.BINDING_CURSE, 1);
+        data.equip(InventorySlot.HELMET, oldHelmet);
+        check(!data.pickUpReplacingEquipment(new ItemStack(Items.DIAMOND_HELMET)).isEmpty(), "Binding curse blocks replacement");
+        check(data.getStack(InventorySlot.HELMET).is(Items.IRON_HELMET), "Bound armor unchanged");
+        check(!data.discard(InventorySlot.HELMET, 2, data.round(), data.revision(InventorySlot.HELMET)), "Discard cannot bypass binding curse");
+        data.end(); helper.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void onlyExplicitLootPickupReplacesArmor(GameTestHelper helper) {
+        var player = player(helper);
+        player.setGameMode(net.minecraft.world.level.GameType.ADVENTURE);
+        player.setPos(helper.absoluteVec(new net.minecraft.world.phys.Vec3(1, 2, 1)));
+        var data = PlayerPanelInventory.get(player).orElseThrow();
+        data.begin("test", UUID.randomUUID(), slot -> SlotRule.parse(List.of("*"), 1));
+        var old = new ItemStack(Items.IRON_HELMET); old.setDamageValue(7);
+        old.getOrCreateTag().putString("Identity", "old");
+        data.equip(InventorySlot.HELMET, old);
+        var vanilla = new net.minecraft.world.entity.item.ItemEntity(helper.getLevel(), player.getX(), player.getY(), player.getZ(), new ItemStack(Items.DIAMOND_HELMET));
+        vanilla.setNoPickUpDelay();
+        player.setShiftKeyDown(true); vanilla.playerTouch(player);
+        check(!vanilla.isRemoved() && data.getStack(InventorySlot.HELMET).is(Items.IRON_HELMET), "Walking over vanilla drop never replaces");
+        var loot = new dev.stya.blockzone.loot.LootDropEntity(dev.stya.blockzone.registry.BlockzoneEntities.LOOT_DROP.get(), helper.getLevel());
+        loot.setPos(player.position()); loot.setItem(new ItemStack(Items.DIAMOND_HELMET)); loot.setNoPickUpDelay();
+        player.setShiftKeyDown(false); loot.interact(player, net.minecraft.world.InteractionHand.MAIN_HAND);
+        check(loot.isRemoved() && data.getStack(InventorySlot.HELMET).is(Items.DIAMOND_HELMET), "Normal explicit pickup replaces armor without sneak");
+        var dropped = helper.getLevel().getEntitiesOfClass(dev.stya.blockzone.loot.LootDropEntity.class,
+                player.getBoundingBox().inflate(3), entity -> ItemStack.isSameItemSameTags(old, entity.getItem()));
+        check(dropped.size() == 1 && dropped.get(0).getItem().getCount() == 1, "Old damaged armor drops exactly once with NBT");
+        player.setShiftKeyDown(false); data.end(); helper.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void loadoutDiagnosticsNameConflictingAmmoSlotsAndWrongArmorPart(GameTestHelper helper) {
+        var permissive = SlotRule.parse(List.of("*"), 64);
+        try {
+            StartingLoadout.prepare(List.of(new StartingLoadout.Entry("equipment.helmet", ResourceLocation.parse("minecraft:diamond_boots"), 1, "{}")), slot -> permissive);
+            throw new AssertionError("Wrong armor accepted");
+        } catch (IllegalArgumentException failure) {
+            check(failure.getMessage().contains("equipment.helmet") && failure.getMessage().contains("minecraft:diamond_boots")
+                    && failure.getMessage().contains("head"), "Wrong armor names destination, item and expected part");
+        }
+        try {
+            StartingLoadout.prepare(List.of(new StartingLoadout.Entry("ammo.1", ResourceLocation.parse("minecraft:paper"), 1, "{}"),
+                    new StartingLoadout.Entry("ammo.2", ResourceLocation.parse("minecraft:paper"), 1, "{}")), slot -> permissive);
+            throw new AssertionError("Duplicate ammo accepted");
+        } catch (IllegalArgumentException failure) {
+            check(failure.getMessage().contains("ammo.1") && failure.getMessage().contains("ammo.2")
+                    && failure.getMessage().contains("minecraft:paper"), "Duplicate ammo identifies both slots and item");
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty")
     public static void typeWhitelistCannotTurnOrdinaryItemsIntoEquipment(GameTestHelper helper) {
         var inventory = new PanelInventory(slot -> SlotRule.parse(List.of("*"), 64));
         check(!inventory.isItemValid(InventorySlot.ACCESSORY_1.index(), new ItemStack(Items.STONE)), "Ordinary items are not accessories");

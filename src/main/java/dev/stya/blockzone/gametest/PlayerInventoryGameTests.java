@@ -52,6 +52,79 @@ public final class PlayerInventoryGameTests {
     }
 
     @GameTest(template = "empty")
+    public static void dragSwapsRespectCapacityAndAmmoExclusivity(GameTestHelper helper) {
+        var player = player(helper);
+        var data = PlayerPanelInventory.get(player).orElseThrow();
+        data.end();
+        data.begin("gametest", UUID.randomUUID(), slot -> SlotRule.parse(List.of("minecraft:paper", "minecraft:stick"), slot == InventorySlot.MEDKIT ? 8 : 4));
+        data.equip(InventorySlot.MEDKIT, new ItemStack(Items.PAPER, 5));
+        check(!data.swapSlots(InventorySlot.MEDKIT, InventorySlot.BATTERY, data.round(), data.revision(InventorySlot.MEDKIT), data.revision(InventorySlot.BATTERY)), "Whole stack cannot exceed target capacity");
+        check(data.getStack(InventorySlot.MEDKIT).getCount() == 5 && data.getStack(InventorySlot.BATTERY).isEmpty(), "Capacity rejection is atomic");
+        data.equip(InventorySlot.MEDKIT, new ItemStack(Items.PAPER, 4));
+        check(data.swapSlots(InventorySlot.MEDKIT, InventorySlot.BATTERY, data.round(), data.revision(InventorySlot.MEDKIT), data.revision(InventorySlot.BATTERY)), "Move whole stack to empty item slot");
+        check(!data.swapSlots(InventorySlot.BATTERY, InventorySlot.AMMO_3, data.round(), data.revision(InventorySlot.BATTERY), data.revision(InventorySlot.AMMO_3)), "Cross-category move rejected");
+        data.equip(InventorySlot.AMMO_1, new ItemStack(Items.PAPER, 2));
+        data.equip(InventorySlot.AMMO_2, new ItemStack(Items.STICK, 3));
+        check(data.swapSlots(InventorySlot.AMMO_1, InventorySlot.AMMO_2, data.round(), data.revision(InventorySlot.AMMO_1), data.revision(InventorySlot.AMMO_2)), "Two ammunition types swap atomically");
+        check(data.getStack(InventorySlot.AMMO_1).is(Items.STICK) && data.getStack(InventorySlot.AMMO_1).getCount() == 3
+                && data.getStack(InventorySlot.AMMO_2).is(Items.PAPER) && data.getStack(InventorySlot.AMMO_2).getCount() == 2, "Ammo counts and exclusivity preserved");
+        data.end(); helper.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void explicitPickupReplacesSelectedWeaponAndDropsOldGunOnce(GameTestHelper helper) {
+        var player = player(helper);
+        player.setPos(helper.absoluteVec(new net.minecraft.world.phys.Vec3(1, 2, 1)));
+        var data = PlayerPanelInventory.get(player).orElseThrow();
+        var first = gun(); first.getOrCreateTag().putString("Identity", "first");
+        var second = gun(); second.getOrCreateTag().putString("Identity", "second");
+        var incoming = gun(); incoming.getOrCreateTag().putString("Identity", "replacement");
+        data.insert(first, false); data.insert(second, false); player.getInventory().selected = 1;
+        var loot = new dev.stya.blockzone.loot.LootDropEntity(dev.stya.blockzone.registry.BlockzoneEntities.LOOT_DROP.get(), helper.getLevel());
+        loot.setPos(player.position()); loot.setItem(incoming.copy()); loot.setNoPickUpDelay();
+        player.setShiftKeyDown(false); loot.interact(player, net.minecraft.world.InteractionHand.MAIN_HAND);
+        check(loot.isRemoved() && ItemStack.isSameItemSameTags(incoming, data.getStack(InventorySlot.SECONDARY_WEAPON)), "Direct pickup replaces selected weapon");
+        check(ItemStack.isSameItemSameTags(first, data.getStack(InventorySlot.PRIMARY_WEAPON)), "Other weapon remains unchanged");
+        var drops = helper.getLevel().getEntitiesOfClass(dev.stya.blockzone.loot.LootDropEntity.class, player.getBoundingBox().inflate(3), entity -> ItemStack.isSameItemSameTags(second, entity.getItem()));
+        check(drops.size() == 1 && drops.get(0).getItem().getCount() == 1, "Old gun drops exactly once with full NBT");
+        data.end(); helper.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void weaponSwapPreservesFullStacksAndHeldGunAndRejectsStaleRequests(GameTestHelper helper) {
+        var player = player(helper);
+        var data = PlayerPanelInventory.get(player).orElseThrow();
+        var first = gun(); first.getOrCreateTag().putString("Identity", "first");
+        var second = gun(); second.getOrCreateTag().putString("Identity", "second");
+        data.insert(first, false); data.insert(second, false);
+        var held = player.getMainHandItem();
+        int primary = data.revision(InventorySlot.PRIMARY_WEAPON), secondary = data.revision(InventorySlot.SECONDARY_WEAPON);
+        check(!data.swapSlots(InventorySlot.PRIMARY_WEAPON, InventorySlot.SECONDARY_WEAPON, UUID.randomUUID(), primary, secondary), "Other round rejected");
+        check(data.swapSlots(InventorySlot.PRIMARY_WEAPON, InventorySlot.SECONDARY_WEAPON, data.round(), primary, secondary), "Swap accepted");
+        check(ItemStack.isSameItemSameTags(second, data.getStack(InventorySlot.PRIMARY_WEAPON)), "Secondary NBT survives");
+        check(ItemStack.isSameItemSameTags(first, data.getStack(InventorySlot.SECONDARY_WEAPON)), "Primary NBT survives");
+        check(player.getMainHandItem() == held && player.getInventory().selected == 1, "Same held gun remains selected");
+        check(!data.swapSlots(InventorySlot.PRIMARY_WEAPON, InventorySlot.SECONDARY_WEAPON, data.round(), primary, secondary), "Replayed request rejected");
+        player.getInventory().setItem(0, ItemStack.EMPTY);
+        check(data.swapSlots(InventorySlot.SECONDARY_WEAPON, InventorySlot.PRIMARY_WEAPON, data.round(), data.revision(InventorySlot.SECONDARY_WEAPON), data.revision(InventorySlot.PRIMARY_WEAPON)), "Move to empty slot accepted");
+        check(data.getStack(InventorySlot.SECONDARY_WEAPON).isEmpty() && player.getMainHandItem() == held, "No copy left behind");
+        data.end(); helper.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void weaponSwapCannotBypassDestinationRules(GameTestHelper helper) {
+        var player = player(helper);
+        var data = PlayerPanelInventory.get(player).orElseThrow();
+        data.end();
+        data.begin("gametest", UUID.randomUUID(), slot -> SlotRule.parse(slot == InventorySlot.SECONDARY_WEAPON ? List.of() : List.of("@gun:*"), 1));
+        data.insert(gun(), false);
+        var held = player.getMainHandItem();
+        check(!data.swapSlots(InventorySlot.PRIMARY_WEAPON, InventorySlot.SECONDARY_WEAPON, data.round(), data.revision(InventorySlot.PRIMARY_WEAPON), data.revision(InventorySlot.SECONDARY_WEAPON)), "Disabled destination rejected");
+        check(player.getMainHandItem() == held && data.getStack(InventorySlot.SECONDARY_WEAPON).isEmpty(), "Rejected swap is atomic");
+        data.end(); helper.succeed();
+    }
+
+    @GameTest(template = "empty")
     public static void worldPickupUsesRealHotbarWeaponsAndRejectsThirdGun(GameTestHelper helper) {
         var player = player(helper);
         var weapon = gun();

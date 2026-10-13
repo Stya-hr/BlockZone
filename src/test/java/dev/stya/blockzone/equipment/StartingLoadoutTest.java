@@ -26,4 +26,17 @@ class StartingLoadoutTest {
         assertTrue(StartingLoadout.Entry.CODEC.parse(JsonOps.INSTANCE,
                 JsonParser.parseString("{\"slot\":\"chest\",\"item\":\"blockzone:plate_carrier\",\"count\":0}")).error().isPresent());
     }
+    @Test void malformedLoadoutNamesItsSlotAndItem() {
+        var error = StartingLoadout.Entry.CODEC.parse(JsonOps.INSTANCE,
+                JsonParser.parseString("{\"slot\":\"equipment.vest\",\"item\":\"blockzone:plate_carrier\",\"count\":0}"))
+                .error().orElseThrow().message();
+        assertTrue(error.contains("equipment.vest"));
+        assertTrue(error.contains("blockzone:plate_carrier"));
+        var capability = new dev.stya.blockzone.map.battlezone.capability.BattlezoneLoadoutCapability(null);
+        var failure = assertThrows(RuntimeException.class, () -> capability.decode(JsonParser.parseString(
+                "[{\"slot\":\"equipment.vest\",\"item\":\"blockzone:plate_carrier\",\"count\":0}]")));
+        assertTrue(failure.getMessage().contains("equipment.vest"));
+        assertTrue(failure.getMessage().contains("blockzone:plate_carrier"));
+    }
+
 }

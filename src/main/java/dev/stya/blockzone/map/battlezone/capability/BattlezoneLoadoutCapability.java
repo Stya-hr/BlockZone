@@ -34,7 +34,7 @@ public final class BattlezoneLoadoutCapability extends MapCapability
     @Override public void decode(com.google.gson.JsonElement json) {
         boolean previous = readingSavedConfiguration;
         readingSavedConfiguration = true;
-        try { FPSMCapability.Savable.super.decode(json); }
+        try { write(codec().parse(com.mojang.serialization.JsonOps.INSTANCE, json).getOrThrow(false, message -> {})); }
         finally { readingSavedConfiguration = previous; }
     }
     @Override public List<StartingLoadout.Entry> read() { return configured; }

@@ -27,5 +27,7 @@
   "slot.blockzone.accessory.2": "Accessory 2",
   "slot.blockzone.equipment.legs": "Leggings",
   "slot.blockzone.equipment.feet": "Boots",
-  "curios.identifier.blockzone_accessory": "Match accessories"
+  "curios.identifier.blockzone_accessory": "Match accessories",
+  "inventory.blockzone.drag_swap": "Drag to swap slots",
+  "inventory.blockzone.swap_rejected": "Cannot swap: slot type/capacity, locked accessory, stale contents, or item in use."
 }

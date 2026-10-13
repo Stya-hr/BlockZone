@@ -55,8 +55,8 @@ public final class InventoryPromptRenderer {
         for (int row = 0; row < rows.size(); row++) {
             var rowPrompts = rows.get(row);
             int total = rowPrompts.stream().mapToInt(p -> keysWidth(font, p) + font.width(Component.translatable(p.description)) + 22).sum();
-            float scale = Math.min(1.5F, 1040F / total);
-            gui.pose().pushPose(); gui.pose().translate((1040 - total * scale) / 2, 382 + row * 24, 0); gui.pose().scale(scale, scale, 1);
+            float scale = Math.min(2F, 1040F / total);
+            gui.pose().pushPose(); gui.pose().translate((1040 - total * scale) / 2, 382 + row * 32, 0); gui.pose().scale(scale, scale, 1);
             int x = 0;
             for (var prompt : rowPrompts) {
                 int width = keysWidth(font, prompt);

@@ -49,36 +49,40 @@ public final class InventoryPanelScreen extends Screen {
         hovered = at(mouseX, mouseY);
         attachmentName = null;
         gui.pose().pushPose(); gui.pose().translate(originX(), originY(), 0); gui.pose().scale(scale(), scale(), 1);
-        box(gui, 160, 0, 720, 28, false);
         double px = (mouseX - originX()) / scale(), py = (mouseY - originY()) / scale();
         for (var cell : InventoryPanelLayout.CELLS) {
             var item = stack(cell.slot());
             box(gui, cell.x(), cell.y(), cell.width(), cell.height(), cell == hovered || dragging && cell == pressedCell);
             boolean equipment = InventorySlot.FIRST_ROW.contains(cell.slot());
             boolean weapon = InventorySlot.WEAPONS.contains(cell.slot());
-            if (!equipment) gui.fill(cell.x() + 3, cell.y() + cell.height() - 26, cell.x() + cell.width() - 3, cell.y() + cell.height() - 3, 0x66000000);
+            if (!equipment) gui.fill(cell.x() + 3, cell.y() + cell.height() - 30, cell.x() + cell.width() - 3, cell.y() + cell.height() - 3, 0x66000000);
             if (item.isEmpty()) {
                 int w = weapon ? 156 : cell.slot() == InventorySlot.GRENADE ? 24 : 40;
                 int h = weapon ? 56 : cell.slot() == InventorySlot.GRENADE ? 48 : 40;
                 icon(gui, cell.slot().icon(), cell.x() + (cell.width() - w) / 2, cell.y() + (equipment ? 20 : weapon ? 28 : 8), w, h);
-            } else {
+            } else if (!weapon || !GunHudIcon.draw(gui, item, cell.x() + 3, cell.y() + 3, cell.width() - 6, cell.height() - 36)) {
                 gui.pose().pushPose();
                 gui.pose().translate(cell.x() + (cell.width() - 48) / 2F, cell.y() + (equipment ? 16 : weapon ? 32 : 5), 0);
                 gui.pose().scale(3, 3, 1); gui.renderItem(item, 0, 0); gui.pose().popPose();
             }
             if (weapon) {
-                text(gui, font.plainSubstrByWidth((item.isEmpty() ? slotName(cell.slot()) : item.getHoverName()).getString(), (int) ((cell.width() - 12) / 1.6F)), cell.x() + 6, cell.y() + cell.height() - 21, 1.6F, FOREGROUND);
+                String label = font.plainSubstrByWidth((item.isEmpty() ? slotName(cell.slot()) : item.getHoverName()).getString(), (cell.width() - 12) / 2);
+                text(gui, label, cell.x() + (cell.width() - font.width(label) * 2F) / 2, cell.y() + cell.height() - 25, 2F, FOREGROUND);
                 attachments(gui, cell, GunAttachmentView.of(item), px, py);
             } else if (!equipment) {
                 int limit = data() == null ? cell.slot().defaultLimit() : data().limit(cell.slot());
                 String count = item.getCount() + " / " + limit;
-                text(gui, count, cell.x() + cell.width() - 6 - font.width(count) * 1.8F, cell.y() + cell.height() - 21, 1.8F,
+                text(gui, count, cell.x() + (cell.width() - font.width(count) * 2.2F) / 2, cell.y() + cell.height() - 26, 2.2F,
                         item.getCount() > limit ? 0xFFFF9E81 : FOREGROUND);
             }
         }
         Component name = attachmentName != null ? attachmentName : hovered == null ? getTitle()
                 : stack(hovered.slot()).isEmpty() ? slotName(hovered.slot()) : stack(hovered.slot()).getHoverName();
-        text(gui, font.plainSubstrByWidth(name.getString(), 470), 168, 6, 1.5F, FOREGROUND);
+        String description = font.plainSubstrByWidth(name.getString(), (int) ((1040 - 24) / 2.2F));
+        float descriptionWidth = font.width(description) * 2.2F;
+        int frameWidth = (int) Math.ceil(descriptionWidth + 24);
+        box(gui, (1040 - frameWidth) / 2, 0, frameWidth, 34, false);
+        text(gui, description, (1040 - descriptionWidth) / 2, (34 - font.lineHeight * 2.2F) / 2, 2.2F, FOREGROUND);
         InventoryPromptRenderer.render(gui, font, InventoryPreviewKeys.bulkDropDown(minecraft));
         gui.pose().popPose();
         if (dragging && pressedCell != null) {

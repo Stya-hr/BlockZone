@@ -59,7 +59,10 @@ public final class InventoryPreviewKeys {
         @SubscribeEvent
         public static void reload(RegisterClientReloadListenersEvent event) {
             event.registerReloadListener((net.minecraft.server.packs.resources.ResourceManagerReloadListener)
-                    manager -> InventorySvgAssets.clear());
+                    manager -> {
+                        InventorySvgAssets.clear();
+                        GunHudIcon.clear();
+                    });
         }
     }
 }

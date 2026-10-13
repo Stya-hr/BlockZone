@@ -23,6 +23,99 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 public final class InventoryGameTests {
 
     @GameTest(template = "empty")
+    public static void ammoUsesOneDynamicSlotWithoutOverflowAndReleasesWhenEmpty(GameTestHelper helper) {
+        var inventory = new PanelInventory(slot -> SlotRule.parse(List.of("*"), 4));
+        int first = InventorySlot.AMMO_1.index(), second = InventorySlot.AMMO_2.index();
+        assertEquals(2, inventory.insertAmmo(new ItemStack(Items.PAPER, 6), true).getCount());
+        assertTrue(inventory.getStackInSlot(first).isEmpty());
+        assertEquals(2, inventory.insertAmmo(new ItemStack(Items.PAPER, 6), false).getCount());
+        assertEquals(4, inventory.getStackInSlot(first).getCount());
+        assertTrue(inventory.getStackInSlot(second).isEmpty());
+        assertEquals(3, inventory.insertItem(second, new ItemStack(Items.PAPER, 3), false).getCount());
+        assertThrows(IllegalArgumentException.class, () -> inventory.setStackInSlot(second, new ItemStack(Items.PAPER)));
+        assertTrue(inventory.insertAmmo(new ItemStack(Items.STICK, 2), false).isEmpty());
+        assertEquals(2, inventory.getStackInSlot(second).getCount());
+        inventory.extractItem(first, 4, false);
+        assertTrue(inventory.insertAmmo(new ItemStack(Items.STONE), false).isEmpty());
+        assertTrue(inventory.getStackInSlot(first).is(Items.STONE));
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void ammoRoutingRespectsSlotRulesAndPerItemLimits(GameTestHelper helper) {
+        var inventory = new PanelInventory(slot -> slot == InventorySlot.AMMO_2
+                ? SlotRule.parse(List.of("minecraft:paper"), 8, Map.of("minecraft:paper", 3))
+                : SlotRule.parse(List.of("minecraft:stick"), 4));
+        assertEquals(2, inventory.insertAmmo(new ItemStack(Items.PAPER, 5), false).getCount());
+        assertTrue(inventory.getStackInSlot(InventorySlot.AMMO_1.index()).isEmpty());
+        assertEquals(3, inventory.getStackInSlot(InventorySlot.AMMO_2.index()).getCount());
+        assertEquals(1, inventory.insertAmmo(new ItemStack(Items.PAPER), false).getCount());
+        assertEquals(1, inventory.insertAmmo(new ItemStack(Items.STONE), false).getCount());
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void taczAmmoIdsAndUnidictPhysicalItemsDefineTypesRatherThanFullNbt(GameTestHelper helper) throws Exception {
+        var inventory = new PanelInventory(slot -> SlotRule.parse(List.of("*"), 4));
+        var light = com.tacz.guns.api.item.builder.AmmoItemBuilder.create()
+                .setId(ResourceLocation.fromNamespaceAndPath("tacz", "9mm")).setCount(4).build();
+        var heavy = com.tacz.guns.api.item.builder.AmmoItemBuilder.create()
+                .setId(ResourceLocation.fromNamespaceAndPath("tacz", "762x39")).setCount(2).build();
+        assertTrue(inventory.insertAmmo(light, false).isEmpty());
+        assertTrue(inventory.insertAmmo(heavy, false).isEmpty());
+        var decorated = light.copy();
+        decorated.getOrCreateTag().putString("display_note", "same ammo, different NBT");
+        assertEquals(4, inventory.insertAmmo(decorated, false).getCount());
+        assertTrue(inventory.getStackInSlot(InventorySlot.AMMO_3.index()).isEmpty());
+        // Unidict supports ordinary items as ammo. Extra NBT must not create another type.
+        assertTrue(inventory.insertAmmo(new ItemStack(Items.PAPER), false).isEmpty());
+        var paper = new ItemStack(Items.PAPER);
+        paper.setTag(TagParser.parseTag("{custom:1}"));
+        assertEquals(1, inventory.insertAmmo(paper, false).getCount());
+        assertTrue(inventory.getStackInSlot(InventorySlot.AMMO_4.index()).isEmpty());
+        if (net.minecraftforge.fml.ModList.get().isLoaded("tacz_unidict")) verifyUnidictRuntimeAmmo();
+        helper.succeed();
+    }
+
+    private static void verifyUnidictRuntimeAmmo() throws Exception {
+        // Optional integration test: no production or test compile dependency on Unidict.
+        var manager = Class.forName("com.scarasol.tud.manager.AmmoManager");
+        var gun = com.tacz.guns.api.item.builder.GunItemBuilder.create()
+                .setId(ResourceLocation.fromNamespaceAndPath("tacz", "ak47")).build();
+        var ammo = (ItemStack) manager.getMethod("getGunAmmo", ItemStack.class).invoke(null, gun);
+        assertFalse(ammo.isEmpty());
+        ammo.setCount(4);
+        var inventory = new PanelInventory(slot -> SlotRule.parse(List.of("*"), 4));
+        assertTrue(inventory.insertAmmo(ammo, false).isEmpty());
+        assertEquals(4, inventory.insertAmmo(ammo, false).getCount());
+        var gunItem = (com.tacz.guns.api.item.gun.AbstractGunItem) gun.getItem();
+        assertEquals(2, gunItem.findAndExtractInventoryAmmo(inventory, gun, 2));
+        assertEquals(2, inventory.getStackInSlot(InventorySlot.AMMO_1.index()).getCount());
+        var ordinary = (ItemStack) manager.getMethod("getAmmoItemStack", net.minecraft.util.Tuple.class)
+                .invoke(null, new net.minecraft.util.Tuple<>(ResourceLocation.fromNamespaceAndPath("minecraft", "paper"), true));
+        assertTrue(ordinary.is(Items.PAPER));
+        assertTrue(inventory.insertAmmo(ordinary, false).isEmpty());
+        assertEquals(4, inventory.insertAmmo(new ItemStack(Items.PAPER, 7), false).getCount());
+        assertTrue(inventory.getStackInSlot(InventorySlot.AMMO_3.index()).isEmpty());
+    }
+
+    @GameTest(template = "empty")
+    public static void duplicateSavedAmmoIsRejectedAtomicallyWithoutDeletingStoredItems(GameTestHelper helper) {
+        var inventory = new PanelInventory(slot -> SlotRule.parse(List.of("*"), 4));
+        inventory.insertAmmo(new ItemStack(Items.STICK, 2), false);
+        var invalid = new net.minecraftforge.items.ItemStackHandler(17);
+        invalid.setStackInSlot(InventorySlot.AMMO_1.index(), new ItemStack(Items.PAPER));
+        invalid.setStackInSlot(InventorySlot.AMMO_2.index(), new ItemStack(Items.PAPER));
+        assertThrows(IllegalArgumentException.class, () -> inventory.deserializeNBT(invalid.serializeNBT()));
+        assertTrue(inventory.getStackInSlot(InventorySlot.AMMO_1.index()).is(Items.STICK));
+        assertEquals(2, inventory.getStackInSlot(InventorySlot.AMMO_1.index()).getCount());
+        var restored = new PanelInventory(slot -> SlotRule.parse(List.of("*"), 4));
+        restored.deserializeNBT(inventory.serializeNBT());
+        assertEquals(1, restored.insertItem(InventorySlot.AMMO_2.index(), new ItemStack(Items.STICK), false).getCount());
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty")
     public static void differentItemsHaveIndependentLimitsAndNativeStackCaps(GameTestHelper helper) {
         var rule = SlotRule.parse(List.of("minecraft:golden_apple", "minecraft:paper", "minecraft:stick", "minecraft:iron_sword"),
                 4, Map.of("minecraft:golden_apple", 8, "minecraft:paper", 16, "minecraft:iron_sword", 2));

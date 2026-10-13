@@ -61,6 +61,33 @@
 所有数量上限为 1..1024，同时受物品自身最大堆叠数限制。不存在的物品或空标签不会匹配。
 规则变严格或数量上限降低时，已经保存的物品不会被删除，仍可取出。
 
+## 弹药动态占槽与互斥
+
+五个弹药槽动态分配：同一弹种在一个背包中最多占一个弹药槽。自动放入调用
+`PanelInventory.insertAmmo(stack, simulate)`，先寻找同弹种的已有槽，再寻找符合规则的空槽。
+已有槽满了、规则不再允许放入，或 NBT 不兼容导致无法堆叠时，剩余物品原样返回，
+不会溢出到另一个空槽。调用方只应扣除真正放入的数量。弹药耗尽后该槽可接收其他弹种。
+模拟插入不改变背包；直接 `insertItem` 和 `setStackInSlot` 同样检查跨弹药槽互斥。
+
+TaCZ 弹药通过 `IAmmo.getAmmoId()` 识别，弹药箱通过 `IAmmoBox.getAmmoId()` 识别；
+同弹种的散弹与弹药箱也不能分别占用两个弹药槽。弹药箱数量仍为物品数量，不自动拆箱。
+额外 NBT 不改变弹种，但堆叠仍遵守 Forge 的物品与 NBT 一致性要求。
+
+兼容 TACZ：铳械协议（Unidict）的两种实体弹药形式：TaCZ 自定义弹药 ID，以及配置为弹药的
+普通物品注册 ID。普通物品需要添加到对应槽位的 `allowed`，也可通过标签配置；不会硬编码
+通用弹药类别或枪械原始口径。此处只管理实体弹药占槽，未来换弹接入应复用 TaCZ / Unidict
+运行时的寻弹与扣除逻辑。尚未连接地面拾取、玩家背包或换弹流程。
+
+例如铳械协议配置使用 `tacz_unidict:rifle` 作为 TaCZ 弹药 ID 时，可用
+`tacz:ammo{AmmoId:"tacz_unidict:rifle"}` 筛选并配置独立数量；如果使用普通物品模式，
+则填写对应物品注册 ID。以服务端实际配置和物品为准。
+
+读取存档会预先检查弹药互斥；有重复弹种时拒绝整次载入并保留当前内容，
+不会静默删除或合并存档中的物品。符合互斥要求的存档仍可保留超出新规则的旧物品。
+
+参考：[Unidict 官方弹药匹配实现](https://github.com/Scarasol/Tacz-Unidict/blob/master/src/main/java/com/scarasol/tud/mixin/AmmoItemMixin.java)、
+[普通物品弹药实现](https://github.com/Scarasol/Tacz-Unidict/blob/master/src/main/java/com/scarasol/tud/mixin/AbstractGunItemMixin.java)。
+
 ## 槽位 ID
 
 按面板从上到下、每行从左到右排列，索引固定为 0..16。
@@ -112,3 +139,5 @@ TaCZ 的 `GunSmithTableIngredient` 只包装配方 Ingredient 和数量，都不
 单元测试覆盖配置序列化、旧配置兼容、错误数量配置的原子拒绝、槽位 ID、地图隔离与按局固定规则。
 GameTest 在 Forge 环境覆盖物品/NBT/标签筛选、不同物品的独立上限、重叠数量规则、模拟插入、堆叠限制、直接替换、
 规则收紧后的物品保留与取出，以及固定大小的 NBT 存储。
+弹药测试覆盖动态占槽、同弹种禁止溢出、耗尽释放、NBT 差异和重复存档的原子拒绝。
+可选加载 Unidict 时，还检查其实际生成的弹药以及原生寻弹扣除接口。

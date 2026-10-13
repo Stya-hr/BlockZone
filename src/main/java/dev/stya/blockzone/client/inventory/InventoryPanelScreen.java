@@ -1,12 +1,14 @@
 package dev.stya.blockzone.client.inventory;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import dev.stya.blockzone.inventory.InventorySlot;
+import java.util.List;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
-/** Static Figma inventory preview. No inventory operations or server packets. */
+/** Read-only inventory panel; server snapshots own reserves and vanilla owns equipped weapons. */
 public final class InventoryPanelScreen extends Screen {
     private static final float PANEL_SCALE = 1.2F;
     private static final int BOTTOM_MARGIN = 122;
@@ -14,7 +16,7 @@ public final class InventoryPanelScreen extends Screen {
     private static final float EMPTY_ICON_ALPHA = .25F;
     private static final int LABEL_HEIGHT = 26;
     private static final int BORDER = 0x73666666;
-    private static final String[] EQUIPMENT = {"backpack", "armor_plates", "helmet", "vest", "shield", "plus"};
+    private static final List<InventorySlot> EQUIPMENT = InventorySlot.EQUIPMENT;
 
     public InventoryPanelScreen() {
         super(Component.translatable("screen.blockzone.inventory_preview"));
@@ -28,33 +30,75 @@ public final class InventoryPanelScreen extends Screen {
         gui.pose().translate((width - 1040 * scale) / 2F, height - (410 + BOTTOM_MARGIN) * scale, 0);
         gui.pose().scale(scale, scale, 1);
         slot(gui, 920, 932, 720, 28, false);
-        for (int i = 0; i < EQUIPMENT.length; i++) {
+        for (int i = 0; i < EQUIPMENT.size(); i++) {
             int x = 920 + 122 * i;
-            slot(gui, x, 970, 110, 80, i == 1);
-            icon(gui, EQUIPMENT[i], x + 35, 990, 40, 40, EMPTY_ICON_ALPHA);
+            slot(gui, x, 970, 110, 80, false);
+            if (stack(EQUIPMENT.get(i)).isEmpty()) icon(gui, EQUIPMENT.get(i).icon(), x + 35, 990, 40, 40, EMPTY_ICON_ALPHA);
         }
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < InventorySlot.WEAPONS.size(); i++) {
             int x = 760 + 242 * i;
-            slot(gui, x, 1060, 230, 112, false);
-            icon(gui, "rifle", x + 37, 1075, 156, 56, EMPTY_ICON_ALPHA);
+            slot(gui, x, 1060, 230, 112, minecraft.player != null && minecraft.player.getInventory().selected == i && !stack(InventorySlot.WEAPONS.get(i)).isEmpty());
+            if (stack(InventorySlot.WEAPONS.get(i)).isEmpty()) icon(gui, "rifle", x + 37, 1075, 156, 56, EMPTY_ICON_ALPHA);
         }
-        String[] items = {"grenade", "battery", "medkit", "plates"};
-        for (int i = 0; i < items.length; i++) {
+        var items = InventorySlot.ITEMS;
+        for (int i = 0; i < items.size(); i++) {
             int x = 1244 + 142 * i;
             slot(gui, x, 1060, 130, 112, false);
-            if (i == 0) icon(gui, items[i], x + 53, 1079, 24, 48, EMPTY_ICON_ALPHA);
-            else icon(gui, items[i], x + 45, 1086, 40, 42, EMPTY_ICON_ALPHA);
+            if (stack(items.get(i)).isEmpty()) {
+                if (i == 0) icon(gui, items.get(i).icon(), x + 53, 1079, 24, 48, EMPTY_ICON_ALPHA);
+                else icon(gui, items.get(i).icon(), x + 45, 1086, 40, 42, EMPTY_ICON_ALPHA);
+            }
         }
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < InventorySlot.AMMUNITION.size(); i++) {
             int x = Math.round(920 + 146.4F * i);
             slot(gui, x, 1182, 134, 80, false);
-            icon(gui, "ammunition", x + 47, 1187, 40, 40, EMPTY_ICON_ALPHA);
+            if (stack(InventorySlot.AMMUNITION.get(i)).isEmpty()) icon(gui, "ammunition", x + 47, 1187, 40, 40, EMPTY_ICON_ALPHA);
         }
         // Text strips sit above the empty-slot silhouettes and inside the border.
         for (int i = 0; i < 2; i++) labelBackground(gui, 760 + 242 * i, 1060, 230, 112);
         for (int i = 0; i < 4; i++) labelBackground(gui, 1244 + 142 * i, 1060, 130, 112);
         for (int i = 0; i < 5; i++) labelBackground(gui, Math.round(920 + 146.4F * i), 1182, 134, 80);
-        icon(gui, "labels", 760, 932, 1040, 410, 1);
+        text(gui, Component.translatable("screen.blockzone.inventory_preview").getString(), 930, 936, 1.5F);
+        text(gui, Component.translatable("inventory.blockzone.close").getString(), 1210, 1322, 1.5F);
+        for (int i = 0; i < 2; i++) label(gui, InventorySlot.WEAPONS.get(i), 760 + 242 * i, 1060, 230, 112);
+        for (int i = 0; i < 4; i++) label(gui, items.get(i), 1244 + 142 * i, 1060, 130, 112);
+        for (int i = 0; i < 5; i++) label(gui, InventorySlot.AMMUNITION.get(i), Math.round(920 + 146.4F * i), 1182, 134, 80);
+        for (int i = 0; i < EQUIPMENT.size(); i++) item(gui, EQUIPMENT.get(i), 920 + 122 * i + 31, 986);
+        for (int i = 0; i < InventorySlot.WEAPONS.size(); i++) item(gui, InventorySlot.WEAPONS.get(i), 760 + 242 * i + 91, 1076);
+        for (int i = 0; i < items.size(); i++) item(gui, items.get(i), 1244 + 142 * i + 41, 1076);
+        for (int i = 0; i < InventorySlot.AMMUNITION.size(); i++) item(gui, InventorySlot.AMMUNITION.get(i), Math.round(920 + 146.4F * i) + 43, 1188);
+        gui.pose().popPose();
+    }
+
+    private void label(GuiGraphics gui, InventorySlot slot, int x, int y, int w, int h) {
+        var item = stack(slot);
+        String name = item.isEmpty() ? Component.translatable("slot.blockzone." + slot.id()).getString() : item.getHoverName().getString();
+        text(gui, font.plainSubstrByWidth(name, (int) ((w - 12) / 1.8F)), x + 6, y + h - 21, 1.8F);
+    }
+
+    private void text(GuiGraphics gui, String value, int x, int y, float scale) {
+        gui.pose().pushPose();
+        gui.pose().translate(x - 760, y - 932, 0);
+        gui.pose().scale(scale, scale, 1);
+        gui.drawString(font, value, 0, 0, FOREGROUND, false);
+        gui.pose().popPose();
+    }
+
+    private net.minecraft.world.item.ItemStack stack(InventorySlot slot) {
+        if (minecraft.player == null) return net.minecraft.world.item.ItemStack.EMPTY;
+        return dev.stya.blockzone.inventory.PlayerPanelInventory.get(minecraft.player)
+                .filter(dev.stya.blockzone.inventory.PlayerPanelInventory::active)
+                .map(data -> data.getStack(slot)).orElse(net.minecraft.world.item.ItemStack.EMPTY);
+    }
+
+    private void item(GuiGraphics gui, InventorySlot slot, int x, int y) {
+        var stack = stack(slot);
+        if (stack.isEmpty()) return;
+        gui.pose().pushPose();
+        gui.pose().translate(x - 760, y - 932, 0);
+        gui.pose().scale(3, 3, 1);
+        gui.renderItem(stack, 0, 0);
+        gui.renderItemDecorations(font, stack, 0, 0);
         gui.pose().popPose();
     }
 

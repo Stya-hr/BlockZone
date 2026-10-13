@@ -23,6 +23,7 @@ import dev.stya.blockzone.equipment.StartingLoadout;
 import dev.stya.blockzone.loot.LootDropEntity;
 import dev.stya.blockzone.map.battlezone.capability.BattlezoneLoadoutCapability;
 import dev.stya.blockzone.map.battlezone.capability.BattlezoneCombatCapability;
+import dev.stya.blockzone.map.battlezone.capability.BattlezoneInventoryCapability;
 import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
 import dev.stya.blockzone.util.CodecSettings;
 import dev.stya.blockzone.zone.PoisonPath;
@@ -80,7 +81,8 @@ public final class BattlezoneMap extends BaseMap {
     private final BattlezoneVisualSync visualSync;
 
     public BattlezoneMap(ServerLevel serverLevel, String mapName, AreaData areaData) {
-        super(serverLevel, mapName, areaData, List.of(BattlezoneLoadoutCapability.class, BattlezoneCombatCapability.class, BattlezoneZoneCapability.class));
+        super(serverLevel, mapName, areaData, List.of(BattlezoneLoadoutCapability.class, BattlezoneCombatCapability.class, BattlezoneZoneCapability.class,
+                BattlezoneInventoryCapability.class));
         this.teamPlayerLimit = addSetting("battlezone", "teamPlayerLimit", 3);
         this.totalPlayerLimit = addSetting("battlezone", "totalPlayerLimit", 24);
         this.minimumTeamsToStart = addSetting("battlezone", "minimumTeamsToStart", 2);
@@ -276,6 +278,7 @@ public final class BattlezoneMap extends BaseMap {
         phase = MatchPhase.DEPLOYMENT;
         loadout().begin(loadout);
         CapabilityMap.getMapCapability(this, BattlezoneCombatCapability.class).orElseThrow().begin();
+        CapabilityMap.getMapCapability(this, BattlezoneInventoryCapability.class).orElseThrow().begin();
         getMapTeams().getNormalTeams().forEach(team -> team.getOnline().forEach(this::initializeParticipant));
         phaseTicks = 0;
         victoryAnnounced = false;
@@ -438,6 +441,7 @@ public final class BattlezoneMap extends BaseMap {
                 .map(data -> !data.isLiving()).orElse(true)) return;
         super.handleDeath(context);
         ServerPlayer player = context.getDeadPlayer();
+        dev.stya.blockzone.inventory.PlayerPanelInventory.get(player).ifPresent(data -> data.dropOnElimination(this));
         clearCombat(player);
         clearAirbornePlayer(player);
         // FPSMatch records elimination and restores entity health; the game type owns spectator mode.
@@ -486,8 +490,10 @@ public final class BattlezoneMap extends BaseMap {
     @Override
     public void reset() {
         loadout().reset();
+        CapabilityMap.getMapCapability(this, BattlezoneInventoryCapability.class).orElseThrow().reset();
         combat().clearRecovery();
         getMapTeams().getOnlineWithSpec().forEach(this::clearCombat);
+        getMapTeams().getOnlineWithSpec().forEach(player -> dev.stya.blockzone.inventory.PlayerPanelInventory.get(player).ifPresent(dev.stya.blockzone.inventory.PlayerPanelInventory::end));
         lootRoundId = null;
         // Drops that escaped the arena bounds must also disappear when this match ends.
         for (var entity : getServerLevel().getAllEntities()) {
@@ -543,6 +549,7 @@ public final class BattlezoneMap extends BaseMap {
         landing.finish(player);
         super.handlePlayerDisconnect(player);
         if (getMapTeams().getTeamByPlayer(player).isEmpty()) {
+            dev.stya.blockzone.inventory.PlayerPanelInventory.get(player).ifPresent(dev.stya.blockzone.inventory.PlayerPanelInventory::end);
             PlayerStateSnapshot state = playerStates.remove(player.getUUID());
             if (state != null) {
                 PlayerStateSnapshot.restoreOnLogin(player.getUUID(), state);
@@ -567,6 +574,7 @@ public final class BattlezoneMap extends BaseMap {
     public void leave(ServerPlayer player) {
         super.leave(player);
         if (getMapTeams().getTeamByPlayer(player).isEmpty()) {
+            dev.stya.blockzone.inventory.PlayerPanelInventory.get(player).ifPresent(dev.stya.blockzone.inventory.PlayerPanelInventory::end);
             deployment.remove(player);
             clearCombat(player);
             landing.finish(player);
@@ -586,6 +594,7 @@ public final class BattlezoneMap extends BaseMap {
     private void initializeParticipant(ServerPlayer player) {
         combat().initialize(player);
         loadout().give(player);
+        dev.stya.blockzone.inventory.PlayerPanelInventory.get(player).ifPresent(data -> { data.begin(this); data.normalize(); });
     }
 
     @Override

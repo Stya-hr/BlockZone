@@ -1,4 +1,16 @@
 {
-  "key.blockzone.inventory_preview": "Inventory panel preview",
-  "screen.blockzone.inventory_preview": "Inventory preview"
+  "key.blockzone.inventory_preview": "Inventory panel",
+  "screen.blockzone.inventory_preview": "Inventory",
+  "inventory.blockzone.close": "I / TAB CLOSE",
+  "slot.blockzone.weapon.primary": "Primary weapon",
+  "slot.blockzone.weapon.secondary": "Secondary weapon",
+  "slot.blockzone.item.grenade": "Grenade",
+  "slot.blockzone.item.battery": "Battery",
+  "slot.blockzone.item.medkit": "Medkit",
+  "slot.blockzone.item.armor_plates": "Armor plates",
+  "slot.blockzone.ammo.1": "Ammo 1",
+  "slot.blockzone.ammo.2": "Ammo 2",
+  "slot.blockzone.ammo.3": "Ammo 3",
+  "slot.blockzone.ammo.4": "Ammo 4",
+  "slot.blockzone.ammo.5": "Ammo 5"
 }

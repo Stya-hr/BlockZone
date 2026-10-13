@@ -1,0 +1,77 @@
+package dev.stya.blockzone.inventory;
+
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.MapLike;
+import com.mojang.serialization.RecordBuilder;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import java.util.EnumMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/** Serializable, validated map configuration. Omitted slots keep their defaults. */
+public record InventoryRules(Map<String, Definition> slots) {
+    public record Definition(List<String> allowed, int limit, Map<String, Integer> itemLimits) {
+        // Codec.optionalFieldOf treats malformed fields as absent; quantity errors must reject the update.
+        private static final MapCodec<Map<String, Integer>> ITEM_LIMITS = new MapCodec<>() {
+            private final Codec<Map<String, Integer>> values = Codec.unboundedMap(Codec.STRING, Codec.intRange(1, 1024));
+            @Override public <T> DataResult<Map<String, Integer>> decode(DynamicOps<T> ops, MapLike<T> input) {
+                T value = input.get("item_limits");
+                if (value != null) return values.parse(ops, value);
+                boolean present = input.entries().anyMatch(entry -> entry.getFirst().equals(ops.createString("item_limits")));
+                return present ? DataResult.error(() -> "item_limits must be an object") : DataResult.success(Map.of());
+            }
+            @Override public <T> RecordBuilder<T> encode(Map<String, Integer> input, DynamicOps<T> ops, RecordBuilder<T> prefix) {
+                return input.isEmpty() ? prefix : prefix.add("item_limits", values.encodeStart(ops, input));
+            }
+            @Override public <T> java.util.stream.Stream<T> keys(DynamicOps<T> ops) {
+                return java.util.stream.Stream.of(ops.createString("item_limits"));
+            }
+        };
+        public static final Codec<Definition> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+                Codec.STRING.listOf().fieldOf("allowed").forGetter(Definition::allowed),
+                Codec.intRange(1, 1024).fieldOf("limit").forGetter(Definition::limit),
+                ITEM_LIMITS.forGetter(Definition::itemLimits)).apply(instance, Definition::new));
+
+        public Definition(List<String> allowed, int limit) { this(allowed, limit, Map.of()); }
+
+        public Definition {
+            allowed = List.copyOf(allowed);
+            itemLimits = Map.copyOf(itemLimits);
+            SlotRule.parse(allowed, limit, itemLimits); // Reject malformed selectors before changing configuration.
+        }
+
+        public SlotRule compile() { return SlotRule.parse(allowed, limit, itemLimits); }
+    }
+
+    public static final Codec<InventoryRules> CODEC = Codec.unboundedMap(Codec.STRING, Definition.CODEC)
+            .xmap(InventoryRules::new, InventoryRules::slots);
+
+    public InventoryRules {
+        var merged = new LinkedHashMap<String, Definition>();
+        for (var slot : InventorySlot.ALL)
+            merged.put(slot.id(), new Definition(slot.defaults(), slot.defaultLimit()));
+        slots.forEach((id, definition) -> {
+            InventorySlot.byId(id); // Reject typos rather than silently ignoring a slot.
+            merged.put(id, java.util.Objects.requireNonNull(definition));
+        });
+        slots = java.util.Collections.unmodifiableMap(merged);
+    }
+
+    public static InventoryRules defaults() { return new InventoryRules(Map.of()); }
+
+    public InventoryRules withSlot(InventorySlot slot, Definition definition) {
+        var changed = new LinkedHashMap<>(slots);
+        changed.put(slot.id(), definition);
+        return new InventoryRules(changed);
+    }
+
+    public Map<InventorySlot, SlotRule> compile() {
+        var result = new EnumMap<InventorySlot, SlotRule>(InventorySlot.class);
+        slots.forEach((id, definition) -> result.put(InventorySlot.byId(id), definition.compile()));
+        return Map.copyOf(result);
+    }
+}

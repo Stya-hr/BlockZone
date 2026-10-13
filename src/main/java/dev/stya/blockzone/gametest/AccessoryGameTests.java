@@ -84,6 +84,37 @@ public final class AccessoryGameTests {
     }
 
     @GameTest(template = "empty")
+    public static void armorExpansionUsesAccessoriesInsteadOfCarrierNbt(GameTestHelper helper) {
+        var player = player(helper);
+        var data = PlayerPanelInventory.get(player).orElseThrow();
+        data.begin("test", UUID.randomUUID(), InventoryRules.defaults().compile()::get);
+        var carrier = new ItemStack(dev.stya.blockzone.registry.BlockzoneItems.PLATE_CARRIER.get());
+        carrier.getOrCreateTag().putBoolean("BlockzoneArmorExpansion", true);
+        player.setItemSlot(net.minecraft.world.entity.EquipmentSlot.CHEST, carrier);
+        check(dev.stya.blockzone.equipment.PlateCapacity.slots(player) == 2, "Legacy carrier NBT grants no capacity");
+        var module = new ItemStack(dev.stya.blockzone.registry.BlockzoneItems.ARMOR_EXPANSION.get());
+        check(AccessoryCompat.isAccessory(module), "Armor module is an accessory");
+        check(!InventorySlot.VEST.acceptsType(module) && !InventorySlot.TACTICAL_1.acceptsType(module), "Module cannot enter armor or utility slots");
+        check(data.insert(module.copy(), false).isEmpty(), "Pickup equips module without consuming it");
+        check(data.getStack(InventorySlot.ACCESSORY_1).is(module.getItem()), "Module occupies an accessory slot");
+        check(dev.stya.blockzone.equipment.PlateCapacity.slots(player) == 3, "Equipped module grants one extra plate");
+        player.setItemSlot(net.minecraft.world.entity.EquipmentSlot.CHEST, ItemStack.EMPTY);
+        check(dev.stya.blockzone.equipment.PlateCapacity.slots(player) == 0, "Accessory alone supplies no carrier");
+        player.setItemSlot(net.minecraft.world.entity.EquipmentSlot.CHEST, carrier);
+        data.equip(InventorySlot.ACCESSORY_2, module);
+        check(dev.stya.blockzone.equipment.PlateCapacity.slots(player) == 3, "Duplicate modules do not stack bonuses");
+        data.removeAccessory(InventorySlot.ACCESSORY_1);
+        check(dev.stya.blockzone.equipment.PlateCapacity.slots(player) == 3, "Second equipped module remains effective");
+        data.removeAccessory(InventorySlot.ACCESSORY_2);
+        check(dev.stya.blockzone.equipment.PlateCapacity.slots(player) == 2, "Removing module restores base capacity");
+        var entries = new java.util.ArrayList<>(StartingLoadout.defaults());
+        entries.add(new StartingLoadout.Entry("accessory", ResourceLocation.parse("blockzone:armor_expansion"), 1, "{}"));
+        StartingLoadout.apply(player, StartingLoadout.prepare(entries));
+        check(dev.stya.blockzone.equipment.PlateCapacity.slots(player) == 3, "Initial loadout can equip the armor accessory");
+        data.end(); helper.succeed();
+    }
+
+    @GameTest(template = "empty")
     public static void replacementHonorsLockedAccessoriesAndArmorBinding(GameTestHelper helper) {
         var player = player(helper);
         player.setGameMode(net.minecraft.world.level.GameType.ADVENTURE);

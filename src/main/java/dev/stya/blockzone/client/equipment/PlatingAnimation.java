@@ -9,19 +9,12 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderHandEvent;
-import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(modid = BlockZone.MOD_ID, value = Dist.CLIENT)
 public final class PlatingAnimation {
     private PlatingAnimation() { }
-    @SubscribeEvent public static void tick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
-        var mc = Minecraft.getInstance();
-        if (mc.player == null || mc.screen != null) return;
-        while (EquipmentClientEvents.DETACH.consumeClick()) dev.stya.blockzone.net.battlezone.BattlezoneNetwork.detachArmor();
-    }
     @SubscribeEvent public static void hand(RenderHandEvent event) {
         var mc = Minecraft.getInstance();
         var player = mc.player;

@@ -56,7 +56,7 @@
 
 `item_limits` 的键必须与 `allowed` 中某个选择器完全一致，也支持标签、NBT 与枪型选择器。
 物品命中独立数量规则时覆盖 `limit`；命中多条独立数量规则时取最小值。
-旧配置不含 `item_limits` 时行为保持一致。每个槽位仍只存一叠物品，数量限制按该槽位计算，
+未填写 `item_limits` 时使用槽位默认上限。每个槽位仍只存一叠物品，数量限制按该槽位计算，
 不是跨槽位的总携带量限制。
 
 武器、四个护甲槽和饰品槽的数量固定为 1；其他槽位数量上限为 1..1024，同时受物品自身最大堆叠数限制。不存在的物品或空标签不会匹配。
@@ -92,17 +92,16 @@ TaCZ 弹药通过 `IAmmo.getAmmoId()` 识别，弹药箱通过 `IAmmoBox.getAmmo
 ## 槽位 ID
 
 下表按存储索引列出；第一行的显示顺序为两个饰品加头、胸、腿、脚。
-原有索引 0..16 保留；新增饰品和护腿、靴子追加为 17..20，避免旧存档错位。
-旧背包、扩容、护盾、通用装备槽不再显示在第一行，索引只为兼容旧数据保留。
+存储与面板顺序一致，共 17 格；旧槽位 ID 不再接受。
 
 | 索引 | ID | 默认允许 | 默认数量上限 |
 | --- | --- | --- | --- |
-| 0 | `equipment.backpack` | 空列表，待整合包指定 | 1 |
-| 1 | `equipment.armor_expansion` | `blockzone:armor_expansion` | 1 |
+| 0 | `accessory.1` | `*`，仍须是饰品 | 1 |
+| 1 | `accessory.2` | `*`，仍须是饰品 | 1 |
 | 2 | `equipment.helmet` | `blockzone:tactical_helmet` | 1 |
 | 3 | `equipment.vest` | `blockzone:plate_carrier` | 1 |
-| 4 | `equipment.shield` | `minecraft:shield` | 1 |
-| 5 | `equipment.utility` | 空列表，待整合包指定 | 1 |
+| 4 | `equipment.legs` | `blockzone:tactical_leggings` | 1 |
+| 5 | `equipment.feet` | `blockzone:tactical_boots` | 1 |
 | 6 | `weapon.primary` | `@gun:*` | 1 |
 | 7 | `weapon.secondary` | `@gun:*` | 1 |
 | 8 | `item.grenade` | 空列表，待整合包指定 | 64 |
@@ -130,7 +129,7 @@ TaCZ 的 `GunSmithTableIngredient` 只包装配方 Ingredient 和数量，都不
 取得能力，再调用 `rule(InventorySlot)` 或 `createInventory()`。后者返回绑定该地图规则的
 `PanelInventory`，提供 Forge `IItemHandler` / `IItemHandlerModifiable` 接口及 NBT 序列化。
 需要由玩家存储层持有该实例，不能每次操作都重新创建。直接替换也会验证物品和数量。
-读取存档保留已有物品，不会按新规则清空背包；当前存储大小为 21；旧 17 格存档自动扩展，原索引保持不变。
+读取存档保留已有物品，不会按新规则清空背包；当前存储为 17 格，必须包含 `Schema: 2` 与 `Size: 17`；旧格式直接拒绝，不自动迁移。
 
 ## 玩家拾取与换弹
 
@@ -152,7 +151,7 @@ TaCZ 的 `GunSmithTableIngredient` 只包装配方 Ingredient 和数量，都不
   因此当前请用快捷栏切枪，面板本身不支持拖动。
 - 淘汰时武器和备弹生成绑定当局的地面战利品；实际死亡时备弹加入原版死亡掉落，
   克隆玩家不重复复制已掉落弹药。比赛结束或离场时清空当局备弹，原版物品由已有玩家快照恢复。
-- 备弹变化时只同步给所属玩家，武器沿用原版同步。网络版本为 21，服务端与客户端需更新一致。
+- 备弹变化时只同步给所属玩家，武器沿用原版同步。网络版本为 22，服务端与客户端需更新一致。
 
 普通物品弹药需由模组使用者加入弹药槽允许规则。无限弹药、虚拟备弹等 TaCZ 枪械配置
 仍遵循其原生设置；物品存储上限不改写枪械配置。
@@ -183,7 +182,7 @@ TaCZ 的 `GunSmithTableIngredient` 只包装配方 Ingredient 和数量，都不
 ./gradlew runGameTestServer
 ```
 
-单元测试覆盖配置序列化、旧配置兼容、错误数量配置的原子拒绝、槽位 ID、地图隔离与按局固定规则。
+单元测试覆盖配置序列化、旧槽位拒绝、错误数量配置的原子拒绝、槽位 ID、地图隔离与按局固定规则。
 GameTest 在 Forge 环境覆盖物品/NBT/标签筛选、不同物品的独立上限、重叠数量规则、模拟插入、堆叠限制、直接替换、
 规则收紧后的物品保留与取出，以及固定大小的 NBT 存储。
 弹药测试覆盖动态占槽、同弹种禁止溢出、耗尽释放、NBT 差异和重复存档的原子拒绝。

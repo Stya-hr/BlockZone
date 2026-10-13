@@ -170,13 +170,19 @@ public final class AccessoryGameTests {
     }
 
     @GameTest(template = "empty")
-    public static void oldSeventeenSlotStorageKeepsAmmoIndices(GameTestHelper helper) {
-        var legacy = new net.minecraftforge.items.ItemStackHandler(17);
-        legacy.setStackInSlot(12, new ItemStack(Items.PAPER, 3));
+    public static void legacyStorageIsRejectedAndCurrentStorageRoundTrips(GameTestHelper helper) {
         var data = new PanelInventory(slot -> SlotRule.parse(List.of("minecraft:paper"), 4));
-        data.deserializeNBT(legacy.serializeNBT());
-        check(data.getSlots() == 21 && data.getStackInSlot(InventorySlot.AMMO_1.index()).getCount() == 3, "Old indices preserved");
-        check(data.getStackInSlot(InventorySlot.ACCESSORY_1.index()).isEmpty(), "Old items cannot become accessories by index");
+        data.insertAmmo(new ItemStack(Items.PAPER, 3), false);
+        for (int size : new int[] {17, 21}) {
+            try {
+                data.deserializeNBT(new net.minecraftforge.items.ItemStackHandler(size).serializeNBT());
+                throw new AssertionError("Legacy storage accepted");
+            } catch (IllegalArgumentException expected) { }
+            check(data.getStackInSlot(InventorySlot.AMMO_1.index()).getCount() == 3, "Rejected load is atomic");
+        }
+        var restored = new PanelInventory(slot -> SlotRule.parse(List.of("minecraft:paper"), 4));
+        restored.deserializeNBT(data.serializeNBT());
+        check(restored.getSlots() == 17 && restored.getStackInSlot(InventorySlot.AMMO_1.index()).getCount() == 3, "Current schema round trips");
         helper.succeed();
     }
 

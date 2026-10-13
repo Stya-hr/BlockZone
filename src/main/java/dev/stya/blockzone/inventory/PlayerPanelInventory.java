@@ -429,12 +429,7 @@ public final class PlayerPanelInventory {
         if (InventorySlot.WEAPONS.contains(slot))
             return player.getInventory().getItem(slot.index() - InventorySlot.PRIMARY_WEAPON.index());
         if (InventorySlot.ITEMS.contains(slot)) return player.getInventory().getItem(2 + InventorySlot.ITEMS.indexOf(slot));
-        return switch (slot) {
-            case HELMET -> player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.HEAD);
-            case VEST -> player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST);
-            case SHIELD -> player.getOffhandItem();
-            default -> storage.getStackInSlot(slot.index());
-        };
+        return storage.getStackInSlot(slot.index());
     }
 
     /** Server-authoritative discard; the client cannot supply an item, quantity, or destination. */

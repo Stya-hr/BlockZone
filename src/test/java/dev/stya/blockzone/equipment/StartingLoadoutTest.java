@@ -6,25 +6,17 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class StartingLoadoutTest {
-    @Test void canonicalDestinationsUnifyNativeAndPanelAliases() {
-        assertEquals(StartingLoadout.panelSlot("head"), StartingLoadout.panelSlot("equipment.helmet"));
-        assertEquals(StartingLoadout.panelSlot("legs"), StartingLoadout.panelSlot("equipment.legs"));
-        assertEquals(StartingLoadout.panelSlot("hotbar.0"), StartingLoadout.panelSlot("weapon.primary"));
-        assertEquals(StartingLoadout.panelSlot("hotbar.5"), StartingLoadout.panelSlot("item.armor_plates"));
-        assertEquals(dev.stya.blockzone.inventory.InventorySlot.ACCESSORY_2, StartingLoadout.panelSlot("accessory.2"));
+    @Test void onlyFormalSlotIdsAreAccepted() {
+        for (var slot : dev.stya.blockzone.inventory.InventorySlot.ALL)
+            assertEquals(slot, StartingLoadout.panelSlot(slot.id()));
     }
-    @Test void inventoryAndHotbarSlotsDoNotOverlap() {
-        assertEquals(0, StartingLoadout.inventoryIndex("hotbar.0"));
-        assertEquals(8, StartingLoadout.inventoryIndex("hotbar.8"));
-        assertEquals(9, StartingLoadout.inventoryIndex("inventory.0"));
-        assertEquals(35, StartingLoadout.inventoryIndex("inventory.26"));
-        assertEquals(-1, StartingLoadout.inventoryIndex("hotbar.9"));
-        assertEquals(-1, StartingLoadout.inventoryIndex("inventory.27"));
-        assertEquals(-1, StartingLoadout.inventoryIndex("inventory.invalid"));
+    @Test void legacySlotsAreRejected() {
+        for (String id : java.util.List.of("head", "chest", "legs", "feet", "offhand", "hotbar.0", "inventory.0", "equipment.backpack", "equipment.shield"))
+            assertThrows(IllegalArgumentException.class, () -> StartingLoadout.panelSlot(id));
     }
     @Test void gunNbtAndCountSurviveConfigurationRoundTrip() {
         var json = JsonParser.parseString("""
-                {"slot":"hotbar.0","item":"tacz:modern_kinetic_gun","count":1,
+                {"slot":"weapon.primary","item":"tacz:modern_kinetic_gun","count":1,
                  "nbt":"{GunId:\\"tacz:ak47\\",GunCurrentAmmoCount:30}"}
                 """);
         var entry = StartingLoadout.Entry.CODEC.parse(JsonOps.INSTANCE, json).result().orElseThrow();

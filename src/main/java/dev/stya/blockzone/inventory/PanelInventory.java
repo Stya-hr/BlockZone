@@ -70,12 +70,16 @@ public final class PanelInventory extends ItemStackHandler {
     }
 
     @Override
+    public net.minecraft.nbt.CompoundTag serializeNBT() {
+        var nbt = super.serializeNBT();
+        nbt.putInt("Schema", 2);
+        return nbt;
+    }
+
+    @Override
     public void deserializeNBT(net.minecraft.nbt.CompoundTag nbt) {
-        // Validate before mutating this inventory; never discard or merge legacy duplicate stacks.
-        if (nbt.getInt("Size") != InventorySlot.ALL.size() && nbt.getInt("Size") != 17)
-            throw new IllegalArgumentException("Unsupported panel storage size: " + nbt.getInt("Size"));
-        nbt = nbt.copy();
-        nbt.putInt("Size", InventorySlot.ALL.size());
+        if (nbt.getInt("Schema") != 2 || nbt.getInt("Size") != InventorySlot.ALL.size())
+            throw new IllegalArgumentException("Unsupported panel storage schema or size");
         var loaded = new ItemStackHandler(InventorySlot.ALL.size());
         loaded.deserializeNBT(nbt);
         var types = new java.util.HashSet<AmmoType>();

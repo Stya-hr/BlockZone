@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class InventoryRulesTest {
-    @Test void typesAreFixedAndOldUntypedRulesAreInferred() {
+    @Test void typesAreFixedAndOmittedTypesAreInferred() {
         var rules = new InventoryRules(Map.of("accessory.1", new InventoryRules.Definition(List.of("*"), 1)));
         assertEquals("accessory", rules.slots().get("accessory.1").type());
         assertThrows(IllegalArgumentException.class, () -> new InventoryRules(Map.of("accessory.1",
@@ -18,7 +18,7 @@ class InventoryRulesTest {
         assertThrows(IllegalArgumentException.class, () -> rules.withSlot(InventorySlot.BOOTS,
                 new InventoryRules.Definition(List.of("*"), 1, Map.of("*", 2))));
     }
-    @Test void itemLimitsRoundTripAndOldConfigurationsKeepTheirFallback() {
+    @Test void itemLimitsRoundTripAndOmittedLimitsUseDefaults() {
         var cap = new BattlezoneInventoryCapability(null);
         var definition = new InventoryRules.Definition(List.of("minecraft:golden_apple", "minecraft:paper"), 4,
                 Map.of("minecraft:golden_apple", 8, "minecraft:paper", 16));
@@ -44,14 +44,14 @@ class InventoryRulesTest {
     }
 
     @Test void allPanelSlotsHaveStableUniqueIdsAndIndices() {
-        assertEquals(21, InventorySlot.ALL.size());
-        assertEquals(21, InventoryRules.defaults().slots().size());
+        assertEquals(17, InventorySlot.ALL.size());
+        assertEquals(17, InventoryRules.defaults().slots().size());
         for (var slot : InventorySlot.ALL) {
             assertSame(slot, InventorySlot.byIndex(slot.index()));
             assertSame(slot, InventorySlot.byId(slot.id()));
         }
         assertThrows(IllegalArgumentException.class, () -> InventorySlot.byId("weapon.typo"));
-        assertThrows(IllegalArgumentException.class, () -> InventorySlot.byIndex(21));
+        assertThrows(IllegalArgumentException.class, () -> InventorySlot.byIndex(17));
     }
 
     @Test void capabilityRoundTripsAndSingleSlotUpdatePreservesOtherRules() {

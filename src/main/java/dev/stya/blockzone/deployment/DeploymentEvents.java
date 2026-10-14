@@ -13,14 +13,6 @@ import net.minecraftforge.fml.common.Mod;
 public final class DeploymentEvents {
     private DeploymentEvents() { }
 
-    @SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.HIGHEST)
-    public static void logout(net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent event) {
-        if (event.getEntity() instanceof ServerPlayer player) {
-            FPSMCore.getInstance().getMapByClass(BattlezoneMap.class)
-                    .forEach(map -> map.clearAirbornePlayer(player));
-        }
-    }
-
     @SubscribeEvent
     public static void tickPlayer(TickEvent.PlayerTickEvent event) {
         if (event.phase == TickEvent.Phase.END && event.player instanceof ServerPlayer player) {

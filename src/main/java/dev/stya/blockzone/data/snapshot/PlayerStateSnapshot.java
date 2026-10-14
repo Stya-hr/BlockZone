@@ -74,7 +74,7 @@ public final class PlayerStateSnapshot {
         PENDING.put(uuid, state);
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.HIGHEST)
     public static void onLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             PlayerStateSnapshot state = PENDING.remove(player.getUUID());
@@ -82,6 +82,12 @@ public final class PlayerStateSnapshot {
                 state.restore(player);
             }
         }
+    }
+
+    @SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.LOWEST)
+    public static void onMapLogin(com.ptcrys.fpsmatch.common.event.FPSMapEvent.PlayerEvent.LoggedInEvent event) {
+        if (event.getMap() instanceof dev.stya.blockzone.map.battlezone.BattlezoneMap map)
+            map.handlePlayerReconnect(event.getPlayer());
     }
 
     @SubscribeEvent

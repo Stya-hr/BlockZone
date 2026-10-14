@@ -3,7 +3,6 @@ package dev.stya.blockzone.combat;
 import dev.stya.blockzone.BlockZone;
 import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.event.entity.player.*;
 import net.minecraftforge.eventbus.api.*;
@@ -19,12 +18,6 @@ public final class DownedEvents {
             DownedController.interrupted(p);
             if (e.getAmount() >= p.getHealth() && DownedController.knock(p, e.getSource())) e.setCanceled(true);
         }
-    }
-    @SubscribeEvent public static void tick(TickEvent.ServerTickEvent e) {
-        if (e.phase == TickEvent.Phase.END) DownedController.tick();
-    }
-    @SubscribeEvent public static void logout(PlayerEvent.PlayerLoggedOutEvent e) {
-        if (e.getEntity() instanceof ServerPlayer p) DownedController.clear(p);
     }
     @SubscribeEvent public static void tracking(PlayerEvent.StartTracking e) {
         if (e.getEntity() instanceof ServerPlayer p && e.getTarget() instanceof ServerPlayer target)

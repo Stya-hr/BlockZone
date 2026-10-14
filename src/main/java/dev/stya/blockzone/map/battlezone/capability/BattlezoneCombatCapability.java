@@ -38,6 +38,21 @@ public final class BattlezoneCombatCapability extends MapCapability implements F
     @Override public Config write(Config value) { configured = java.util.Objects.requireNonNull(value); return configured; }
     public void begin() { controller.start((float) configured.matchHealth(), (float) configured.armorPlatePoints()); }
     public MatchCombatController controller() { return controller; }
-    @Override public void reset() { controller.clearRecovery(); }
+    @Override public void tick() {
+        var battlezone = (dev.stya.blockzone.map.battlezone.BattlezoneMap) map;
+        for (var player : map.getMapTeams().getOnlineWithSpec()) {
+            controller.tickRecovery(player);
+            if (!dev.stya.blockzone.combat.MatchRegeneration.allowed(player)
+                    && player.getAbsorptionAmount() > controller.maxArmor(player))
+                player.setAbsorptionAmount(controller.maxArmor(player));
+        }
+        dev.stya.blockzone.combat.DownedController.tick(battlezone);
+        dev.stya.blockzone.combat.DownedDeathContext.tick(battlezone);
+    }
+    @Override public void reset() {
+        controller.clearRecovery();
+        if (map instanceof dev.stya.blockzone.map.battlezone.BattlezoneMap battlezone)
+            dev.stya.blockzone.combat.DownedController.clear(battlezone);
+    }
     @Override public void destroy() { reset(); }
 }

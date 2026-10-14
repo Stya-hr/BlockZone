@@ -22,5 +22,7 @@
   "slot.blockzone.ammo": "弹药",
   "slot.blockzone.accessory": "饰品",
   "slot.blockzone.item.tactical": "战术道具",
-  "slot.blockzone.weapon": "武器"
+  "slot.blockzone.weapon": "武器",
+  "death.attack.blockzone.poison_zone": "%1$s 在毒圈中死亡",
+  "death.attack.blockzone.poison_zone.player": "%1$s 在毒圈中死亡"
 }

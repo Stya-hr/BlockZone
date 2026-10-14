@@ -64,6 +64,10 @@ public final class BattlezoneZoneCapability extends MapCapability implements FPS
     }
     public String boundaryTexture() { return map.isStart() && active != null ? active.boundaryTexture() : configured.boundaryTexture(); }
     public PoisonZoneController controller() { return controller; }
+    @Override public void tick() {
+        if (map.isStart() && ((BattlezoneMap) map).getPhase() == BattlezoneMap.MatchPhase.MATCH)
+            controller.tick();
+    }
     @Override public void reset() {
         active = null;
         var area = map.getMapArea();

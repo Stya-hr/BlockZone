@@ -16,11 +16,6 @@ public final class CombatEvents {
     @SubscribeEvent
     public static void tick(TickEvent.PlayerTickEvent event) {
         if (event.phase == TickEvent.Phase.END && event.player instanceof ServerPlayer player) {
-            MatchRegeneration.map(player).ifPresent(map -> {
-                map.tickRecovery(player);
-                if (!MatchRegeneration.allowed(player) && player.getAbsorptionAmount() > map.getMaxCombatArmor(player))
-                    player.setAbsorptionAmount(map.getMaxCombatArmor(player));
-            });
             boolean hud = MatchRegeneration.map(player).filter(BattlezoneMap::isMatchActive)
                     .filter(map -> player.serverLevel() == map.getServerLevel())
                     .flatMap(map -> map.getMapTeams().getTeamByPlayer(player))

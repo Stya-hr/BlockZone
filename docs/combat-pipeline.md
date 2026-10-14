@@ -27,3 +27,9 @@ BlockZone 复用 FPSMatch 1.3.0 snapshot 的伤害记录、死亡汇总和击杀
 ## 验证
 
 `./gradlew test` 运行现有单元测试；`./gradlew runGameTestServer` 在独立 `run/gametest` 世界运行服务端测试。`CombatPipelineGameTests` 覆盖伤害类型与标签注册、倒地标记恢复、不同伤害源隔离、一次性消费和清理过期。真实客户端枪击、救援及击杀显示仍需按 AGENTS.md 使用 minecraft-mod-mcp 验证。
+
+## 能力生命周期
+
+毒圈与战斗能力使用 FPSMatch 的 `MapCapability.tick()`，不再通过全局服务器/玩家 tick 推进毒圈、恢复和倒地计时。倒地缓存按所属地图推进、过期和清理；能力移除通过框架 `destroy()` 清理。玩家 HUD 同步仍保留玩家 tick。
+
+此 snapshot 的 `BaseMap.reset()` 不会调用能力 reset，`BattlezoneMap.reset()` 显式调用一次 `getCapabilityMap().resetAll()`。配置预检和冻结仍在 start 中按依赖顺序完成，`init()` 仅表示能力挂载，不作为比赛开始事件。

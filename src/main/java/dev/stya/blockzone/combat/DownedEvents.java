@@ -3,7 +3,6 @@ package dev.stya.blockzone.combat;
 import dev.stya.blockzone.BlockZone;
 import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.event.entity.player.*;
 import net.minecraftforge.eventbus.api.*;
@@ -18,13 +17,6 @@ public final class DownedEvents {
             if (DownedController.duplicateBulletDamage(p, e.getSource())) { e.setCanceled(true); return; }
             DownedController.interrupted(p);
             if (e.getAmount() >= p.getHealth() && DownedController.knock(p, e.getSource())) e.setCanceled(true);
-        }
-    }
-    @SubscribeEvent public static void tick(TickEvent.ServerTickEvent e) {
-        if (e.phase == TickEvent.Phase.END) {
-            DownedController.tick();
-            var server = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
-            if (server != null) DownedDeathContext.tick(server.overworld().getGameTime());
         }
     }
     @SubscribeEvent public static void logout(PlayerEvent.PlayerLoggedOutEvent e) {

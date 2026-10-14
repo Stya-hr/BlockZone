@@ -16,8 +16,8 @@ import net.minecraftforge.fml.common.Mod;
 /** Keeps framework gun details across the longer downed interval, without another death pipeline. */
 @Mod.EventBusSubscriber(modid = BlockZone.MOD_ID)
 public final class DownedDeathContext {
-    private record GunHit(FPSMGunDamageEvent event, long tick) { }
-    private record Pending(DeathContext context, BattlezoneDeathEvent.Reason reason, long tick) { }
+    private record GunHit(BattlezoneMap map, FPSMGunDamageEvent event, long tick) { }
+    private record Pending(BattlezoneMap map, DeathContext context, BattlezoneDeathEvent.Reason reason, long tick) { }
     private static final Map<ServerPlayer, GunHit> GUN_HITS = new HashMap<>();
     private static final Map<ServerPlayer, Pending> PENDING = new HashMap<>();
     private DownedDeathContext() { }
@@ -26,7 +26,7 @@ public final class DownedDeathContext {
     public static void gunDamage(FPSMGunDamageEvent event) {
         if (event.getBaseAmount() > 0 && event.getHurtEntity() instanceof ServerPlayer player
                 && !MatchRegeneration.allowed(player))
-            GUN_HITS.put(player, new GunHit(event, player.serverLevel().getGameTime()));
+            GUN_HITS.put(player, new GunHit(MatchRegeneration.map(player).orElseThrow(), event, player.serverLevel().getGameTime()));
     }
 
     public static DeathContext capture(BattlezoneMap map, ServerPlayer player, DamageSource source) {
@@ -50,7 +50,7 @@ public final class DownedDeathContext {
 
     public static void finishing(DeathContext context, BattlezoneDeathEvent.Reason reason) {
         var player = context.getDeadPlayer();
-        PENDING.put(player, new Pending(context, reason, player.serverLevel().getGameTime()));
+        PENDING.put(player, new Pending(MatchRegeneration.map(player).orElse(null), context, reason, player.serverLevel().getGameTime()));
     }
 
     /** Called only by FPSMatch's finalized handleDeath, before mode cleanup. */
@@ -79,6 +79,17 @@ public final class DownedDeathContext {
     public static void clear(ServerPlayer player) {
         GUN_HITS.remove(player);
         PENDING.remove(player);
+    }
+
+    public static void clear(BattlezoneMap map) {
+        GUN_HITS.entrySet().removeIf(e -> e.getValue().map == map);
+        PENDING.entrySet().removeIf(e -> e.getValue().map == map);
+    }
+
+    public static void tick(BattlezoneMap map) {
+        long tick = map.getServerLevel().getGameTime();
+        GUN_HITS.entrySet().removeIf(e -> e.getValue().map == map && tick - e.getValue().tick > 1);
+        PENDING.entrySet().removeIf(e -> e.getValue().map == map && tick - e.getValue().tick > 5);
     }
 
     public static void tick(long tick) {

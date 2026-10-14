@@ -130,7 +130,7 @@ public final class BattlezoneMap extends BaseMap {
         switch (phase) {
             case WAITING -> { }
             case DEPLOYMENT -> tickDeployment();
-            case MATCH -> tickMatch();
+            case MATCH -> { }
             case SETTLEMENT -> tickSettlement();
             case RESETTING -> tickResetting();
         }
@@ -145,10 +145,6 @@ public final class BattlezoneMap extends BaseMap {
             broadcast(Component.literal("Battlezone deployment completed."));
             visualSync.sync(true);
         }
-    }
-
-    private void tickMatch() {
-        poison().tick();
     }
 
     private void tickSettlement() {
@@ -507,9 +503,8 @@ public final class BattlezoneMap extends BaseMap {
 
     @Override
     public void reset() {
-        loadout().reset();
-        CapabilityMap.getMapCapability(this, BattlezoneInventoryCapability.class).orElseThrow().reset();
-        combat().clearRecovery();
+        // BaseMap.reset posts ResetEvent but does not reset capabilities in this snapshot.
+        getCapabilityMap().resetAll();
         getMapTeams().getOnlineWithSpec().forEach(this::clearCombat);
         getMapTeams().getOnlineWithSpec().forEach(player -> dev.stya.blockzone.inventory.PlayerPanelInventory.get(player).ifPresent(dev.stya.blockzone.inventory.PlayerPanelInventory::end));
         lootRoundId = null;
@@ -546,7 +541,6 @@ public final class BattlezoneMap extends BaseMap {
         playerStates.clear();
         phase = MatchPhase.WAITING;
         phaseTicks = 0;
-        zoneCapability().reset();
         victoryAnnounced = false;
         getMapTeams().getNormalTeams().forEach(ServerTeam::resetLiving);
         if (!cleanupMap()) {

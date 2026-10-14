@@ -93,10 +93,18 @@ public final class DownedController {
                 && helper.position().subtract(RESCUE_ORIGINS.getOrDefault(helper, helper.position()))
                         .horizontalDistanceSqr() < .01;
     }
-    public static void tick() {
+    public static void clear(BattlezoneMap map) {
+        for (var player : List.copyOf(DOWN.keySet())) {
+            if (DOWN.get(player).map == map) clear(player);
+        }
+        DownedDeathContext.clear(map);
+    }
+
+    /** Driven once per map tick by its combat capability. */
+    public static void tick(BattlezoneMap map) {
         for (var player : List.copyOf(DOWN.keySet())) {
             var entry = DOWN.get(player);
-            if (entry == null) continue;
+            if (entry == null || entry.map != map) continue;
             if (!eligible(player, entry.map) || entry.map.getPhase() != BattlezoneMap.MatchPhase.MATCH) {
                 clear(player); continue;
             }

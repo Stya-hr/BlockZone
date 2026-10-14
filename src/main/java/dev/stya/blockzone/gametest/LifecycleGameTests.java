@@ -117,6 +117,27 @@ public final class LifecycleGameTests {
         helper.succeed();
     }
 
+    @GameTest(template = "empty")
+    public static void retainedOfflineMembershipKeepsSnapshotUntilActualLeave(GameTestHelper helper) {
+        var map = map(helper);
+        var player = player(helper);
+        check(map.join(player).isSuccess(), "Join through FPSMatch");
+        player.getInventory().setItem(0, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.STONE));
+        map.handlePlayerDisconnect(player);
+        check(map.getMapTeams().getTeamByPlayer(player).isPresent(), "Disconnect retains offline roster entry");
+        dev.stya.blockzone.data.snapshot.PlayerStateSnapshot.onLogin(
+                new net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent(player));
+        check(player.getInventory().getItem(0).is(net.minecraft.world.item.Items.STONE),
+                "In-match reconnect must not restore lobby inventory");
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(
+                new com.ptcrys.fpsmatch.common.event.FPSMapEvent.PlayerEvent.LoggedInEvent(map, player));
+        map.leave(player);
+        check(player.isCreative() && player.getInventory().getItem(0).is(net.minecraft.world.item.Items.APPLE),
+                "Actual leave after reconnect restores the original snapshot");
+        map.getCapabilityMap().clear();
+        helper.succeed();
+    }
+
     private static void check(boolean value, String message) {
         if (!value) throw new AssertionError(message);
     }

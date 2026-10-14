@@ -65,6 +65,7 @@ public final class BattlezoneMap extends BaseMap {
 
     private final java.util.Map<java.util.UUID, PlayerStateSnapshot> playerStates = new java.util.HashMap<>();
     private final java.util.Set<java.util.UUID> runtimePlayers = new java.util.HashSet<>();
+    private final java.util.Set<java.util.UUID> disconnectedPlayers = new java.util.HashSet<>();
     public void combatHurt(ServerPlayer player) { combat().hurt(player); }
 
     public void tickRecovery(ServerPlayer player) { combat().tickRecovery(player); }
@@ -538,6 +539,7 @@ public final class BattlezoneMap extends BaseMap {
         playerStates.forEach(PlayerStateSnapshot::restoreOnLogin);
         playerStates.clear();
         runtimePlayers.clear();
+        disconnectedPlayers.clear();
         phase = MatchPhase.WAITING;
         phaseTicks = 0;
         victoryAnnounced = false;
@@ -554,11 +556,11 @@ public final class BattlezoneMap extends BaseMap {
 
     @Override
     public void handlePlayerDisconnect(ServerPlayer player) {
+        disconnectedPlayers.add(player.getUUID());
         clearPlayerRuntime(player);
-        // FPSMatch calls leave after this hook. Queue restoration once for the next login.
-        PlayerStateSnapshot state = playerStates.remove(player.getUUID());
-        if (state != null) PlayerStateSnapshot.restoreOnLogin(player.getUUID(), state);
         super.handlePlayerDisconnect(player);
+        // Active matches retain offline membership. Keep the entry snapshot until actual leave/reset.
+        if (getMapTeams().getTeamByPlayer(player).isEmpty()) restorePlayerState(player);
     }
 
     @Override
@@ -597,9 +599,18 @@ public final class BattlezoneMap extends BaseMap {
         BattlezoneNetwork.clearPlayerState(player);
     }
 
+    public void handlePlayerReconnect(ServerPlayer player) {
+        if (getMapTeams().getTeamByPlayer(player).isEmpty() || !playerStates.containsKey(player.getUUID())) return;
+        disconnectedPlayers.remove(player.getUUID());
+        runtimePlayers.add(player.getUUID());
+    }
+
     private void restorePlayerState(ServerPlayer player) {
         PlayerStateSnapshot state = playerStates.remove(player.getUUID());
-        if (state != null) state.restore(player);
+        boolean disconnected = disconnectedPlayers.remove(player.getUUID());
+        if (state == null) return;
+        if (disconnected) PlayerStateSnapshot.restoreOnLogin(player.getUUID(), state);
+        else state.restore(player);
     }
 
     private BattlezoneLoadoutCapability loadout() {

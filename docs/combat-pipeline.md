@@ -38,4 +38,4 @@ BlockZone 复用 FPSMatch 1.3.0 snapshot 的伤害记录、死亡汇总和击杀
 
 `BattlezoneMap` 按成功入场建立会话标记。`leave()` 先交由 FPSMatch 执行可取消的离开流程，成员确实移除后才统一清理战斗、空降、背包会话和同步缓存，并恢复入场快照；重复 leave 是空操作。
 
-FPSMatch 的 `handlePlayerDisconnect()` 统一清理运行态并把快照排队到下次登录，随后框架调用 leave 时不再清理或恢复第二次。登录恢复优先于框架普通登录处理。重置强制移除被取消离开的成员时，仍沿用同一清理入口。原有倒地和空降 Forge logout 监听已移除。
+FPSMatch 的 `handlePlayerDisconnect()` 统一清理运行态。比赛中框架保留离线队员，入场快照也随之保留；通过框架 `LoggedInEvent` 恢复会话标记后，真正离开时才恢复快照。离线期间实际离开或比赛重置则把快照排队到下次登录。登录恢复优先于框架普通登录处理。重置强制移除被取消离开的成员时，仍沿用同一清理入口。原有倒地和空降 Forge logout 监听已移除。

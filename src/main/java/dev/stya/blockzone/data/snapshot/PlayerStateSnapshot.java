@@ -84,6 +84,12 @@ public final class PlayerStateSnapshot {
         }
     }
 
+    @SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.LOWEST)
+    public static void onMapLogin(com.ptcrys.fpsmatch.common.event.FPSMapEvent.PlayerEvent.LoggedInEvent event) {
+        if (event.getMap() instanceof dev.stya.blockzone.map.battlezone.BattlezoneMap map)
+            map.handlePlayerReconnect(event.getPlayer());
+    }
+
     @SubscribeEvent
     public static void onServerStopped(ServerStoppedEvent event) {
         PENDING.entrySet().removeIf(entry -> entry.getValue().level.getServer() == event.getServer());

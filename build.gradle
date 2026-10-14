@@ -104,7 +104,7 @@ dependencies {
     compileOnly fg.deobf("maven.modrinth:timeless-and-classics-zero:${tacz_version}")
     // Optional accessory API; never require Curios for a standalone installation.
     compileOnly fg.deobf('maven.modrinth:curios:IPQlZkz1')
-    runtimeOnly fg.deobf("icyllis.modernui:ModernUI-Forge:${minecraft_version}-${modernui_forge_version}")
+    implementation fg.deobf("icyllis.modernui:ModernUI-Forge:${minecraft_version}-${modernui_forge_version}")
     // Core libraries must be visible to Forge's game class loader.
     minecraftLibrary("icyllis.modernui:ModernUI-Core:${modernui_core_version}") {
         exclude group: 'org.apache.logging.log4j'

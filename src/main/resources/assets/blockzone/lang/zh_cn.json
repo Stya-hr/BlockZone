@@ -146,5 +146,18 @@
   "slot.blockzone.item.tactical": "战术道具",
   "slot.blockzone.weapon": "武器",
   "death.attack.blockzone.poison_zone": "%1$s 在毒圈中死亡",
-  "death.attack.blockzone.poison_zone.player": "%1$s 在毒圈中死亡"
+  "death.attack.blockzone.poison_zone.player": "%1$s 在毒圈中死亡",
+  "editor.blockzone.ui.help": "操作帮助",
+  "editor.blockzone.ui.no_results": "没有匹配的 Loot Table",
+  "editor.blockzone.ui.normal": "普通箱子",
+  "editor.blockzone.ui.opened": "已打开",
+  "editor.blockzone.ui.loot": "战利品箱",
+  "editor.blockzone.ui.search_tables": "搜索 Loot Table",
+  "editor.blockzone.ui.target": "编辑对象",
+  "editor.blockzone.ui.geometry": "位置与范围",
+  "editor.blockzone.ui.timing": "时序与伤害",
+  "editor.blockzone.ui.arrangement": "顺序与预览",
+  "editor.blockzone.ui.loot_settings": "战利品设置",
+  "editor.blockzone.loot.selected_short": "已选 %s/%s",
+  "editor.blockzone.loot.changed_short": "待存 %s"
 }

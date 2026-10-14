@@ -146,5 +146,18 @@
   "slot.blockzone.item.tactical": "Tactical item",
   "slot.blockzone.weapon": "Weapon",
   "death.attack.blockzone.poison_zone": "%1$s died in the poison zone",
-  "death.attack.blockzone.poison_zone.player": "%1$s died in the poison zone"
+  "death.attack.blockzone.poison_zone.player": "%1$s died in the poison zone",
+  "editor.blockzone.ui.help": "Controls & help",
+  "editor.blockzone.ui.no_results": "No matching loot tables",
+  "editor.blockzone.ui.normal": "Normal",
+  "editor.blockzone.ui.opened": "Opened",
+  "editor.blockzone.ui.loot": "Loot",
+  "editor.blockzone.ui.search_tables": "Search loot tables",
+  "editor.blockzone.ui.target": "Selection",
+  "editor.blockzone.ui.geometry": "Position & size",
+  "editor.blockzone.ui.timing": "Timing & damage",
+  "editor.blockzone.ui.arrangement": "Order & preview",
+  "editor.blockzone.ui.loot_settings": "Loot settings",
+  "editor.blockzone.loot.selected_short": "Selected %s/%s",
+  "editor.blockzone.loot.changed_short": "Unsaved %s"
 }

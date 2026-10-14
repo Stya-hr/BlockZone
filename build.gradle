@@ -190,10 +190,13 @@ mixin {
     config 'mixins.blockzone.json'
 }
 
+// Export client assets from the same source used by the mod.
 tasks.register('resourcePack', Zip) {
     archiveFileName = 'blockzone-resourcepack.zip'
     destinationDirectory = layout.buildDirectory.dir('distributions')
-    from('src/main/resources/resourcepacks/blockzone')
+    from('src/main/resources') {
+        include 'pack.mcmeta', 'assets/**'
+    }
 }
 
 reobf {

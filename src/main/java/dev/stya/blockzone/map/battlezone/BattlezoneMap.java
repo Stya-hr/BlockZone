@@ -419,7 +419,7 @@ public final class BattlezoneMap extends BaseMap {
         if (phase != MatchPhase.MATCH || victoryAnnounced) {
             return;
         }
-        var resolved = eliminationRule.resolve(BattlezoneMatchContext.capture(this).livingTeams());
+        var resolved = eliminationRule.resolve(BattlezoneEliminationContext.capture(this).livingTeams());
         if (resolved.isEmpty()) return;
         var result = resolved.get();
         victoryAnnounced = true;

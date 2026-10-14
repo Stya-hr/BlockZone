@@ -53,7 +53,7 @@ public final class PoisonZoneController {
         double damage = state.damage();
         if (damage <= 0 || map.getServerLevel().getGameTime() % 20 != 0) return;
         var zone = current();
-        var damageSource = map.getServerLevel().damageSources().magic();
+        var damageSource = dev.stya.blockzone.combat.CombatDamageTypes.poisonZone(map.getServerLevel());
         for (var team : map.getMapTeams().getNormalTeams()) {
             for (var player : team.getOnline()) {
                 if (team.getPlayerData(player.getUUID()).map(data -> !data.isLiving()).orElse(true)) continue;

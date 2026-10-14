@@ -444,10 +444,17 @@ public final class BattlezoneMap extends BaseMap {
     }
 
     @Override
+    public void recordHurtData(ServerPlayer player, net.minecraft.world.damagesource.DamageSource source, float amount) {
+        super.recordHurtData(player, source, amount);
+        if (amount > 0 && !dev.stya.blockzone.combat.MatchRegeneration.allowed(player)) combatHurt(player);
+    }
+
+    @Override
     public void handleDeath(com.ptcrys.fpsmatch.core.map.DeathContext context) {
         ServerPlayer dead = context.getDeadPlayer();
         if (getMapTeams().getTeamByPlayer(dead).flatMap(team -> team.getPlayerData(dead.getUUID()))
                 .map(data -> !data.isLiving()).orElse(true)) return;
+        var reason = dev.stya.blockzone.combat.DownedDeathContext.apply(context);
         super.handleDeath(context);
         ServerPlayer player = context.getDeadPlayer();
         dev.stya.blockzone.inventory.PlayerPanelInventory.get(player).ifPresent(data -> data.dropOnElimination(this));
@@ -457,6 +464,8 @@ public final class BattlezoneMap extends BaseMap {
         player.setGameMode(net.minecraft.world.level.GameType.SPECTATOR);
         player.displayClientMessage(Component.translatable("blockzone.match.eliminated"), false);
         visualSync.send(player);
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(
+                new dev.stya.blockzone.combat.BattlezoneDeathEvent(this, context, reason));
     }
 
     @Override

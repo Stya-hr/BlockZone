@@ -21,7 +21,11 @@ public final class DownedEvents {
         }
     }
     @SubscribeEvent public static void tick(TickEvent.ServerTickEvent e) {
-        if (e.phase == TickEvent.Phase.END) DownedController.tick();
+        if (e.phase == TickEvent.Phase.END) {
+            DownedController.tick();
+            var server = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
+            if (server != null) DownedDeathContext.tick(server.overworld().getGameTime());
+        }
     }
     @SubscribeEvent public static void logout(PlayerEvent.PlayerLoggedOutEvent e) {
         if (e.getEntity() instanceof ServerPlayer p) DownedController.clear(p);

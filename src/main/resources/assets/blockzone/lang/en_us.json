@@ -22,5 +22,7 @@
   "slot.blockzone.ammo": "Ammunition",
   "slot.blockzone.accessory": "Accessory",
   "slot.blockzone.item.tactical": "Tactical item",
-  "slot.blockzone.weapon": "Weapon"
+  "slot.blockzone.weapon": "Weapon",
+  "death.attack.blockzone.poison_zone": "%1$s died in the poison zone",
+  "death.attack.blockzone.poison_zone.player": "%1$s died in the poison zone"
 }

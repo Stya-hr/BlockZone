@@ -17,7 +17,7 @@ public final class DownedController {
     private static final Map<ServerPlayer, ServerPlayer> RESCUERS = new HashMap<>();
     private static final Map<ServerPlayer, net.minecraft.world.phys.Vec3> RESCUE_ORIGINS = new HashMap<>();
     private static final Set<ServerPlayer> FINISHING = new HashSet<>();
-    private record Entry(BattlezoneMap map, RescueTimer timer, DamageSource source, long knockedTick) { }
+    private record Entry(BattlezoneMap map, RescueTimer timer, com.ptcrys.fpsmatch.core.map.DeathContext context, long knockedTick) { }
     private DownedController() { }
     public static boolean down(ServerPlayer player) { return DOWN.containsKey(player); }
     public static boolean busy(ServerPlayer player) { return down(player) || RESCUERS.containsKey(player); }
@@ -36,7 +36,7 @@ public final class DownedController {
                 || map.getPhase() != BattlezoneMap.MatchPhase.MATCH
                 || !eligible(player, map) || teammates(player, map).isEmpty()
                 || source.is(net.minecraft.tags.DamageTypeTags.BYPASSES_INVULNERABILITY)) return false;
-        DOWN.put(player, new Entry(map, new RescueTimer(), source, player.serverLevel().getGameTime()));
+        DOWN.put(player, new Entry(map, new RescueTimer(), DownedDeathContext.capture(map, player, source), player.serverLevel().getGameTime()));
         cancelRescue(player);
         map.clearAirbornePlayer(player);
         player.closeContainer();
@@ -55,7 +55,7 @@ public final class DownedController {
     public static boolean duplicateBulletDamage(ServerPlayer player, DamageSource source) {
         var entry = DOWN.get(player);
         return entry != null && entry.knockedTick == player.serverLevel().getGameTime()
-                && source.getDirectEntity() != null && source.getDirectEntity() == entry.source.getDirectEntity();
+                && source.getDirectEntity() != null && source.getDirectEntity() == entry.context.getDamageSource().getDirectEntity();
     }
     public static void interrupted(ServerPlayer player) {
         var entry = DOWN.get(player);
@@ -65,6 +65,7 @@ public final class DownedController {
     }
     public static void clear(ServerPlayer player) {
         DOWN.remove(player);
+        DownedDeathContext.clear(player);
         cancelRescue(player);
         var speed = player.getAttribute(Attributes.MOVEMENT_SPEED);
         if (speed != null) speed.removeModifier(SLOW);
@@ -119,8 +120,10 @@ public final class DownedController {
             boolean expired = entry.timer.tick(helper != null);
             if (expired || team.isEmpty()) {
                 clear(player);
+                DownedDeathContext.finishing(entry.context, expired ? BattlezoneDeathEvent.Reason.BLEED_OUT
+                        : BattlezoneDeathEvent.Reason.TEAM_WIPE);
                 FINISHING.add(player);
-                try { player.setHealth(1); player.invulnerableTime = 0; player.hurt(entry.source, Float.MAX_VALUE); }
+                try { player.setHealth(1); player.invulnerableTime = 0; player.hurt(entry.context.getDamageSource(), Float.MAX_VALUE); }
                 finally { FINISHING.remove(player); }
             } else if (entry.timer.rescued()) {
                 clear(player);

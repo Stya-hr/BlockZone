@@ -14,6 +14,8 @@ public final class InventoryPromptRenderer {
     private static boolean resolved;
     private static Method smartRenderer;
     private static Method smartTranslation;
+    private static final int ICON_KEY_WIDTH = 24;
+    private static final int KEY_HEIGHT = 16;
     private record Prompt(List<InputConstants.Key> keys, String description) {}
     private static void resolve() {
         if (resolved) return;
@@ -37,8 +39,11 @@ public final class InventoryPromptRenderer {
         }
         return key.getDisplayName().getString();
     }
+    private static int keyWidth(Font font, InputConstants.Key key) {
+        return InventoryKeyIcons.icon(key.getName()) == null ? font.width(label(key)) + 12 : ICON_KEY_WIDTH;
+    }
     private static int keysWidth(Font font, Prompt prompt) {
-        return prompt.keys.stream().mapToInt(key -> font.width(label(key)) + 12).sum() + (prompt.keys.size() - 1) * 3;
+        return prompt.keys.stream().mapToInt(key -> keyWidth(font, key)).sum() + (prompt.keys.size() - 1) * 3;
     }
     public static void render(GuiGraphics gui, Font font, boolean shift) {
         resolve();
@@ -62,18 +67,14 @@ public final class InventoryPromptRenderer {
                 int width = keysWidth(font, prompt);
                 int keyX = x;
                 for (var key : prompt.keys) {
-                    String keyLabel = label(key);
-                    int keyWidth = font.width(keyLabel) + 12;
-                    boolean pressed = key.equals(options.keyShift.getKey()) && shift;
-                    boolean drawn = false;
-                    if (smartRenderer != null) {
-                        try { smartRenderer.invoke(null, gui, keyX, 0, keyLabel, pressed); drawn = true; }
-                        catch (ReflectiveOperationException exception) { smartRenderer = null; }
-                    }
-                    if (!drawn) {
-                        gui.fill(keyX, 0, keyX + keyWidth, 13, pressed ? 0xCC9BABB5 : 0xAA25313A);
-                        gui.drawCenteredString(font, keyLabel, keyX + keyWidth / 2, 3, 0xFFF3F7F8);
-                    }
+                    int keyWidth = keyWidth(font, key);
+                    boolean pressed = key.getType() == InputConstants.Type.KEYSYM && key.getValue() >= 0
+                            && InputConstants.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), key.getValue());
+                    if (key.getType() == InputConstants.Type.MOUSE)
+                        pressed = org.lwjgl.glfw.GLFW.glfwGetMouseButton(Minecraft.getInstance().getWindow().getWindow(), key.getValue())
+                                == org.lwjgl.glfw.GLFW.GLFW_PRESS;
+                    if (key.equals(options.keyShift.getKey())) pressed |= shift;
+                    drawKey(gui, font, key, keyX, keyWidth, pressed);
                     keyX += keyWidth + 3;
                 }
                 var description = Component.translatable(prompt.description);
@@ -81,6 +82,30 @@ public final class InventoryPromptRenderer {
                 x += width + font.width(description) + 22;
             }
             gui.pose().popPose();
+        }
+    }
+
+    private static void drawKey(GuiGraphics gui, Font font, InputConstants.Key key, int x, int width, boolean pressed) {
+        String icon = InventoryKeyIcons.icon(key.getName());
+        if (icon == null && smartRenderer != null) {
+            try { smartRenderer.invoke(null, gui, x, 0, label(key), pressed); return; }
+            catch (ReflectiveOperationException exception) { smartRenderer = null; }
+        }
+        if (smartRenderer != null) {
+            var texture = net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("smartkeyprompts",
+                    "textures/gui/" + (pressed ? "pressed_key" : "unpressed_key") + ".png");
+            gui.blit(texture, x, 0, 6, KEY_HEIGHT, 0, 0, 6, 16, 32, 16);
+            gui.blit(texture, x + 6, 0, width - 12, KEY_HEIGHT, 6, 0, 20, 16, 32, 16);
+            gui.blit(texture, x + width - 6, 0, 6, KEY_HEIGHT, 26, 0, 6, 16, 32, 16);
+        } else {
+            gui.fill(x, 0, x + width, KEY_HEIGHT, pressed ? 0xCC9BABB5 : 0xAA25313A);
+        }
+        if (icon != null) {
+            var texture = InventorySvgAssets.get("key_" + icon, 48, 48);
+            gui.blit(texture.id(), x + (width - 12) / 2, pressed ? 3 : 1, 12, 12,
+                    0, 0, texture.width(), texture.height(), texture.width(), texture.height());
+        } else {
+            gui.drawCenteredString(font, label(key), x + width / 2, 3, 0xFFF3F7F8);
         }
     }
 

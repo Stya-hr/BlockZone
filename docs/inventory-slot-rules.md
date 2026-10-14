@@ -171,8 +171,9 @@ TaCZ 的 `GunSmithTableIngredient` 只包装配方 Ingredient 和数量，都不
   潜行绑定保留给批量丢弃，不触发移动关闭。
 - 按键提示由 `InventoryPromptRenderer` 统一提供，安装 Smart Key Prompts 时使用其公开的
   `KeyRenderer.drawKeyBoardKey` 渲染器及 `KeyUtils.translateKey` 原生键名解析，未安装时使用自带样式。
-  组合键逐键绘制为 `[Shift][左键]`，不会合并成一个键帽。
-  1.1.3-hotfix 自带按下/未按下键帽纹理，没有独立的鼠标图形资源；兼容层直接使用该版本已有资源。无需添加强制依赖。
+  Shift、Ctrl、Alt、空格、回车、Tab、退格、方向键和鼠标左／中／右键优先使用 SVG 图形，其他键显示实际绑定键名。
+  组合键逐键独立绘制；图标宽度参与布局测量，按下态跟随实际键盘／鼠标状态。
+  1.1.3-hotfix 自带按下/未按下键帽纹理，没有独立的鼠标图形资源；兼容层复用这些键帽材质，并叠加本模组的 SVG 图形。无需添加强制依赖。
   已适配 Smart Key Prompts Forge 1.20.1 的 1.1.3-hotfix API（前置 OELib）。
   OELib 0.2.4.1 的网络通道要求服务端同步安装该库，否则 Forge 会拒绝联机。
 

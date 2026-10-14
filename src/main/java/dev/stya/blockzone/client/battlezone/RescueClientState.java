@@ -1,7 +1,6 @@
 package dev.stya.blockzone.client.battlezone;
 
 import dev.stya.blockzone.BlockZone;
-import dev.stya.blockzone.combat.RescueTimer;
 import dev.stya.blockzone.net.battlezone.RescueStateS2CPacket;
 import java.util.*;
 import net.minecraft.client.Minecraft;
@@ -69,7 +68,8 @@ public final class RescueClientState {
             if (!(mc.hitResult instanceof net.minecraft.world.phys.EntityHitResult hit)
                     || !(hit.getEntity() instanceof net.minecraft.world.entity.player.Player target)
                     || state(target) != 1 || !mc.player.isAlliedTo(target)
-                    || mc.player.distanceToSqr(target) > 6.25) return;
+                    || mc.player.distanceToSqr(target) > STATES.get(target.getUUID()).rescueDistance()
+                            * STATES.get(target.getUUID()).rescueDistance()) return;
             label = Component.translatable("hud.blockzone.rescue_hint");
         } else label = p.state() == 1
                 ? Component.translatable("hud.blockzone.downed", (p.bleedTicks() + 19) / 20)
@@ -80,9 +80,9 @@ public final class RescueClientState {
         g.drawCenteredString(mc.font, label, x + 110, y + 7, p != null && p.state() == 1 ? 0xFFFF6868 : 0xFFE7EEF4);
         if (p != null) {
             g.fill(x + 8, y + 22, x + 212, y + 25, 0xFF394450);
-            float progress = p.rescueTicks() > 0 ? p.rescueTicks() / (float)RescueTimer.RESCUE_TICKS
-                    : p.bleedTicks() / (float)RescueTimer.BLEED_TICKS;
-            g.fill(x + 8, y + 22, x + 8 + (int)(204 * progress), y + 25,
+            float progress = p.rescueTicks() > 0 ? p.rescueTicks() / (float)Math.max(1, p.rescueTotalTicks())
+                    : p.bleedTicks() / (float)Math.max(1, p.bleedTotalTicks());
+            g.fill(x + 8, y + 22, x + 8 + (int)(204 * net.minecraft.util.Mth.clamp(progress, 0, 1)), y + 25,
                     p.rescueTicks() > 0 ? 0xFF65D6A4 : 0xFFFF6868);
         }
     }

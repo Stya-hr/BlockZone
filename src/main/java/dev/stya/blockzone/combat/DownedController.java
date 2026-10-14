@@ -42,7 +42,7 @@ public final class DownedController {
         player.closeContainer();
         player.stopUsingItem();
         player.setAbsorptionAmount(0);
-        player.setHealth(Math.min(30, player.getMaxHealth()));
+        player.setHealth(Math.min(50, player.getMaxHealth()));
         player.setForcedPose(Pose.SWIMMING);
         var speed = player.getAttribute(Attributes.MOVEMENT_SPEED);
         if (speed != null && !speed.hasModifier(new AttributeModifier(SLOW, "Downed crawl", -.75,

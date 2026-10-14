@@ -12,6 +12,10 @@ final class BattlezoneClientPacketHandler {
             if (player != null) dev.stya.blockzone.inventory.PlayerPanelInventory.get(player).ifPresent(data -> data.load(packet.state(), true));
         });
     }
+    static void handle(SquadStateS2CPacket packet) {
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () ->
+                dev.stya.blockzone.client.hud.squad.SquadClientState.apply(packet));
+    }
     private BattlezoneClientPacketHandler() {
     }
 

@@ -86,6 +86,36 @@ public final class InventoryPromptRenderer {
         }
     }
 
+    /** Single-key HUD prompt with a caller-selected height. Uses the registered key, never a glyph alias. */
+    public static int renderKey(GuiGraphics gui, Font font, InputConstants.Key key, int x, int y, int height) {
+        resolve();
+        boolean pressed = key.getType() == InputConstants.Type.KEYSYM && key.getValue() >= 0
+                && InputConstants.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), key.getValue());
+        if (key.getType() == InputConstants.Type.MOUSE)
+            pressed = org.lwjgl.glfw.GLFW.glfwGetMouseButton(Minecraft.getInstance().getWindow().getWindow(), key.getValue())
+                    == org.lwjgl.glfw.GLFW.GLFW_PRESS;
+        gui.pose().pushPose();
+        try {
+            gui.pose().translate(x, y, 0);
+            if (smartRenderer != null) {
+                float scale = height / (float)KEY_HEIGHT;
+                gui.pose().scale(scale, scale, 1);
+                int width = keyWidth(font, key);
+                drawKey(gui, font, key, 0, width, pressed);
+                return Math.round(width * scale);
+            }
+            String text = key.getDisplayName().getString();
+            float textScale = height * .075f;
+            int width = Math.max(height, (int)Math.ceil(font.width(text) * textScale) + 8);
+            gui.fill(0, 0, width, height, pressed ? 0xFFE0E0E0 : 0xFFF3F7F8);
+            gui.pose().translate((width - font.width(text) * textScale) / 2,
+                    (height - font.lineHeight * textScale) / 2, 0);
+            gui.pose().scale(textScale, textScale, 1);
+            gui.drawString(font, text, 0, 0, 0xFF10181E, false);
+            return width;
+        } finally { gui.pose().popPose(); }
+    }
+
     private static void drawKey(GuiGraphics gui, Font font, InputConstants.Key key, int x, int width, boolean pressed) {
         if (smartRenderer != null) {
             try { smartRenderer.invoke(null, gui, x, 0, label(key), pressed); return; }

@@ -159,5 +159,12 @@
   "editor.blockzone.ui.arrangement": "Order & preview",
   "editor.blockzone.ui.loot_settings": "Loot settings",
   "editor.blockzone.loot.selected_short": "Selected %s/%s",
-  "editor.blockzone.loot.changed_short": "Unsaved %s"
+  "editor.blockzone.loot.changed_short": "Unsaved %s",
+  "hud.blockzone.squad.offline": "Offline",
+  "hud.blockzone.squad.eliminated": "Eliminated",
+  "hud.blockzone.squad.downed": "Downed %s s",
+  "hud.blockzone.squad.reviving": "Being revived",
+  "hud.blockzone.squad.inventory": "Inventory",
+  "key.blockzone.insert_plate": "Insert armor plate",
+  "key.blockzone.squad_page": "Next squad HUD page"
 }

@@ -22,7 +22,7 @@ public record BoundaryPreviewS2CPacket(ResourceLocation dimension, boolean visib
 
     public void handle(Supplier<NetworkEvent.Context> supplier) {
         NetworkEvent.Context context = supplier.get();
-        context.enqueueWork(() -> ClientPacketHandler.handle(this));
+        context.enqueueWork(() -> BattlezoneClientPacketHandler.handle(this));
         context.setPacketHandled(true);
     }
 }

@@ -27,8 +27,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Mod.EventBusSubscriber(modid = "blockzone", value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
-public final class WorldRenderer {
-    private static final Logger LOGGER = LoggerFactory.getLogger(WorldRenderer.class);
+public final class BattlezoneWorldRenderer {
+    private static final Logger LOGGER = LoggerFactory.getLogger(BattlezoneWorldRenderer.class);
     private static final ResourceLocation WARNING_FENCE_TEXTURE =
             ResourceLocation.fromNamespaceAndPath("blockzone", "textures/effect/battlezone_warning_fence.png");
 
@@ -36,7 +36,7 @@ public final class WorldRenderer {
     private static ResourceLocation resolvedFenceTexture;
     private static float cachedFenceAspect = 1.0F;
 
-    private WorldRenderer() {
+    private BattlezoneWorldRenderer() {
     }
 
     @SubscribeEvent

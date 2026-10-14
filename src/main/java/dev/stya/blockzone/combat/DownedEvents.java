@@ -1,7 +1,8 @@
 package dev.stya.blockzone.combat;
 
 import dev.stya.blockzone.BlockZone;
-import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
+import dev.stya.blockzone.net.BlockzoneNetwork;
+import dev.stya.blockzone.combat.CombatStateSync;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.event.entity.player.*;
@@ -21,7 +22,7 @@ public final class DownedEvents {
     }
     @SubscribeEvent public static void tracking(PlayerEvent.StartTracking e) {
         if (e.getEntity() instanceof ServerPlayer p && e.getTarget() instanceof ServerPlayer target)
-            BattlezoneNetwork.sendEditor(p, BattlezoneNetwork.rescuePacket(target));
+            BlockzoneNetwork.sendToPlayer(p, CombatStateSync.rescuePacket(target));
     }
     @SubscribeEvent public static void attack(AttackEntityEvent e) {
         if (e.getEntity() instanceof ServerPlayer p && DownedController.busy(p)) e.setCanceled(true);

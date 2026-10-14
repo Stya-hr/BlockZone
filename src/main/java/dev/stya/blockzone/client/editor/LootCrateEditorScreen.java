@@ -3,7 +3,7 @@ package dev.stya.blockzone.client.editor;
 import dev.stya.blockzone.editor.loot.LootCrateDraft;
 import dev.stya.blockzone.editor.loot.LootCrateEdit;
 import dev.stya.blockzone.editor.loot.LootEditorProjection;
-import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
+import dev.stya.blockzone.net.BlockzoneNetwork;
 import dev.stya.blockzone.net.editor.*;
 import dev.stya.blockzone.net.editor.LootEditorResultS2CPacket;
 import dev.stya.blockzone.net.editor.LootEditorS2CPacket;
@@ -78,7 +78,7 @@ public final class LootCrateEditorScreen extends Screen {
         save = button(right, height - 29, 92, "save", () -> {
             if (!draft.dirty()) return;
             saving = true; message = text("saving").getString();
-            BattlezoneNetwork.saveLootEditor(new SaveLootEditorC2SPacket(packet.token(), draft.changes()));
+            BlockzoneNetwork.sendToServer(new SaveLootEditorC2SPacket(packet.token(), draft.changes()));
         });
         button(right + 98, height - 29, 92, "exit", this::onClose);
     }

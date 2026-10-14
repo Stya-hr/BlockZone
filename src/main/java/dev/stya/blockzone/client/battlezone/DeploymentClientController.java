@@ -4,7 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import dev.stya.blockzone.BlockZone;
 import dev.stya.blockzone.deployment.ParachuteMotion;
 import dev.stya.blockzone.mixin.client.OptionsCameraTypeAccessor;
-import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
+import dev.stya.blockzone.net.BlockzoneNetwork;
 import dev.stya.blockzone.net.battlezone.FlightStateS2CPacket;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.KeyMapping;
@@ -121,12 +121,12 @@ public final class DeploymentClientController {
         }
         while (RELEASE.consumeClick()) {
             if (state == 1 && minecraft.screen == null) {
-                BattlezoneNetwork.releaseDeployment();
+                BlockzoneNetwork.sendToServer(new dev.stya.blockzone.net.battlezone.ReleaseDeploymentC2SPacket());
             }
         }
         while (PARACHUTE.consumeClick()) {
             if ((state == 2 || state == 3) && minecraft.screen == null) {
-                BattlezoneNetwork.toggleParachute();
+                BlockzoneNetwork.sendToServer(new dev.stya.blockzone.net.battlezone.ToggleParachuteC2SPacket());
             }
         }
         if (state != 0 && trackedPlayer != null) {

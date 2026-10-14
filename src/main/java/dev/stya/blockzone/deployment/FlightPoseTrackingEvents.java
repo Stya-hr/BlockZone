@@ -1,7 +1,7 @@
 package dev.stya.blockzone.deployment;
 
 import dev.stya.blockzone.BlockZone;
-import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
+import dev.stya.blockzone.deployment.FlightStateSync;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -14,7 +14,7 @@ public final class FlightPoseTrackingEvents {
     @SubscribeEvent
     public static void startTracking(PlayerEvent.StartTracking event) {
         if (event.getEntity() instanceof ServerPlayer observer && event.getTarget() instanceof ServerPlayer target) {
-            BattlezoneNetwork.sendFlightStateTo(observer, BattlezoneNetwork.flightPacket(target));
+            FlightStateSync.sendFlightStateTo(observer, FlightStateSync.flightPacket(target));
         }
     }
 }

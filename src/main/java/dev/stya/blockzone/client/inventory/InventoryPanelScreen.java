@@ -4,7 +4,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import dev.stya.blockzone.inventory.InventoryPanelLayout;
 import dev.stya.blockzone.inventory.InventorySlot;
 import dev.stya.blockzone.inventory.PlayerPanelInventory;
-import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
+import dev.stya.blockzone.net.BlockzoneNetwork;
 import dev.stya.blockzone.net.battlezone.DiscardInventoryC2SPacket;
 import java.util.List;
 import net.minecraft.client.gui.GuiGraphics;
@@ -166,11 +166,11 @@ public final class InventoryPanelScreen extends Screen {
         if (target != null && target != pressedCell) dragging = true;
         if (dragging) {
             if (target != null && target != pressedCell)
-                BattlezoneNetwork.swapInventory(new dev.stya.blockzone.net.battlezone.SwapInventoryC2SPacket(
+                BlockzoneNetwork.sendToServer(new dev.stya.blockzone.net.battlezone.SwapInventoryC2SPacket(
                         pressedCell.slot().index(), target.slot().index(), pressedRound,
                         pressedRevisions[pressedCell.slot().index()], pressedRevisions[target.slot().index()]));
         } else if (target == pressedCell) {
-            BattlezoneNetwork.discard(new DiscardInventoryC2SPacket(pressedCell.slot().index(), pressedAction,
+            BlockzoneNetwork.sendToServer(new DiscardInventoryC2SPacket(pressedCell.slot().index(), pressedAction,
                     pressedRound, pressedRevisions[pressedCell.slot().index()]));
         }
         pressedCell = null; pressedRevisions = null; pressedButton = -1; dragging = false;
@@ -179,7 +179,7 @@ public final class InventoryPanelScreen extends Screen {
     private void discard(InventoryPanelLayout.Cell cell, boolean all) {
         if (cell == null) return;
         var data = data(); var stack = stack(cell.slot());
-        if (data != null && !stack.isEmpty()) BattlezoneNetwork.discard(new DiscardInventoryC2SPacket(
+        if (data != null && !stack.isEmpty()) BlockzoneNetwork.sendToServer(new DiscardInventoryC2SPacket(
                 cell.slot().index(), all ? 2 : InventoryPreviewKeys.bulkDropDown(minecraft) ? 1 : 0, data.round(), data.revision(cell.slot())));
     }
     @Override public boolean keyPressed(int keyCode, int scanCode, int modifiers) {

@@ -1,5 +1,6 @@
 package dev.stya.blockzone.net.editor;
 
+import dev.stya.blockzone.editor.loot.LootEditorSessions;
 import dev.stya.blockzone.editor.loot.LootCrateEdit;
 import java.util.List;
 import java.util.UUID;

@@ -27,7 +27,7 @@ public record FlightStateS2CPacket(UUID playerId, int state, float routeYaw, int
 
     public void handle(Supplier<NetworkEvent.Context> supplier) {
         NetworkEvent.Context context = supplier.get();
-        context.enqueueWork(() -> ClientPacketHandler.handle(this));
+        context.enqueueWork(() -> BattlezoneClientPacketHandler.handle(this));
         context.setPacketHandled(true);
     }
 }

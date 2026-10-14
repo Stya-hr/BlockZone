@@ -1,13 +1,14 @@
-package dev.stya.blockzone.net.editor;
+package dev.stya.blockzone.editor.loot;
+
+import dev.stya.blockzone.net.editor.*;
 
 import com.ptcrys.fpsmatch.core.FPSMCore;
 import dev.stya.blockzone.BlockZone;
-import dev.stya.blockzone.editor.loot.LootCrateEdit;
 import dev.stya.blockzone.loot.LootContainerAdapters;
 import dev.stya.blockzone.loot.LootContainerControl;
 import dev.stya.blockzone.loot.LootCrateAccess;
 import dev.stya.blockzone.map.battlezone.BattlezoneMap;
-import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
+import dev.stya.blockzone.net.BlockzoneNetwork;
 import java.util.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -92,7 +93,7 @@ public final class LootEditorSessions {
                                 .thenComparingInt(LootCrateEdit::z).thenComparingInt(LootCrateEdit::y)).toList();
                         var tables = level.getServer().getLootData().getKeys(LootDataType.TABLE).stream().map(ResourceLocation::toString)
                                 .filter(id -> id.length() <= 256).sorted().limit(4096).toList();
-                        BattlezoneNetwork.sendEditor(player, new LootEditorS2CPacket(session.token, session.map.getMapName(),
+                        BlockzoneNetwork.sendToPlayer(player, new LootEditorS2CPacket(session.token, session.map.getMapName(),
                                 level.dimension().location(), session.first, session.second, crates, tables));
                     }
                 }
@@ -100,7 +101,7 @@ public final class LootEditorSessions {
             }
         }
     }
-    static void save(ServerPlayer player, SaveLootEditorC2SPacket packet) {
+    public static void save(ServerPlayer player, SaveLootEditorC2SPacket packet) {
         if (player == null) return;
         var session = SESSIONS.get(player);
         try {
@@ -124,12 +125,12 @@ public final class LootEditorSessions {
             boolean started = session.map.saveLootCrateEdits(packet.changes(), success -> {
                 session.saving = false;
                 if (success) packet.changes().forEach(entry -> session.original.put(entry.position(), entry));
-                if (!player.hasDisconnected()) BattlezoneNetwork.sendEditor(player,
+                if (!player.hasDisconnected()) BlockzoneNetwork.sendToPlayer(player,
                         new LootEditorResultS2CPacket(packet.token(), success, success ? "editor.blockzone.loot.saved" : "editor.blockzone.loot.failed"));
             });
             if (!started) { session.saving = false; throw new IllegalArgumentException(); }
         } catch (RuntimeException failure) {
-            BattlezoneNetwork.sendEditor(player, new LootEditorResultS2CPacket(packet.token(), false, "editor.blockzone.loot.conflict"));
+            BlockzoneNetwork.sendToPlayer(player, new LootEditorResultS2CPacket(packet.token(), false, "editor.blockzone.loot.conflict"));
         }
     }
 }

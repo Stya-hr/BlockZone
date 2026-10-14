@@ -1,18 +1,18 @@
 package dev.stya.blockzone.map.battlezone;
 
 import dev.stya.blockzone.deployment.DeploymentController;
-import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
+import dev.stya.blockzone.net.BlockzoneNetwork;
 import dev.stya.blockzone.net.battlezone.ZoneStateS2CPacket;
 import net.minecraft.server.level.ServerPlayer;
 
 /** Owns presentation packets and their cadence; the map owns lifecycle transitions. */
-final class BattlezoneVisualSync {
+final class BattlezonePresentationSync {
     private static final int SYNC_INTERVAL_TICKS = 5;
     private final BattlezoneMap map;
     private final DeploymentController deployment;
     private long lastSync = Long.MIN_VALUE;
 
-    BattlezoneVisualSync(BattlezoneMap map, DeploymentController deployment) {
+    BattlezonePresentationSync(BattlezoneMap map, DeploymentController deployment) {
         this.map = map;
         this.deployment = deployment;
     }
@@ -25,7 +25,7 @@ final class BattlezoneVisualSync {
         var vehicle = deployment.vehicleSnapshot(map.isStart() && map.getPhase() == BattlezoneMap.MatchPhase.DEPLOYMENT);
         for (var player : map.getMapTeams().getOnlineWithSpec()) {
             send(player);
-            BattlezoneNetwork.send(player, vehicle);
+            BlockzoneNetwork.sendToPlayer(player, vehicle);
         }
     }
 
@@ -34,7 +34,7 @@ final class BattlezoneVisualSync {
     }
 
     void send(ServerPlayer player) { send(player, map.isMatchActive()); }
-    void send(ServerPlayer player, boolean boundaryVisible) { BattlezoneNetwork.send(player, packet(player, boundaryVisible)); }
+    void send(ServerPlayer player, boolean boundaryVisible) { BlockzoneNetwork.sendToPlayer(player, packet(player, boundaryVisible)); }
 
     private ZoneStateS2CPacket packet(ServerPlayer player, boolean boundaryVisible) {
         var area = map.getMapArea();

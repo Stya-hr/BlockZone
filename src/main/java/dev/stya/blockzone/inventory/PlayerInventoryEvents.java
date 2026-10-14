@@ -2,7 +2,7 @@ package dev.stya.blockzone.inventory;
 
 import dev.stya.blockzone.BlockZone;
 import dev.stya.blockzone.combat.MatchRegeneration;
-import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
+import dev.stya.blockzone.net.BlockzoneNetwork;
 import dev.stya.blockzone.net.battlezone.InventoryStateS2CPacket;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -100,7 +100,7 @@ public final class PlayerInventoryEvents {
             // Weapons already synchronize through vanilla inventory packets. Reserves need their own snapshot.
             if (!tag.equals(LAST.get(player))) {
                 LAST.put(player, tag.copy());
-                BattlezoneNetwork.sendEditor(player, new InventoryStateS2CPacket(tag));
+                BlockzoneNetwork.sendToPlayer(player, new InventoryStateS2CPacket(tag));
             }
         });
     }

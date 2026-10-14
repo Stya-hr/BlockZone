@@ -10,6 +10,8 @@ public final class SquadStatusPanel {
     private final TeammateStatusRow teammate = new TeammateStatusRow();
     private final LocalPlayerStatus local = new LocalPlayerStatus();
     private final PlayerActionHints hints = new PlayerActionHints();
+    private int page;
+    private String scope = "";
     public void render(GuiGraphics gui, List<SquadMemberStatus> members, UUID localId) {
         var self = members.stream().filter(member -> member.id().equals(localId)).findFirst().orElse(null);
         if (self == null) return;
@@ -26,9 +28,25 @@ public final class SquadStatusPanel {
                     viewportHeight - (SquadHudStyle.DESIGN_HEIGHT - SquadHudStyle.LOCAL_TOP) * scale, 0);
             gui.pose().scale(scale, scale, 1);
             var g = new SquadHudGraphics(gui);
-            for (int i = 0; i < others.size(); i++) {
-                float y = SquadHudStyle.LAST_TEAM_TOP - SquadHudStyle.LOCAL_TOP - i * SquadHudStyle.TEAM_STEP;
-                teammate.render(g, others.get(i), y);
+            var layout = SquadRosterLayout.create(others.size(), (float)(viewportHeight / scale - 184), gui.guiWidth() / scale);
+            if (!scope.equals(SquadClientState.scope())) {
+                scope = SquadClientState.scope(); page = 0;
+                while (SquadPageKey.KEY.consumeClick()) { /* Discard input from the previous map. */ }
+            }
+            page = Math.min(page, layout.pages() - 1);
+            while (SquadPageKey.KEY.consumeClick()) page = (page + 1) % layout.pages();
+            for (int i = layout.start(page); i < layout.end(page); i++) {
+                int slot = i - layout.start(page);
+                gui.pose().pushPose();
+                gui.pose().translate(layout.x(slot), 0, 0);
+                teammate.render(g, others.get(i), layout.y(slot));
+                gui.flush();
+                gui.pose().popPose();
+            }
+            if (layout.pages() > 1) {
+                int keyWidth = dev.stya.blockzone.client.inventory.InventoryPromptRenderer.renderKey(gui,
+                        net.minecraft.client.Minecraft.getInstance().font, SquadPageKey.KEY.getKey(), 300, 76, 20);
+                g.text((page + 1) + " / " + layout.pages(), 308 + keyWidth, 80, 12, SquadHudStyle.TEXT);
             }
             local.render(g, self);
             if (self.online() && self.living() && !self.downed()) hints.render(g, 76);

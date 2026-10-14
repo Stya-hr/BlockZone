@@ -164,5 +164,7 @@
   "hud.blockzone.squad.eliminated": "Eliminated",
   "hud.blockzone.squad.downed": "Downed %s s",
   "hud.blockzone.squad.reviving": "Being revived",
-  "hud.blockzone.squad.inventory": "Inventory"
+  "hud.blockzone.squad.inventory": "Inventory",
+  "key.blockzone.insert_plate": "Insert armor plate",
+  "key.blockzone.squad_page": "Next squad HUD page"
 }

@@ -1,27 +1,26 @@
 package dev.stya.blockzone.client.hud.squad;
 
+import dev.stya.blockzone.client.equipment.QuickPlating;
 import dev.stya.blockzone.client.inventory.InventoryPromptRenderer;
 import dev.stya.blockzone.client.inventory.InventorySvgAssets;
 import net.minecraft.client.Minecraft;
-import net.minecraft.network.chat.Component;
-import dev.stya.blockzone.registry.BlockzoneItems;
 
 final class PlayerActionHints {
     void render(SquadHudGraphics g, int y) {
         var mc = Minecraft.getInstance();
         int width = InventoryPromptRenderer.renderKey(g.gui, mc.font, mc.options.keyInventory.getKey(), 0, y, 20);
-        String label = Component.translatable("hud.blockzone.squad.inventory").getString();
-        g.text(label, Math.max(42, width + 8), y + 4, 12, SquadHudStyle.TEXT);
-        int iconX = 150;
-        // The reference's G is replaced with the actual use binding only when a plate can be used.
-        if (mc.player != null && mc.player.getMainHandItem().is(BlockzoneItems.ARMOR_PLATE.get())) {
-            int keyWidth = InventoryPromptRenderer.renderKey(g.gui, mc.font, mc.options.keyUse.getKey(), 124, y, 20);
-            iconX = Math.max(iconX, 124 + keyWidth + 6);
-        }
-        // Same 40x40 vector plate silhouette as the reference and the existing inventory.
+        int backpackX = Math.max(40, width + 6);
+        icon(g, "backpack", backpackX, y - 10);
+        int plateKeyX = Math.max(124, backpackX + 40 + 16);
+        int keyWidth = InventoryPromptRenderer.renderKey(g.gui, mc.font, QuickPlating.KEY.getKey(), plateKeyX, y, 20);
+        icon(g, "armor_plates", plateKeyX + keyWidth + 6, y - 10);
+    }
+    private static void icon(SquadHudGraphics g, String name, int x, int y) {
+        var mc = Minecraft.getInstance();
         float pixelScale = Math.min(mc.getWindow().getWidth() / 2560f, mc.getWindow().getHeight() / 1440f);
         int raster = Math.max(16, Math.round(40 * pixelScale));
-        var icon = InventorySvgAssets.get("armor_plates", raster, raster);
-        g.gui.blit(icon.id(), iconX, y - 10, 40, 40, 0, 0, icon.width(), icon.height(), icon.width(), icon.height());
+        var texture = InventorySvgAssets.get(name, raster, raster);
+        g.gui.flush();
+        g.gui.blit(texture.id(), x, y, 40, 40, 0, 0, texture.width(), texture.height(), texture.width(), texture.height());
     }
 }

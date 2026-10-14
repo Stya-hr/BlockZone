@@ -8,7 +8,6 @@ final class SquadHudStyle {
     static final int MUTED = 0xFF8C999F, AVATAR_BACKGROUND = 0xFF10181E;
     static final int TRACK = 0x3310181E, HEALTH = 0xFF49C7A4, ARMOR = 0xFFFF57EE;
     static final int FILL = 0xFFFFFFFF, DANGER = 0xFFFF6D76, RESCUE = 0xFF49C7A4;
-    static final int[] MEMBER_COLORS = {0xFF34C759, 0xFF0088FF, 0xFFFFCC00, 0xFFC38AFF};
-    static int memberColor(int number) { return MEMBER_COLORS[Math.floorMod(number - 1, MEMBER_COLORS.length)]; }
+    static int memberColor(int number) { return dev.stya.blockzone.squad.SquadMemberColors.color(number); }
     private SquadHudStyle() {}
 }

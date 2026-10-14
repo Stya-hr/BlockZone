@@ -21,6 +21,7 @@ public final class SquadClientState {
         return data.isCurrentGameType(BattlezoneMap.GAME_TYPE) && data.isCurrentMap(snapshot.map())
                 && data.isCurrentTeam(snapshot.team()) ? snapshot.members() : List.of();
     }
+    public static String scope() { return snapshot.map() + "\0" + snapshot.team(); }
     public static void clear() { snapshot = SquadStateS2CPacket.EMPTY; }
     @SubscribeEvent public static void logout(ClientPlayerNetworkEvent.LoggingOut event) { clear(); }
     @SubscribeEvent public static void reset(com.ptcrys.fpsmatch.common.client.event.FPSMClientResetEvent event) { clear(); }

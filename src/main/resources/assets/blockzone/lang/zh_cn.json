@@ -164,5 +164,7 @@
   "hud.blockzone.squad.eliminated": "已淘汰",
   "hud.blockzone.squad.downed": "倒地 %s 秒",
   "hud.blockzone.squad.reviving": "救援中",
-  "hud.blockzone.squad.inventory": "背包"
+  "hud.blockzone.squad.inventory": "背包",
+  "key.blockzone.insert_plate": "插入护甲板",
+  "key.blockzone.squad_page": "小队 HUD 下一页"
 }

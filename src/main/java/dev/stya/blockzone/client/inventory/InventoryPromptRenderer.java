@@ -14,7 +14,7 @@ public final class InventoryPromptRenderer {
     private static boolean resolved;
     private static Method smartRenderer;
     private static Method smartTranslation;
-    private static final int ICON_KEY_WIDTH = 24;
+    private static final int ICON_KEY_WIDTH = 20;
     private static final int KEY_HEIGHT = 16;
     private record Prompt(List<InputConstants.Key> keys, String description) {}
     private static void resolve() {
@@ -87,26 +87,19 @@ public final class InventoryPromptRenderer {
 
     private static void drawKey(GuiGraphics gui, Font font, InputConstants.Key key, int x, int width, boolean pressed) {
         String icon = InventoryKeyIcons.icon(key.getName());
-        if (icon == null && smartRenderer != null) {
+        if (icon != null) {
+            // The graphic is the entire key prompt, not a label inside a keyboard keycap.
+            var texture = InventorySvgAssets.get("key_" + icon, 64, 64);
+            gui.blit(texture.id(), x + (width - 16) / 2, pressed ? 1 : -1, 16, 16,
+                    0, 0, texture.width(), texture.height(), texture.width(), texture.height());
+            return;
+        }
+        if (smartRenderer != null) {
             try { smartRenderer.invoke(null, gui, x, 0, label(key), pressed); return; }
             catch (ReflectiveOperationException exception) { smartRenderer = null; }
         }
-        if (smartRenderer != null) {
-            var texture = net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("smartkeyprompts",
-                    "textures/gui/" + (pressed ? "pressed_key" : "unpressed_key") + ".png");
-            gui.blit(texture, x, 0, 6, KEY_HEIGHT, 0, 0, 6, 16, 32, 16);
-            gui.blit(texture, x + 6, 0, width - 12, KEY_HEIGHT, 6, 0, 20, 16, 32, 16);
-            gui.blit(texture, x + width - 6, 0, 6, KEY_HEIGHT, 26, 0, 6, 16, 32, 16);
-        } else {
-            gui.fill(x, 0, x + width, KEY_HEIGHT, pressed ? 0xCC9BABB5 : 0xAA25313A);
-        }
-        if (icon != null) {
-            var texture = InventorySvgAssets.get("key_" + icon, 48, 48);
-            gui.blit(texture.id(), x + (width - 12) / 2, pressed ? 3 : 1, 12, 12,
-                    0, 0, texture.width(), texture.height(), texture.width(), texture.height());
-        } else {
-            gui.drawCenteredString(font, label(key), x + width / 2, 3, 0xFFF3F7F8);
-        }
+        gui.fill(x, 0, x + width, KEY_HEIGHT, pressed ? 0xCC9BABB5 : 0xAA25313A);
+        gui.drawCenteredString(font, label(key), x + width / 2, 3, 0xFFF3F7F8);
     }
 
     private InventoryPromptRenderer() {}

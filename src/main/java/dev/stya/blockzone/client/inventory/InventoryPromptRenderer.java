@@ -14,7 +14,6 @@ public final class InventoryPromptRenderer {
     private static boolean resolved;
     private static Method smartRenderer;
     private static Method smartTranslation;
-    private static final int ICON_KEY_WIDTH = 20;
     private static final int KEY_HEIGHT = 16;
     private record Prompt(List<InputConstants.Key> keys, String description) {}
     private static void resolve() {
@@ -27,6 +26,8 @@ public final class InventoryPromptRenderer {
                 smartTranslation = Class.forName("com.mafuyu404.smartkeyprompts.util.KeyUtils")
                         .getMethod("translateKey", String.class);
             } catch (ReflectiveOperationException exception) {
+                smartRenderer = null;
+                smartTranslation = null;
                 org.apache.logging.log4j.LogManager.getLogger().warn("Smart Key Prompts renderer unavailable; using inventory keycaps", exception);
             }
         }
@@ -40,7 +41,7 @@ public final class InventoryPromptRenderer {
         return key.getDisplayName().getString();
     }
     private static int keyWidth(Font font, InputConstants.Key key) {
-        return InventoryKeyIcons.icon(key.getName()) == null ? font.width(label(key)) + 12 : ICON_KEY_WIDTH;
+        return font.width(label(key)) + 12;
     }
     private static int keysWidth(Font font, Prompt prompt) {
         return prompt.keys.stream().mapToInt(key -> keyWidth(font, key)).sum() + (prompt.keys.size() - 1) * 3;
@@ -86,20 +87,13 @@ public final class InventoryPromptRenderer {
     }
 
     private static void drawKey(GuiGraphics gui, Font font, InputConstants.Key key, int x, int width, boolean pressed) {
-        String icon = InventoryKeyIcons.icon(key.getName());
-        if (icon != null) {
-            // The graphic is the entire key prompt, not a label inside a keyboard keycap.
-            var texture = InventorySvgAssets.get("key_" + icon, 64, 64);
-            gui.blit(texture.id(), x + (width - 16) / 2, pressed ? 1 : -1, 16, 16,
-                    0, 0, texture.width(), texture.height(), texture.width(), texture.height());
-            return;
-        }
         if (smartRenderer != null) {
             try { smartRenderer.invoke(null, gui, x, 0, label(key), pressed); return; }
-            catch (ReflectiveOperationException exception) { smartRenderer = null; }
+            catch (ReflectiveOperationException exception) { smartRenderer = null; smartTranslation = null; }
         }
-        gui.fill(x, 0, x + width, KEY_HEIGHT, pressed ? 0xCC9BABB5 : 0xAA25313A);
-        gui.drawCenteredString(font, label(key), x + width / 2, 3, 0xFFF3F7F8);
+        gui.fill(x, 0, x + width, KEY_HEIGHT, pressed ? 0xFFE0E0E0 : 0xFFFFFFFF);
+        String text = key.getDisplayName().getString();
+        gui.drawString(font, text, x + (width - font.width(text)) / 2, 3, 0xFF182028, false);
     }
 
     private InventoryPromptRenderer() {}

@@ -159,5 +159,10 @@
   "editor.blockzone.ui.arrangement": "顺序与预览",
   "editor.blockzone.ui.loot_settings": "战利品设置",
   "editor.blockzone.loot.selected_short": "已选 %s/%s",
-  "editor.blockzone.loot.changed_short": "待存 %s"
+  "editor.blockzone.loot.changed_short": "待存 %s",
+  "hud.blockzone.squad.offline": "离线",
+  "hud.blockzone.squad.eliminated": "已淘汰",
+  "hud.blockzone.squad.downed": "倒地 %s 秒",
+  "hud.blockzone.squad.reviving": "救援中",
+  "hud.blockzone.squad.inventory": "背包"
 }

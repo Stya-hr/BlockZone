@@ -9,9 +9,7 @@ final class ArmorSegments {
         float segment = (width - Math.max(0, count - 1) * 8) / Math.max(1, count);
         for (int i = 0; i < count; i++) {
             float left = x + i * (segment + 8);
-            g.rect(left, y, segment, height - 2, SquadHudStyle.TRACK);
-            g.rect(left, y, segment * member.armorFraction(i), height - 2, SquadHudStyle.FILL);
-            g.rect(left, y + height - 2, segment, 2, SquadHudStyle.ARMOR);
+            VitalBar.render(g, left, y, segment, height, member.armorFraction(i), SquadHudStyle.ARMOR);
         }
     }
 }

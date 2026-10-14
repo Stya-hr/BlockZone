@@ -74,7 +74,7 @@ public final class PlayerStateSnapshot {
         PENDING.put(uuid, state);
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.HIGHEST)
     public static void onLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             PlayerStateSnapshot state = PENDING.remove(player.getUUID());

@@ -34,6 +34,15 @@ public final class BattlezoneNetwork {
         if (packet.state() == 0) RESCUE_STATES.remove(player); else RESCUE_STATES.put(player, packet);
         PACKETS.getChannel().send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> player), packet);
     }
+    /** Called once when the mode releases a player session. */
+    public static void clearPlayerState(ServerPlayer player) {
+        syncCombat(player, false, dev.stya.blockzone.combat.CombatRecovery.PLATE_POINTS,
+                dev.stya.blockzone.equipment.PlateCapacity.slots(player));
+        COMBAT_STATES.remove(player);
+        FLIGHT_STATES.remove(player);
+        RESCUE_STATES.remove(player);
+    }
+
     private BattlezoneNetwork() {
     }
 

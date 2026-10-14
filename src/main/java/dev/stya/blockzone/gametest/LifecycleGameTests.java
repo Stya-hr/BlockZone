@@ -51,6 +51,72 @@ public final class LifecycleGameTests {
         helper.succeed();
     }
 
+    private static net.minecraft.server.level.ServerPlayer player(GameTestHelper helper) {
+        var id = UUID.randomUUID();
+        var player = net.minecraftforge.common.util.FakePlayerFactory.get(helper.getLevel(),
+                new com.mojang.authlib.GameProfile(id, "life_" + id.toString().substring(0, 8)));
+        player.setGameMode(net.minecraft.world.level.GameType.CREATIVE);
+        player.getInventory().clearContent();
+        player.getInventory().setItem(0, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.APPLE, 3));
+        return player;
+    }
+
+    private static final class CancelLeave {
+        final BattlezoneMap map;
+        CancelLeave(BattlezoneMap map) { this.map = map; }
+        @net.minecraftforge.eventbus.api.SubscribeEvent
+        public void leave(com.ptcrys.fpsmatch.common.event.FPSMapEvent.PlayerEvent.LeaveEvent event) {
+            if (event.getMap() == map) event.setCanceled(true);
+        }
+    }
+
+    @GameTest(template = "empty")
+    public static void canceledLeavePreservesSessionAndSuccessfulLeaveRestoresOnce(GameTestHelper helper) {
+        var map = map(helper);
+        var player = player(helper);
+        check(map.join(player).isSuccess(), "Join through FPSMatch");
+        player.setAbsorptionAmount(12);
+        var cancel = new CancelLeave(map);
+        var bus = net.minecraftforge.common.MinecraftForge.EVENT_BUS;
+        bus.register(cancel);
+        try {
+            map.leave(player);
+            check(map.getMapTeams().getTeamByPlayer(player).isPresent(), "Canceled leave preserves membership");
+            check(player.getAbsorptionAmount() == 12, "Canceled leave does not clear combat state");
+        } finally { bus.unregister(cancel); }
+        map.leave(player);
+        check(map.getMapTeams().getTeamByPlayer(player).isEmpty(), "Successful leave removes membership");
+        check(player.isCreative(), "Restore pre-match game mode");
+        check(player.getInventory().getItem(0).is(net.minecraft.world.item.Items.APPLE)
+                && player.getInventory().getItem(0).getCount() == 3, "Restore pre-match inventory");
+        player.getInventory().setItem(0, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.STICK));
+        map.leave(player);
+        check(player.isCreative() && player.getInventory().getItem(0).is(net.minecraft.world.item.Items.STICK),
+                "Repeated leave cannot mutate restored state");
+        map.getCapabilityMap().clear();
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void disconnectThenLeaveQueuesOneRestorationForLogin(GameTestHelper helper) {
+        var map = map(helper);
+        var player = player(helper);
+        check(map.join(player).isSuccess(), "Join through FPSMatch");
+        player.getInventory().setItem(0, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.STONE));
+        map.handlePlayerDisconnect(player);
+        map.leave(player);
+        check(player.getInventory().getItem(0).is(net.minecraft.world.item.Items.STONE), "Disconnect defers snapshot restoration");
+        var login = new net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent(player);
+        dev.stya.blockzone.data.snapshot.PlayerStateSnapshot.onLogin(login);
+        check(player.isCreative() && player.getInventory().getItem(0).is(net.minecraft.world.item.Items.APPLE),
+                "Login restores pre-match state");
+        player.getInventory().setItem(0, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.STICK));
+        dev.stya.blockzone.data.snapshot.PlayerStateSnapshot.onLogin(login);
+        check(player.getInventory().getItem(0).is(net.minecraft.world.item.Items.STICK), "Snapshot consumed once");
+        map.getCapabilityMap().clear();
+        helper.succeed();
+    }
+
     private static void check(boolean value, String message) {
         if (!value) throw new AssertionError(message);
     }

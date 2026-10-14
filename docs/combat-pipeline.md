@@ -33,3 +33,9 @@ BlockZone 复用 FPSMatch 1.3.0 snapshot 的伤害记录、死亡汇总和击杀
 毒圈与战斗能力使用 FPSMatch 的 `MapCapability.tick()`，不再通过全局服务器/玩家 tick 推进毒圈、恢复和倒地计时。倒地缓存按所属地图推进、过期和清理；能力移除通过框架 `destroy()` 清理。玩家 HUD 同步仍保留玩家 tick。
 
 此 snapshot 的 `BaseMap.reset()` 不会调用能力 reset，`BattlezoneMap.reset()` 显式调用一次 `getCapabilityMap().resetAll()`。配置预检和冻结仍在 start 中按依赖顺序完成，`init()` 仅表示能力挂载，不作为比赛开始事件。
+
+## 离开与断线
+
+`BattlezoneMap` 按成功入场建立会话标记。`leave()` 先交由 FPSMatch 执行可取消的离开流程，成员确实移除后才统一清理战斗、空降、背包会话和同步缓存，并恢复入场快照；重复 leave 是空操作。
+
+FPSMatch 的 `handlePlayerDisconnect()` 统一清理运行态并把快照排队到下次登录，随后框架调用 leave 时不再清理或恢复第二次。登录恢复优先于框架普通登录处理。重置强制移除被取消离开的成员时，仍沿用同一清理入口。原有倒地和空降 Forge logout 监听已移除。

@@ -19,9 +19,6 @@ public final class DownedEvents {
             if (e.getAmount() >= p.getHealth() && DownedController.knock(p, e.getSource())) e.setCanceled(true);
         }
     }
-    @SubscribeEvent public static void logout(PlayerEvent.PlayerLoggedOutEvent e) {
-        if (e.getEntity() instanceof ServerPlayer p) DownedController.clear(p);
-    }
     @SubscribeEvent public static void tracking(PlayerEvent.StartTracking e) {
         if (e.getEntity() instanceof ServerPlayer p && e.getTarget() instanceof ServerPlayer target)
             BattlezoneNetwork.sendEditor(p, BattlezoneNetwork.rescuePacket(target));

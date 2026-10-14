@@ -4,7 +4,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import dev.stya.blockzone.inventory.InventoryPanelLayout;
 import dev.stya.blockzone.inventory.InventorySlot;
 import dev.stya.blockzone.inventory.PlayerPanelInventory;
-import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
+import dev.stya.blockzone.net.BlockzoneNetwork;
 import dev.stya.blockzone.net.battlezone.DiscardInventoryC2SPacket;
 import java.util.List;
 import net.minecraft.client.gui.GuiGraphics;
@@ -16,6 +16,11 @@ import net.minecraft.world.item.ItemStack;
 public final class InventoryPanelScreen extends Screen {
     private static final int FOREGROUND = 0xFFF3F7F8;
     private static final int SLOT_ICON_SIZE = 40;
+    private static final float COUNT_SCALE = 1.8F;
+    private static final int LIMIT_COLOR = 0xAAF3F7F8;
+    private static final int HEADER_WIDTH = 720;
+    private static final int HEADER_HEIGHT = 34;
+    private static final float HEADER_TEXT_SCALE = 2.8F;
     private static final int CAPTION_HEIGHT = 30;
     private static final int GUN_MARGIN_X = 12;
     private static final int GUN_MARGIN_Y = 6;
@@ -75,9 +80,14 @@ public final class InventoryPanelScreen extends Screen {
                 text(gui, label, cell.x() + (cell.width() - font.width(label) * 2F) / 2, cell.y() + cell.height() - 25, 2F, FOREGROUND);
             } else if (!equipment) {
                 int limit = data() == null ? cell.slot().defaultLimit() : data().limit(cell.slot());
-                String count = item.getCount() + " / " + limit;
-                text(gui, count, cell.x() + (cell.width() - font.width(count) * 2.2F) / 2, cell.y() + cell.height() - 26, 2.2F,
-                        item.getCount() > limit ? 0xFFFF9E81 : FOREGROUND);
+                String count = Integer.toString(item.getCount());
+                String maximum = " / " + limit;
+                float countWidth = font.width(count) * COUNT_SCALE;
+                float totalWidth = countWidth + font.width(maximum) * COUNT_SCALE;
+                float x = cell.x() + (cell.width() - totalWidth) / 2;
+                float y = cell.y() + cell.height() - 6 - font.lineHeight * COUNT_SCALE;
+                text(gui, count, x, y, COUNT_SCALE, item.getCount() > limit ? 0xFFFF9E81 : FOREGROUND);
+                text(gui, maximum, x + countWidth, y, COUNT_SCALE, LIMIT_COLOR);
             }
         }
         // Draw flat attachment status last, above every item/HUD render pass.
@@ -88,11 +98,11 @@ public final class InventoryPanelScreen extends Screen {
         gui.flush(); gui.pose().popPose();
         Component name = attachmentName != null ? attachmentName : hovered == null ? getTitle()
                 : stack(hovered.slot()).isEmpty() ? slotName(hovered.slot()) : stack(hovered.slot()).getHoverName();
-        String description = font.plainSubstrByWidth(name.getString(), (int) ((1040 - 24) / 2.2F));
-        float descriptionWidth = font.width(description) * 2.2F;
-        int frameWidth = (int) Math.ceil(descriptionWidth + 24);
-        box(gui, (1040 - frameWidth) / 2, 0, frameWidth, 34, false);
-        text(gui, description, (1040 - descriptionWidth) / 2, (34 - font.lineHeight * 2.2F) / 2, 2.2F, FOREGROUND);
+        String description = font.plainSubstrByWidth(name.getString(), (int) ((HEADER_WIDTH - 24) / HEADER_TEXT_SCALE));
+        float descriptionWidth = font.width(description) * HEADER_TEXT_SCALE;
+        box(gui, (1040 - HEADER_WIDTH) / 2, 0, HEADER_WIDTH, HEADER_HEIGHT, false);
+        text(gui, description, (1040 - descriptionWidth) / 2,
+                (HEADER_HEIGHT - font.lineHeight * HEADER_TEXT_SCALE) / 2, HEADER_TEXT_SCALE, FOREGROUND);
         InventoryPromptRenderer.render(gui, font, InventoryPreviewKeys.bulkDropDown(minecraft));
         gui.pose().popPose();
         if (dragging && pressedCell != null) {
@@ -166,11 +176,11 @@ public final class InventoryPanelScreen extends Screen {
         if (target != null && target != pressedCell) dragging = true;
         if (dragging) {
             if (target != null && target != pressedCell)
-                BattlezoneNetwork.swapInventory(new dev.stya.blockzone.net.battlezone.SwapInventoryC2SPacket(
+                BlockzoneNetwork.sendToServer(new dev.stya.blockzone.net.battlezone.SwapInventoryC2SPacket(
                         pressedCell.slot().index(), target.slot().index(), pressedRound,
                         pressedRevisions[pressedCell.slot().index()], pressedRevisions[target.slot().index()]));
         } else if (target == pressedCell) {
-            BattlezoneNetwork.discard(new DiscardInventoryC2SPacket(pressedCell.slot().index(), pressedAction,
+            BlockzoneNetwork.sendToServer(new DiscardInventoryC2SPacket(pressedCell.slot().index(), pressedAction,
                     pressedRound, pressedRevisions[pressedCell.slot().index()]));
         }
         pressedCell = null; pressedRevisions = null; pressedButton = -1; dragging = false;
@@ -179,7 +189,7 @@ public final class InventoryPanelScreen extends Screen {
     private void discard(InventoryPanelLayout.Cell cell, boolean all) {
         if (cell == null) return;
         var data = data(); var stack = stack(cell.slot());
-        if (data != null && !stack.isEmpty()) BattlezoneNetwork.discard(new DiscardInventoryC2SPacket(
+        if (data != null && !stack.isEmpty()) BlockzoneNetwork.sendToServer(new DiscardInventoryC2SPacket(
                 cell.slot().index(), all ? 2 : InventoryPreviewKeys.bulkDropDown(minecraft) ? 1 : 0, data.round(), data.revision(cell.slot())));
     }
     @Override public boolean keyPressed(int keyCode, int scanCode, int modifiers) {

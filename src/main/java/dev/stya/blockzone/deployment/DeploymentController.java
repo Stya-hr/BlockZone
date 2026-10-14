@@ -1,7 +1,7 @@
 package dev.stya.blockzone.deployment;
 
 import dev.stya.blockzone.map.battlezone.BattlezoneMap;
-import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
+import dev.stya.blockzone.deployment.FlightStateSync;
 import dev.stya.blockzone.net.battlezone.DeploymentVehicleS2CPacket;
 import dev.stya.blockzone.net.battlezone.FlightStateS2CPacket;
 import java.util.HashMap;
@@ -50,7 +50,7 @@ public final class DeploymentController {
         player.setYHeadRot(routeYaw);
         player.setXRot(0);
         moveAlongRoute(player, false);
-        BattlezoneNetwork.send(player, new FlightStateS2CPacket(player.getUUID(), 1, routeYaw));
+        FlightStateSync.sync(player, new FlightStateS2CPacket(player.getUUID(), 1, routeYaw));
         player.sendSystemMessage(Component.translatable("blockzone.deployment.boarded"));
     }
 
@@ -144,7 +144,7 @@ public final class DeploymentController {
         player.fallDistance = 0;
         player.setDeltaMovement(Vec3.ZERO);
         if (notifyClient) {
-            BattlezoneNetwork.send(player, new FlightStateS2CPacket(player.getUUID(), 0));
+            FlightStateSync.sync(player, new FlightStateS2CPacket(player.getUUID(), 0));
         }
     }
 

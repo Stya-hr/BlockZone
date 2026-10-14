@@ -5,7 +5,7 @@ import com.ptcrys.fpsmatch.common.event.register.RegisterFPSMCommandEvent;
 import com.ptcrys.fpsmatch.core.FPSMCore;
 import dev.stya.blockzone.BlockZone;
 import dev.stya.blockzone.map.battlezone.BattlezoneMap;
-import dev.stya.blockzone.net.editor.LootEditorSessions;
+import dev.stya.blockzone.editor.loot.LootEditorSessions;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.eventbus.api.SubscribeEvent;

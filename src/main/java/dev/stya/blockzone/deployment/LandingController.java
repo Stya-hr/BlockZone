@@ -1,6 +1,6 @@
 package dev.stya.blockzone.deployment;
 
-import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
+import dev.stya.blockzone.deployment.FlightStateSync;
 import dev.stya.blockzone.net.battlezone.FlightStateS2CPacket;
 import java.util.HashMap;
 import java.util.List;
@@ -36,7 +36,7 @@ public final class LandingController {
         player.setOnGround(false);
         player.setDeltaMovement(0, -0.8, 0);
         player.connection.send(new ClientboundSetEntityMotionPacket(player));
-        BattlezoneNetwork.send(player, new FlightStateS2CPacket(player.getUUID(), 3, 0, appearance));
+        FlightStateSync.sync(player, new FlightStateS2CPacket(player.getUUID(), 3, 0, appearance));
     }
 
     public boolean toggleParachute(ServerPlayer player) {
@@ -50,7 +50,7 @@ public final class LandingController {
         }
         state.lastToggleTick = now;
         state.parachuteOpen = !state.parachuteOpen;
-        BattlezoneNetwork.send(player, new FlightStateS2CPacket(player.getUUID(), state.parachuteOpen ? 2 : 3, 0, state.appearance));
+        FlightStateSync.sync(player, new FlightStateS2CPacket(player.getUUID(), state.parachuteOpen ? 2 : 3, 0, state.appearance));
         return true;
     }
 
@@ -95,7 +95,7 @@ public final class LandingController {
         player.onUpdateAbilities();
         player.fallDistance = 0;
         player.setDeltaMovement(Vec3.ZERO);
-        BattlezoneNetwork.send(player, new FlightStateS2CPacket(player.getUUID(), 0));
+        FlightStateSync.sync(player, new FlightStateS2CPacket(player.getUUID(), 0));
     }
 
     public void clear() {

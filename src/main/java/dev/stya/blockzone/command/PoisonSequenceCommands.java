@@ -9,7 +9,7 @@ import com.ptcrys.fpsmatch.common.event.register.RegisterFPSMCommandEvent;
 import com.ptcrys.fpsmatch.core.FPSMCore;
 import dev.stya.blockzone.BlockZone;
 import dev.stya.blockzone.map.battlezone.BattlezoneMap;
-import dev.stya.blockzone.net.editor.PoisonEditorSessions;
+import dev.stya.blockzone.editor.zone.PoisonEditorSessions;
 import dev.stya.blockzone.zone.PoisonPath;
 import dev.stya.blockzone.zone.ZoneShape;
 import java.util.ArrayList;

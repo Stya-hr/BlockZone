@@ -16,7 +16,10 @@
 - Java 17
 - Minecraft 1.20.1 / Forge 47.4.10
 - FPSMatch 1.3.0 Forge snapshot
-- TaCZ、Kotlin for Forge、Modern UI
+- TaCZ、Kotlin for Forge
+- 客户端需要 Modern UI 3.12.0.1 或更新版本（编辑器使用其控件与布局）
+
+编辑器保留原有命令入口、世界操作和保存流程；参数集中在可滚动侧栏，保存与退出固定在底部，操作说明可在“操作帮助”中展开。地图场景不使用全屏背景或模糊。
 
 项目以[官方 Forge 1.20.1-47.4.10 MDK](https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.4.10/forge-1.20.1-47.4.10-mdk.zip) 为底稿，保留其构建脚本结构、Maven 发布配置、资源替换与 JAR 元数据配置，使用 ForgeGradle 6 与 Gradle 8.8 Wrapper。现有 Java 代码、资源与测试迁入 MDK 的 `src/` 目录，并接入 FPSMatch 等依赖、Mixin 和独立资源包任务。开发依赖版本见 `gradle.properties`，Gradle 会下载开发运行所需依赖，无须复制本机缓存或手动放入依赖 JAR。
 

@@ -6,7 +6,7 @@ import java.util.Optional;
 
 /** Single-match survival rule, evaluated by FPSMatch's BaseMap victory hook. */
 final class BattlezoneEliminationRule {
-    Optional<RoundResult<String, BattlezoneResultReason>> evaluate(BattlezoneMatchContext context) {
+    Optional<RoundResult<String, BattlezoneResultReason>> evaluate(BattlezoneEliminationContext context) {
         if (context.debug() || !context.combatPhase()) return Optional.empty();
         return resolve(context.livingTeams());
     }

@@ -15,7 +15,7 @@ public record RescueStateS2CPacket(UUID playerId, int state, int bleedTicks, int
     }
     public void handle(Supplier<NetworkEvent.Context> supplier) {
         var context = supplier.get();
-        context.enqueueWork(() -> ClientPacketHandler.handle(this));
+        context.enqueueWork(() -> BattlezoneClientPacketHandler.handle(this));
         context.setPacketHandled(true);
     }
 }

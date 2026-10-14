@@ -3,14 +3,13 @@ package dev.stya.blockzone.client.editor;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
 import dev.stya.blockzone.BlockZone;
-import dev.stya.blockzone.client.battlezone.WorldRenderer;
+import dev.stya.blockzone.client.battlezone.BattlezoneWorldRenderer;
 import dev.stya.blockzone.editor.zone.PoisonEditorDraft;
-import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
+import dev.stya.blockzone.net.BlockzoneNetwork;
 import dev.stya.blockzone.net.battlezone.BoundaryPreviewS2CPacket;
 import dev.stya.blockzone.net.editor.*;
 import dev.stya.blockzone.net.editor.PoisonEditorResultS2CPacket;
 import dev.stya.blockzone.net.editor.PoisonEditorS2CPacket;
-import dev.stya.blockzone.net.editor.PoisonEditorSessions;
 import dev.stya.blockzone.net.editor.SavePoisonEditorC2SPacket;
 import dev.stya.blockzone.zone.BoundaryGeometry;
 import dev.stya.blockzone.zone.PoisonPath;
@@ -37,7 +36,7 @@ public final class PoisonWorldEditor {
         session = packet;
         draft = new PoisonEditorDraft(PoisonPath.CODEC.listOf().parse(JsonOps.INSTANCE,
                 JsonParser.parseString(packet.pathsJson())).getOrThrow(false, m -> {}));
-        savedJson = PoisonEditorSessions.json(draft.paths());
+        savedJson = PoisonPath.CODEC.listOf().encodeStart(JsonOps.INSTANCE, draft.paths()).getOrThrow(false, m -> {}).toString();
         saving = false; message = "";
         if (!PoisonEditorCamera.start()) message = Component.translatable("editor.blockzone.camera_busy").getString();
         mc.setScreen(new PoisonEditorScreen());
@@ -56,25 +55,25 @@ public final class PoisonWorldEditor {
         if (saving) return;
         try {
             for (var path : draft.paths()) path.resolve(bounds(), y());
-            String json = PoisonEditorSessions.json(draft.paths());
+            String json = PoisonPath.CODEC.listOf().encodeStart(JsonOps.INSTANCE, draft.paths()).getOrThrow(false, m -> {}).toString();
             if (json.length() > 262144) throw new IllegalArgumentException("Draft is too large for the editor");
-            BattlezoneNetwork.saveEditor(new SavePoisonEditorC2SPacket(session.token(), json));
+            BlockzoneNetwork.sendToServer(new SavePoisonEditorC2SPacket(session.token(), json));
             saving = true; message = "Saving...";
         } catch (RuntimeException exception) { message = exception.getMessage(); }
     }
     public static void result(PoisonEditorResultS2CPacket packet) {
         if (session == null || !session.token().equals(packet.token())) return;
         saving = false; message = packet.message();
-        if (packet.saved()) savedJson = PoisonEditorSessions.json(draft.paths());
+        if (packet.saved()) savedJson = PoisonPath.CODEC.listOf().encodeStart(JsonOps.INSTANCE, draft.paths()).getOrThrow(false, m -> {}).toString();
     }
-    static boolean dirty() { return draft != null && !PoisonEditorSessions.json(draft.paths()).equals(savedJson); }
+    static boolean dirty() { return draft != null && !PoisonPath.CODEC.listOf().encodeStart(JsonOps.INSTANCE, draft.paths()).getOrThrow(false, m -> {}).toString().equals(savedJson); }
     static void discard() { session = null; draft = null; saving = false; PoisonEditorCamera.stop(); Minecraft.getInstance().setScreen(null); }
     public static void render(RenderLevelStageEvent event) {
         var mc = Minecraft.getInstance();
         if (session == null || mc.level == null || !mc.level.dimension().location().equals(session.dimension())
                 || event.getStage() != RenderLevelStageEvent.Stage.AFTER_SOLID_BLOCKS) return;
         var camera = event.getCamera().getPosition();
-        WorldRenderer.renderPreview(new BoundaryPreviewS2CPacket(session.dimension(), true, session.pos1(), session.pos2()),
+        BattlezoneWorldRenderer.renderPreview(new BoundaryPreviewS2CPacket(session.dimension(), true, session.pos1(), session.pos2()),
                 event.getPoseStack(), camera);
         for (int i = Math.max(0, draft.circle() - 1); i <= Math.min(draft.path().circles().size() - 1, draft.circle() + 1); i++) {
             var c = draft.path().circles().get(i);
@@ -84,10 +83,10 @@ public final class PoisonWorldEditor {
             try {
                 var actual = raw.fitInside(bounds());
                 boolean moved = actual.centerX() != raw.centerX() || actual.centerZ() != raw.centerZ();
-                WorldRenderer.renderZoneGrid(raw, event.getPoseStack(), camera, moved ? 0xffa030 : color);
-                if (moved && i == draft.circle()) WorldRenderer.renderZoneGrid(actual, event.getPoseStack(), camera, 0x30ffff);
+                BattlezoneWorldRenderer.renderZoneGrid(raw, event.getPoseStack(), camera, moved ? 0xffa030 : color);
+                if (moved && i == draft.circle()) BattlezoneWorldRenderer.renderZoneGrid(actual, event.getPoseStack(), camera, 0x30ffff);
             } catch (IllegalArgumentException invalid) {
-                WorldRenderer.renderZoneGrid(raw, event.getPoseStack(), camera, 0xff3030);
+                BattlezoneWorldRenderer.renderZoneGrid(raw, event.getPoseStack(), camera, 0xff3030);
             }
         }
     }

@@ -1,10 +1,12 @@
-package dev.stya.blockzone.net.editor;
+package dev.stya.blockzone.editor.zone;
+
+import dev.stya.blockzone.net.editor.*;
 
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
 import com.ptcrys.fpsmatch.core.FPSMCore;
 import dev.stya.blockzone.map.battlezone.BattlezoneMap;
-import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
+import dev.stya.blockzone.net.BlockzoneNetwork;
 import dev.stya.blockzone.zone.PoisonPath;
 import java.util.List;
 import java.util.Map;
@@ -29,14 +31,14 @@ public final class PoisonEditorSessions {
         var session = new Session(UUID.randomUUID(), map, List.copyOf(paths));
         SESSIONS.put(player, session);
         var area = map.getMapArea();
-        BattlezoneNetwork.sendEditor(player, new PoisonEditorS2CPacket(session.token, map.getMapName(),
+        BlockzoneNetwork.sendToPlayer(player, new PoisonEditorS2CPacket(session.token, map.getMapName(),
                 map.getServerLevel().dimension().location(), area.pos1(), area.pos2(), payload));
     }
     private static void checkSize(List<PoisonPath> paths) {
         if (paths.isEmpty() || paths.size() > 128 || paths.stream().anyMatch(p -> p.circles().isEmpty() || p.circles().size() > 128))
             throw new IllegalArgumentException("Editor supports 1..128 sequences and circles per sequence");
     }
-    static void save(ServerPlayer player, SavePoisonEditorC2SPacket packet) {
+    public static void save(ServerPlayer player, SavePoisonEditorC2SPacket packet) {
         if (player == null) return;
         try {
             var session = SESSIONS.get(player);
@@ -74,10 +76,10 @@ public final class PoisonEditorSessions {
                 throw new IllegalArgumentException("Unable to persist settings. Draft was not applied", failure);
             }
             SESSIONS.put(player, new Session(session.token, map, paths));
-            BattlezoneNetwork.sendEditor(player, new PoisonEditorResultS2CPacket(packet.token(), true,
+            BlockzoneNetwork.sendToPlayer(player, new PoisonEditorResultS2CPacket(packet.token(), true,
                     "Saved. Active matches keep their original path."));
         } catch (RuntimeException failure) {
-            BattlezoneNetwork.sendEditor(player, new PoisonEditorResultS2CPacket(packet.token(), false,
+            BlockzoneNetwork.sendToPlayer(player, new PoisonEditorResultS2CPacket(packet.token(), false,
                     failure.getMessage() == null ? "Unable to save" : failure.getMessage()));
         }
     }

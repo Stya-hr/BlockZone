@@ -4,7 +4,7 @@ package dev.stya.blockzone.client.hud.squad;
 public record SquadRosterLayout(int rows, int columns, int pages, int count) {
     public static final float COLUMN_STEP = 220, TOP_SAFE = 360;
     public static SquadRosterLayout create(int teammates, float localTop, float viewportWidth) {
-        int rows = Math.max(1, (int)Math.floor((localTop - 42 - TOP_SAFE) / SquadHudStyle.TEAM_STEP) + 1);
+        int rows = Math.min(4, Math.max(1, (int)Math.floor((localTop - 42 - TOP_SAFE) / SquadHudStyle.TEAM_STEP) + 1));
         int columns = Math.max(1, Math.min(2, (int)((viewportWidth * .4f - SquadHudStyle.LEFT) / COLUMN_STEP)));
         int capacity = rows * columns;
         return new SquadRosterLayout(rows, columns, Math.max(1, (Math.max(0, teammates) - 1) / capacity + 1), Math.max(0, teammates));

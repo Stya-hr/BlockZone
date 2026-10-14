@@ -54,6 +54,8 @@ public final class BattlezoneMap extends BaseMap {
     private final LandingController landing = new LandingController();
     private MatchCombatController combat() { return CapabilityMap.getMapCapability(this, BattlezoneCombatCapability.class).orElseThrow().controller(); }
 
+    public BattlezoneCombatCapability.Config getCombatConfig() { return combat().config(); }
+
     public float getCombatHealth() { return combat().health(); }
     public float getArmorPlatePoints() { return combat().platePoints(); }
     public float getMaxCombatArmor(ServerPlayer player) { return combat().maxArmor(player); }

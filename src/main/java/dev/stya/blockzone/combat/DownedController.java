@@ -1,5 +1,6 @@
 package dev.stya.blockzone.combat;
 
+import dev.stya.blockzone.map.battlezone.capability.BattlezoneCombatCapability;
 import dev.stya.blockzone.map.battlezone.BattlezoneMap;
 import dev.stya.blockzone.net.battlezone.BattlezoneNetwork;
 import dev.stya.blockzone.net.battlezone.RescueStateS2CPacket;
@@ -36,20 +37,23 @@ public final class DownedController {
                 || map.getPhase() != BattlezoneMap.MatchPhase.MATCH
                 || !eligible(player, map) || teammates(player, map).isEmpty()
                 || source.is(net.minecraft.tags.DamageTypeTags.BYPASSES_INVULNERABILITY)) return false;
-        DOWN.put(player, new Entry(map, new RescueTimer(), DownedDeathContext.capture(map, player, source), player.serverLevel().getGameTime()));
+        var config = map.getCombatConfig();
+        DOWN.put(player, new Entry(map, new RescueTimer(
+                BattlezoneCombatCapability.Config.ticks(config.bleedSeconds()),
+                BattlezoneCombatCapability.Config.ticks(config.rescueSeconds())), DownedDeathContext.capture(map, player, source), player.serverLevel().getGameTime()));
         cancelRescue(player);
         map.clearAirbornePlayer(player);
         player.closeContainer();
         player.stopUsingItem();
         player.setAbsorptionAmount(0);
-        player.setHealth(Math.min(50, player.getMaxHealth()));
+        player.setHealth(Math.min((float) config.downedHealth(), player.getMaxHealth()));
         player.setForcedPose(Pose.SWIMMING);
         var speed = player.getAttribute(Attributes.MOVEMENT_SPEED);
-        if (speed != null && !speed.hasModifier(new AttributeModifier(SLOW, "Downed crawl", -.75,
+        if (speed != null && !speed.hasModifier(new AttributeModifier(SLOW, "Downed crawl", config.downedSpeedFraction() - 1,
                 AttributeModifier.Operation.MULTIPLY_TOTAL)))
-            speed.addTransientModifier(new AttributeModifier(SLOW, "Downed crawl", -.75,
+            speed.addTransientModifier(new AttributeModifier(SLOW, "Downed crawl", config.downedSpeedFraction() - 1,
                     AttributeModifier.Operation.MULTIPLY_TOTAL));
-        sync(player, 1, RescueTimer.BLEED_TICKS, 0);
+        sync(player, 1, DOWN.get(player).timer.bleedTicks(), 0);
         return true;
     }
     public static boolean duplicateBulletDamage(ServerPlayer player, DamageSource source) {
@@ -86,7 +90,7 @@ public final class DownedController {
                 && !helper.isUsingItem() && helper.hurtTime == 0 && target.hurtTime == 0
                 && helper.getViewVector(1).dot(target.getBoundingBox().getCenter()
                         .subtract(helper.getEyePosition()).normalize()) > .5
-                && helper.distanceToSqr(target) <= 6.25
+                && helper.distanceToSqr(target) <= map.getCombatConfig().rescueDistance() * map.getCombatConfig().rescueDistance()
                 && helper.hasLineOfSight(target)
                 && helper.onGround()
                 && helper.getDeltaMovement().horizontalDistanceSqr() < .0001
@@ -131,7 +135,7 @@ public final class DownedController {
                         : BattlezoneDeathEvent.Reason.TEAM_WIPE);
             } else if (entry.timer.rescued()) {
                 clear(player);
-                player.setHealth(player.getMaxHealth() * .3F);
+                player.setHealth((float) (player.getMaxHealth() * entry.map.getCombatConfig().reviveHealthFraction()));
                 entry.map.combatHurt(player);
             } else {
                 sync(player, 1, entry.timer.remaining(), entry.timer.progress());
@@ -150,6 +154,9 @@ public final class DownedController {
     }
 
     public static void sync(ServerPlayer player, int state, int bleed, int progress) {
-        BattlezoneNetwork.sendRescue(player, new RescueStateS2CPacket(player.getUUID(), state, bleed, progress));
+        var entry = DOWN.get(RESCUERS.getOrDefault(player, player));
+        BattlezoneNetwork.sendRescue(player, new RescueStateS2CPacket(player.getUUID(), state, bleed, progress,
+                entry == null ? 0 : entry.timer.bleedTicks(), entry == null ? 0 : entry.timer.rescueTicks(),
+                entry == null ? 0 : entry.map.getCombatConfig().rescueDistance()));
     }
 }

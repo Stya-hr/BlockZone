@@ -49,3 +49,31 @@ FPSMatch 的 `handlePlayerDisconnect()` 统一清理运行态。比赛中框架�
 流血或队伍覆灭淘汰直接进入原版死亡事件，避免 `Float.MAX_VALUE` 人工伤害进入框架伤害及助攻记录。框架继续负责死亡汇总、一次性击杀和爆头计数。`BattlezoneDeathEvent` 仍用于击杀信息，最终战绩从框架 KillEvent/VictoryEvent 或上述快照读取。没有新增奖励、HUD 或战绩持久化规则。
 
 服务端测试覆盖能力生命周期、离开取消和重复调用、保留离线队员的重连、延迟死亡经真实 ServerPlayer 死亡方法进入框架后的计数及结算，以及平局和结果的生命周期。测试玩家使用无网络连接处理器，真实客户端连线与救援仍需单独验证。
+
+## 战斗参数配置
+
+战斗参数由每张地图的 `combat` 能力保存，开局时冻结整份配置。比赛中执行 set/reset 仅修改下一局配置，不改变当前玩家的倒地、救援或恢复规则。沿用 FPSMatch 地图配置文件保存机制，失败会回滚。
+
+| 字段 | 默认值 | 有效范围 | 含义 |
+| --- | --- | --- | --- |
+| `matchHealth` | 100 | 1–1024 | 对局最大血量 |
+| `armorPlatePoints` | 50 | 1–1024 | 每片护甲点数 |
+| `downedHealth` | 50 | 1–1024 | 倒地初始血量，实际不超过玩家最大血量 |
+| `bleedSeconds` | 60 | 0.05–3600 | 倒地流血时间，救援期间仍继续计时 |
+| `rescueSeconds` | 8 | 0.05–3600 | 连续救援耗时，中断会清空进度 |
+| `rescueDistance` | 2.5 | 0.1–64 | 救援最大距离，单位为格 |
+| `reviveHealthFraction` | 0.3 | 0.001–1 | 救起后血量占最大血量的比例 |
+| `downedSpeedFraction` | 0.25 | 0–1 | 倒地速度占正常速度的比例 |
+| `recoveryDelaySeconds` | 5 | 0–3600 | 受伤后的回血等待时间 |
+| `recoveryIntervalSeconds` | 0.25 | 0.05–3600 | 每次回血间隔 |
+| `recoveryHealthFraction` | 0.05 | 0.001–1 | 每次回复对局最大血量的比例 |
+
+所有数值必须有限；比例填写 0–1 数值。时间向上取整到服务器 tick（每秒 20 tick）。首次回血发生在等待时间加一个回血间隔后，护甲受击也会重新计时。流血与救援同 tick 到期时，优先处理流血淘汰。
+
+```mcfunction
+/fpsm map modify battlezone flat160 capability combat get
+/fpsm map modify battlezone flat160 capability combat set {"matchHealth":100,"armorPlatePoints":50,"downedHealth":50,"bleedSeconds":60,"rescueSeconds":8,"rescueDistance":2.5,"reviveHealthFraction":0.3,"downedSpeedFraction":0.25,"recoveryDelaySeconds":5,"recoveryIntervalSeconds":0.25,"recoveryHealthFraction":0.05}
+/fpsm map modify battlezone flat160 capability combat reset
+```
+
+`set` 提交完整配置，所有字段必填；未实现旧配置迁移或缺失字段默认补齐。已有旧 combat 配置应使用 reset 保存完整默认配置后重新设置。网络协议升为 25，救援同步包携带流血总时长、救援总时长与救援距离，客户端提示和进度条使用服务端快照。

@@ -127,12 +127,8 @@ public final class DownedController {
             }
             boolean expired = entry.timer.tick(helper != null);
             if (expired || team.isEmpty()) {
-                clear(player);
-                DownedDeathContext.finishing(entry.context, expired ? BattlezoneDeathEvent.Reason.BLEED_OUT
+                finish(entry.context, expired ? BattlezoneDeathEvent.Reason.BLEED_OUT
                         : BattlezoneDeathEvent.Reason.TEAM_WIPE);
-                FINISHING.add(player);
-                try { player.setHealth(1); player.invulnerableTime = 0; player.hurt(entry.context.getDamageSource(), Float.MAX_VALUE); }
-                finally { FINISHING.remove(player); }
             } else if (entry.timer.rescued()) {
                 clear(player);
                 player.setHealth(player.getMaxHealth() * .3F);
@@ -143,6 +139,16 @@ public final class DownedController {
             }
         }
     }
+    /** Enter vanilla's death event, which FPSMatch intercepts, without recording artificial damage. */
+    public static void finish(com.ptcrys.fpsmatch.core.map.DeathContext context, BattlezoneDeathEvent.Reason reason) {
+        var player = context.getDeadPlayer();
+        clear(player);
+        DownedDeathContext.finishing(context, reason);
+        FINISHING.add(player);
+        try { player.die(context.getDamageSource()); }
+        finally { FINISHING.remove(player); }
+    }
+
     public static void sync(ServerPlayer player, int state, int bleed, int progress) {
         BattlezoneNetwork.sendRescue(player, new RescueStateS2CPacket(player.getUUID(), state, bleed, progress));
     }

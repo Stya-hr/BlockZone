@@ -92,9 +92,4 @@ public final class DownedDeathContext {
         PENDING.entrySet().removeIf(e -> e.getValue().map == map && tick - e.getValue().tick > 5);
     }
 
-    public static void tick(long tick) {
-        GUN_HITS.entrySet().removeIf(e -> tick - e.getValue().tick > 1);
-        // Canceled deaths must not contaminate a later elimination.
-        PENDING.entrySet().removeIf(e -> tick - e.getValue().tick > 5);
-    }
 }

@@ -84,7 +84,7 @@ public final class BattlezoneMap extends BaseMap {
 
     public BattlezoneMap(ServerLevel serverLevel, String mapName, AreaData areaData) {
         super(serverLevel, mapName, areaData, List.of(BattlezoneLoadoutCapability.class, BattlezoneCombatCapability.class, BattlezoneZoneCapability.class,
-                BattlezoneInventoryCapability.class));
+                BattlezoneInventoryCapability.class, dev.stya.blockzone.map.battlezone.capability.BattlezoneStatisticsCapability.class));
         this.teamPlayerLimit = addSetting("battlezone", "teamPlayerLimit", 3);
         this.totalPlayerLimit = addSetting("battlezone", "totalPlayerLimit", 24);
         this.minimumTeamsToStart = addSetting("battlezone", "minimumTeamsToStart", 2);
@@ -287,6 +287,7 @@ public final class BattlezoneMap extends BaseMap {
             broadcast(Component.literal("Battlezone initial inventory rejected: " + exception.getMessage()));
             return false;
         }
+        statistics().begin();
         phaseTicks = 0;
         victoryAnnounced = false;
         resetMatchClock();
@@ -472,24 +473,32 @@ public final class BattlezoneMap extends BaseMap {
         if (phase != MatchPhase.MATCH || victoryAnnounced) {
             return;
         }
+        var resolved = eliminationRule.resolve(BattlezoneMatchContext.capture(this).livingTeams());
+        if (resolved.isEmpty()) return;
+        var result = resolved.get();
         victoryAnnounced = true;
-        eliminationRule.resolve(BattlezoneMatchContext.capture(this).livingTeams()).ifPresent(result -> {
-            if (result.reason() == BattlezoneResultReason.DRAW) {
-                broadcast(Component.literal("Battlezone ended in a draw."));
-            } else {
-                getMapTeams().getTeamByName(result.winner()).ifPresent(winner -> {
-                    winner.sendMessage(Component.literal("Your team won the Battlezone."));
-                    for (ServerTeam team : getMapTeams().getNormalTeams()) {
-                        if (team != winner) team.sendMessage(Component.literal("Your team was eliminated from the Battlezone."));
-                    }
-                });
-            }
-        });
+        statistics().prepareResult(result);
+        if (result.reason() == BattlezoneResultReason.DRAW) {
+            broadcast(Component.literal("Battlezone ended in a draw."));
+        } else {
+            getMapTeams().getTeamByName(result.winner()).ifPresent(winner -> {
+                winner.sendMessage(Component.literal("Your team won the Battlezone."));
+                for (ServerTeam team : getMapTeams().getNormalTeams()) {
+                    if (team != winner) team.sendMessage(Component.literal("Your team was eliminated from the Battlezone."));
+                }
+            });
+        }
         super.victory();
         phase = MatchPhase.SETTLEMENT;
         phaseTicks = 0;
         visualSync.sync(true);
     }
+
+    public dev.stya.blockzone.map.battlezone.capability.BattlezoneStatisticsCapability statistics() {
+        return getCapabilityMap().get(dev.stya.blockzone.map.battlezone.capability.BattlezoneStatisticsCapability.class).orElseThrow();
+    }
+
+    public Optional<BattlezoneMatchResult> getMatchResult() { return statistics().result(); }
 
     @Override
     public boolean victoryGoal() {

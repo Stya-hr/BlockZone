@@ -16,7 +16,7 @@ BlockZone 复用 FPSMatch 1.3.0 snapshot 的伤害记录、死亡汇总和击杀
 
 `DownedDeathContext` 只保留倒地扩展所需的信息：同 tick、同直接子弹实体的 `FPSMGunDamageEvent` 与击倒伤害匹配，保存到 FPSMatch 的 `DeathContext`。不以“刚被枪击过”判断其他伤害。
 
-流血或失去可救援队友时仍通过原有 `player.hurt` 进入框架死亡管线，再在 `handleDeath` 恢复原武器、爆头、穿墙、穿烟和开镜标记。补杀走补杀本身的框架上下文，不继承击倒者的标记。救起、离开、重置和服务器停止时清理；取消死亡留下的待处理信息会过期。
+流血或失去可救援队友时通过原版 `ServerPlayer.die` 发出死亡事件，交由 FPSMatch 拦截与结算，不再制造额外伤害，再在 `handleDeath` 恢复原武器、爆头、穿墙、穿烟和开镜标记。补杀走补杀本身的框架上下文，不继承击倒者的标记。救起、离开、重置和服务器停止时清理；取消死亡留下的待处理信息会过期。
 
 击杀归属继续使用 FPSMatch 从最终伤害源解析出的攻击者，本次不改变计分规则。框架伤害记录发生在 `LivingHurtEvent` 阶段，伤害统计仍沿用其现有口径。
 
@@ -39,3 +39,13 @@ BlockZone 复用 FPSMatch 1.3.0 snapshot 的伤害记录、死亡汇总和击杀
 `BattlezoneMap` 按成功入场建立会话标记。`leave()` 先交由 FPSMatch 执行可取消的离开流程，成员确实移除后才统一清理战斗、空降、背包会话和同步缓存，并恢复入场快照；重复 leave 是空操作。
 
 FPSMatch 的 `handlePlayerDisconnect()` 统一清理运行态。比赛中框架保留离线队员，入场快照也随之保留；通过框架 `LoggedInEvent` 恢复会话标记后，真正离开时才恢复快照。离线期间实际离开或比赛重置则把快照排队到下次登录。登录恢复优先于框架普通登录处理。重置强制移除被取消离开的成员时，仍沿用同一清理入口。原有倒地和空降 Forge logout 监听已移除。
+
+## 击杀统计与结算
+
+`BattlezoneStatisticsCapability` 由 FPSMatch 挂载并自动注册/注销事件监听。它在框架完成击杀、爆头和助攻记账后消费 `FPSMapEvent.PlayerEvent.KillEvent`，通过 `map.statistics().lastKill()` 提供只读数值快照，不再次增减框架计数。击杀归属、队杀、助攻选择和计分规则沿用 FPSMatch；事件可能表示未获计数的队杀，因此以快照计数为准。
+
+地图胜利规则先确定胜者，再调用 `super.victory()`。能力消费 `FPSMapEvent.VictoryEvent` 的玩家及队伍快照，生成 `map.getMatchResult()`。结果包含地图名、胜者（平局为空）、结束原因和比赛 tick 数，保留到下一次成功开局；重置清理名单不会清掉已完成结果，能力销毁会释放结果。框架快照中的名字 Component 按只读使用。
+
+流血或队伍覆灭淘汰直接进入原版死亡事件，避免 `Float.MAX_VALUE` 人工伤害进入框架伤害及助攻记录。框架继续负责死亡汇总、一次性击杀和爆头计数。`BattlezoneDeathEvent` 仍用于击杀信息，最终战绩从框架 KillEvent/VictoryEvent 或上述快照读取。没有新增奖励、HUD 或战绩持久化规则。
+
+服务端测试覆盖能力生命周期、离开取消和重复调用、保留离线队员的重连、延迟死亡经真实 ServerPlayer 死亡方法进入框架后的计数及结算，以及平局和结果的生命周期。测试玩家使用无网络连接处理器，真实客户端连线与救援仍需单独验证。

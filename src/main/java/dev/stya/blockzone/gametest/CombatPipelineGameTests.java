@@ -90,8 +90,8 @@ public final class CombatPipelineGameTests {
         check(DownedDeathContext.apply(context(player, source, ItemStack.EMPTY)) == BattlezoneDeathEvent.Reason.DIRECT,
                 "Rescue, leave and reset cleanup remove attribution");
         DownedDeathContext.finishing(original, BattlezoneDeathEvent.Reason.TEAM_WIPE);
-        DownedDeathContext.tick(player.serverLevel().getGameTime() + 6);
-        check(DownedDeathContext.apply(context(player, source, ItemStack.EMPTY)) == BattlezoneDeathEvent.Reason.DIRECT,
+        var later = new DeathContext(player, null, source, ItemStack.EMPTY, player.serverLevel().getGameTime() + 6);
+        check(DownedDeathContext.apply(later) == BattlezoneDeathEvent.Reason.DIRECT,
                 "A canceled elimination cannot contaminate a later death");
         helper.succeed();
     }

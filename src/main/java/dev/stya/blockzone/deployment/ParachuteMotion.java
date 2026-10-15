@@ -19,7 +19,9 @@ public final class ParachuteMotion {
             nextX *= 0.30 / horizontal;
             nextZ *= 0.30 / horizontal;
         }
-        double nextY = Math.max(-1.5, Math.min(-0.45, y + (downward - y) * 0.12));
+        // Preserve normal freefall momentum while the canopy brakes it; clamp only abnormal boosts.
+        double descent = Math.max(-2.8, Math.min(-0.45, y));
+        double nextY = descent + (downward - descent) * 0.10;
         return new Motion(nextX, nextY, nextZ);
     }
 

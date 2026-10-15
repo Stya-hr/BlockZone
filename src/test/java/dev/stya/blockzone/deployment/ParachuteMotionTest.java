@@ -33,6 +33,15 @@ class ParachuteMotionTest {
         assertEquals(-2.8, motion.y());
         var opened = ParachuteMotion.step(motion.x(), motion.y(), motion.z(), 0, 0);
         assertTrue(opened.y() > motion.y());
+        assertTrue(opened.y() < -2.5, "Opening must preserve momentum instead of snapping to canopy terminal speed");
+        var braking = opened;
+        for (int i = 1; i < 20; i++) {
+            var next = ParachuteMotion.step(braking.x(), braking.y(), braking.z(), 0, 0);
+            assertTrue(next.y() > braking.y());
+            assertTrue(next.y() < -0.45);
+            braking = next;
+        }
+        assertTrue(braking.y() > -0.8, "Canopy should shed most descent speed over about one second");
         var closed = ParachuteMotion.freefall(opened.x(), opened.y(), opened.z(), 0);
         assertTrue(closed.y() < opened.y());
     }
@@ -40,6 +49,6 @@ class ParachuteMotionTest {
     @Test void inheritedBoostsAreClampedInBothDirections() {
         var motion = ParachuteMotion.step(10, -10, 10, 45, 45);
         assertEquals(0.30, Math.hypot(motion.x(), motion.z()), 1e-9);
-        assertEquals(-1.5, motion.y());
+        assertTrue(motion.y() > -2.8 && motion.y() < -1.5);
     }
 }

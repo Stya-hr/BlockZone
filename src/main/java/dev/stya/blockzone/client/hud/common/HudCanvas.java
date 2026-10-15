@@ -13,10 +13,13 @@ public final class HudCanvas implements AutoCloseable {
     public static final int GREEN = 0xFF49C7A4, RED = 0xFFFF6D76;
     public final GuiGraphics gui;
     public final float width, height;
+    public static float scale() {
+        var window = Minecraft.getInstance().getWindow();
+        return (float)(1.12 * Math.min(window.getWidth() / 2560f, window.getHeight() / 1440f) / window.getGuiScale());
+    }
     public HudCanvas(GuiGraphics gui) {
         this.gui = gui;
-        var window = Minecraft.getInstance().getWindow();
-        float scale = (float)(Math.min(window.getWidth() / 2560f, window.getHeight() / 1440f) / window.getGuiScale());
+        float scale = scale();
         width = gui.guiWidth() / scale; height = gui.guiHeight() / scale;
         gui.pose().pushPose(); gui.pose().scale(scale, scale, 1);
     }

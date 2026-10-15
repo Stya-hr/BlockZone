@@ -28,7 +28,7 @@ public final class WeaponStatusPanel {
         var other = inventory.getStack(InventorySlot.WEAPONS.get(1 - prominent));
         var mainAmmo = WeaponAmmo.read(player, inventory, main);
         var window = mc.getWindow();
-        float scale = (float)(Math.min(window.getWidth() / 2560f, window.getHeight() / 1440f) / window.getGuiScale());
+        float scale = dev.stya.blockzone.client.hud.common.HudCanvas.scale();
         gui.pose().pushPose();
         try {
             gui.pose().translate(window.getWidth() / window.getGuiScale() - 536 * scale,

@@ -5,7 +5,15 @@ import icyllis.modernui.fragment.Fragment;
 import net.minecraft.network.chat.Component;
 
 /** Editor drafts stay on the game thread; the common native screen owns lifecycle and input. */
+@net.minecraftforge.fml.common.Mod.EventBusSubscriber(modid = dev.stya.blockzone.BlockZone.MOD_ID, value = net.minecraftforge.api.distmarker.Dist.CLIENT)
 public abstract class ModernEditorScreen extends ModernUiScreen {
+    @net.minecraftforge.eventbus.api.SubscribeEvent
+    public static void hideExperience(net.minecraftforge.client.event.RenderGuiOverlayEvent.Pre event) {
+        if (event.getOverlay() != net.minecraftforge.client.gui.overlay.VanillaGuiOverlay.EXPERIENCE_BAR.type()) return;
+        var screen = net.minecraft.client.Minecraft.getInstance().screen;
+        if (screen instanceof ModernEditorScreen || screen instanceof EditorConfirmScreen
+                || PoisonWorldEditor.hasFreeCamera() || LootWorldEditor.hasFreeCamera()) event.setCanceled(true);
+    }
     final EditorPanel fragment = new EditorPanel(this);
     volatile boolean textFocused;
     volatile float panelFraction = .3f;

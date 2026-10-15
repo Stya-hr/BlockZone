@@ -7,6 +7,7 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
 /** QHD design pixels, with Modern UI text and shared inventory gun/key renderers. */
@@ -24,12 +25,24 @@ final class WeaponHudGraphics {
     }
     void box(int x, int y, int w, int h, boolean selected, boolean weapon) {
         rect(x, y, w, h, weapon ? 0x3310181E : 0x33000000);
+        if (weapon && selected) {
+            // SVG: gray horizontal edges with white 10px brackets at either end.
+            rect(x, y, w, 2, DIM); rect(x, y + h - 2, w, 2, DIM);
+            rect(x, y, 2, h, WHITE); rect(x + w - 2, y, 2, h, WHITE);
+            rect(x, y, 10, 2, WHITE); rect(x + w - 10, y, 10, 2, WHITE);
+            rect(x, y + h - 2, 10, 2, WHITE); rect(x + w - 10, y + h - 2, 10, 2, WHITE);
+            return;
+        }
         int t = selected ? 2 : 1, color = selected ? WHITE : DIM;
         rect(x, y, w, t, color); rect(x, y + h - t, w, t, color);
         rect(x, y + t, t, h - 2 * t, color); rect(x + w - t, y + t, t, h - 2 * t, color);
     }
-    float width(String text, float size) { return Minecraft.getInstance().font.width(text) * size / 8f; }
+    float width(String text, float size) { return width(Component.literal(text), size); }
+    float width(Component text, float size) { return Minecraft.getInstance().font.width(text) * size / 8f; }
     void text(String text, float x, float y, float size, int color) {
+        text(Component.literal(text), x, y, size, color);
+    }
+    void text(Component text, float x, float y, float size, int color) {
         gui.pose().pushPose();
         gui.pose().translate(x, y, 0); gui.pose().scale(size / 8f, size / 8f, 1);
         TextLayoutEngine.getInstance().getTextRenderer().drawText(text, 0, 0, color, false,

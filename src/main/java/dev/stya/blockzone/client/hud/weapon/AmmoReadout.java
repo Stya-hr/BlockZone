@@ -1,18 +1,20 @@
 package dev.stya.blockzone.client.hud.weapon;
 
 import dev.stya.blockzone.equipment.WeaponAmmo;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 
 final class AmmoReadout {
     void render(WeaponHudGraphics g, WeaponAmmo.View ammo, int right, int y, boolean large) {
         if (ammo == null) return;
-        float size = large ? 38 : 18, reserveSize = large ? 20 : 18;
-        String reserve = "/" + (ammo.unlimited() ? "INF" : ammo.reserve());
+        float size = large ? 40 : 20, reserveSize = 20;
+        var reserve = Component.literal("/" + (ammo.unlimited() ? "INF" : ammo.reserve())).withStyle(ChatFormatting.BOLD);
         float reserveWidth = g.width(reserve, reserveSize);
-        String loaded = Integer.toString(ammo.loaded());
+        var loaded = Component.literal(Integer.toString(ammo.loaded())).withStyle(ChatFormatting.BOLD);
         float total = reserveWidth + g.width(loaded, size);
         // Keep long counters inside their own region without overlapping the gun silhouette.
-        float fit = Math.min(1, (large ? 94f : 112f) / Math.max(1, total));
+        float fit = Math.min(1, 84f / Math.max(1, total));
         g.text(loaded, right - total * fit, y, size * fit, ammo.loaded() == 0 ? WeaponHudGraphics.RED : WeaponHudGraphics.WHITE);
-        g.text(reserve, right - reserveWidth * fit, y + (size - reserveSize) * fit / 2, reserveSize * fit, WeaponHudGraphics.WHITE);
+        g.text(reserve, right - reserveWidth * fit, y, reserveSize * fit, WeaponHudGraphics.WHITE);
     }
 }

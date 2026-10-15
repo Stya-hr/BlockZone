@@ -35,7 +35,7 @@ public final class ActionHud implements IHudRenderer {
         boolean airborne = DeploymentClientController.isAirborne();
         if (action == null && !airborne) return;
         try (var g = new HudCanvas(gui)) {
-            if (airborne) flight.render(g, partial);
+            if (DeploymentClientController.state() == 2 || DeploymentClientController.state() == 3) flight.render(g, partial);
             progress.render(g, action != null ? action : flight.prompt(), g.width / 2, g.height - 300);
         }
     }

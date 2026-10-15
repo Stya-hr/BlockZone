@@ -133,7 +133,6 @@ public final class BattlezoneMap extends BaseMap {
         if (deployment.routeFinished() && phaseTicks >= Math.max(0, deploymentSeconds.get()) * 20) {
             phase = MatchPhase.MATCH;
             phaseTicks = 0;
-            broadcast(Component.literal("Battlezone deployment completed."));
             presentationSync.sync(true);
         }
     }

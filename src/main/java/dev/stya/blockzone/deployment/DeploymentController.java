@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.RelativeMovement;
@@ -51,7 +50,6 @@ public final class DeploymentController {
         player.setXRot(0);
         moveAlongRoute(player, false);
         FlightStateSync.sync(player, new FlightStateS2CPacket(player.getUUID(), 1, routeYaw));
-        player.sendSystemMessage(Component.translatable("blockzone.deployment.boarded"));
     }
 
     public void tick() {

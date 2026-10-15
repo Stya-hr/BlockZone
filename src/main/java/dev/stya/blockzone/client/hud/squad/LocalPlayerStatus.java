@@ -1,7 +1,6 @@
 package dev.stya.blockzone.client.hud.squad;
 
 import dev.stya.blockzone.squad.SquadMemberStatus;
-import net.minecraft.network.chat.Component;
 
 final class LocalPlayerStatus {
     static final int WIDTH = 443 + ArmorPlateSlot.SIZE + 8 + 24, HEIGHT = 64;
@@ -16,7 +15,5 @@ final class LocalPlayerStatus {
         vitals.render(g, member, 75, 32, 360, true);
         plates.render(g, member.plating(), 443, HEIGHT - ArmorPlateSlot.SIZE);
         firing.render(g, member, 443 + ArmorPlateSlot.SIZE + 8, 36, 24);
-        if (member.plating()) g.text(Component.translatable("hud.blockzone.plating").getString(), 75, -24, 16, SquadHudStyle.TEXT);
-        else if (member.rescueState() == 2) g.text(Component.translatable("hud.blockzone.rescuing").getString(), 75, -24, 16, SquadHudStyle.RESCUE);
     }
 }

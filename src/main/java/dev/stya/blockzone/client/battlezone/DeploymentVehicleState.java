@@ -1,6 +1,7 @@
 package dev.stya.blockzone.client.battlezone;
 
 import dev.stya.blockzone.deployment.FlightRoute;
+import dev.stya.blockzone.deployment.FlightTimeline;
 import dev.stya.blockzone.net.battlezone.DeploymentVehicleS2CPacket;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.phys.Vec3;
@@ -9,7 +10,7 @@ import net.minecraft.world.phys.Vec3;
 public final class DeploymentVehicleState {
     private static DeploymentVehicleS2CPacket snapshot;
     private static Object level;
-    private static long receivedAt;
+    private static final FlightTimeline TIMELINE = new FlightTimeline();
 
     private DeploymentVehicleState() { }
 
@@ -19,9 +20,11 @@ public final class DeploymentVehicleState {
             clear();
             return;
         }
+        boolean reset = current != level || snapshot == null || !java.util.Objects.equals(snapshot.route(), packet.route())
+                || packet.elapsedTicks() < snapshot.elapsedTicks();
+        TIMELINE.update(packet.elapsedTicks(), current.getGameTime() + Minecraft.getInstance().getFrameTime(), reset);
         snapshot = packet.route() == null ? null : packet;
         level = current;
-        receivedAt = current.getGameTime();
     }
 
     public static void clear() {
@@ -40,10 +43,10 @@ public final class DeploymentVehicleState {
         return route == null ? Double.NaN : route.speed();
     }
 
-    static Vec3 position(float partialTick) {
+    public static Vec3 position(float partialTick) {
         var route = route();
         if (route == null) return null;
-        double ticks = snapshot.elapsedTicks() + Minecraft.getInstance().level.getGameTime() - receivedAt + partialTick;
+        double ticks = TIMELINE.ticks(Minecraft.getInstance().level.getGameTime() + partialTick);
         var point = route.vehiclePosition(ticks);
         return new Vec3(point.x(), route.startY() + 1.5, point.z());
     }

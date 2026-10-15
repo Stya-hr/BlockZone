@@ -73,15 +73,15 @@ public final class FlightVisualPose {
             if (player != null && (pose.state == 2 || pose.state == 3)) {
                 var velocity = player == Minecraft.getInstance().player ? player.getDeltaMovement()
                         : player.position().subtract(player.xo, player.yo, player.zo);
-                double yaw = player.yBodyRot * Mth.DEG_TO_RAD;
-                double speed = pose.state == 2 ? .14 : .08;
+                double yaw = player.getYRot() * Mth.DEG_TO_RAD;
+                double speed = pose.state == 2 ? .08 : .05;
                 float forward = (float) Mth.clamp((-Math.sin(yaw) * velocity.x + Math.cos(yaw) * velocity.z) / speed, -1, 1);
                 float left = (float) Mth.clamp((Math.cos(yaw) * velocity.x + Math.sin(yaw) * velocity.z) / speed, -1, 1);
-                pose.target[0] = pose.state == 2 ? 4 + forward * 12 : -60 - forward * 10;
-                pose.target[5] = left * (pose.state == 2 ? 14 : 10);
+                pose.target[0] = pose.state == 2 ? 4 + forward * 24 : -60 - forward * 14;
+                pose.target[5] = left * (pose.state == 2 ? 28 : 16);
                 if (pose.state == 2) {
-                    pose.target[1] = -2.4f + forward * .12f;
-                    pose.target[3] = -.25f - forward * .18f;
+                    pose.target[1] = -2.4f + forward * .2f;
+                    pose.target[3] = -.25f - forward * .3f;
                 }
             }
             for (int i = 0; i < pose.current.length; i++) {

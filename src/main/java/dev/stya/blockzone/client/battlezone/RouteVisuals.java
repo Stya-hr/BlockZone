@@ -63,7 +63,7 @@ public final class RouteVisuals {
             if (pose == null || (pose.state != 2 && pose.state != 3) || player.isInvisible()) continue;
             var position = player.getPosition(partialTick);
             stack.pushPose();
-            orientModel(stack, position, camera, Mth.rotLerp(partialTick, player.yBodyRotO, player.yBodyRot));
+            orientModel(stack, position, camera, Mth.rotLerp(partialTick, player.yRotO, player.getYRot()));
             stack.mulPose(Axis.ZP.rotationDegrees(pose.value(5, partialTick)));
             int light = LevelRenderer.getLightColor(minecraft.level, BlockPos.containing(position.add(0, 2, 0)));
             stack.pushPose();
@@ -81,7 +81,7 @@ public final class RouteVisuals {
                     1.45 * Math.sin(pitch) + .32 * Math.cos(pitch));
             double swing = animationTime * .09 + player.getId();
             stack.mulPose(Axis.ZP.rotationDegrees((float) Math.sin(swing) * 2));
-            stack.mulPose(Axis.XP.rotationDegrees(bodyPitch * .45f + (float) Math.cos(swing * .8) * 1.2f));
+            stack.mulPose(Axis.XP.rotationDegrees(bodyPitch * .7f + (float) Math.cos(swing * .8) * 1.2f));
             light = LevelRenderer.getLightColor(minecraft.level, BlockPos.containing(position.add(0, 4, 0)));
             AirborneModels.renderParachute(4, stack, vertices, light, pose.appearance);
             stack.popPose();

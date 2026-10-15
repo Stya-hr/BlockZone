@@ -19,13 +19,19 @@ import org.lwjgl.glfw.GLFW;
 /** Uses the normal item-use protocol and ArmorPlateItem's server validation/40-tick consumption. */
 @Mod.EventBusSubscriber(modid = BlockZone.MOD_ID, value = Dist.CLIENT)
 public final class QuickPlating {
+    private static boolean physicalDown;
     public static final KeyMapping KEY = new KeyMapping("key.blockzone.insert_plate", Context.INSTANCE,
-            InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, "key.categories.blockzone");
+            InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, "key.categories.blockzone") {
+        @Override public void setDown(boolean down) {
+            super.setDown(down);
+            physicalDown = down;
+        }
+    };
     private static int previousSlot = -1, plateSlot = -1;
     private static net.minecraft.client.player.LocalPlayer owner;
     private static boolean serverStarted;
     private static int waitingTicks;
-    private static boolean keyWasDown;
+    private static boolean blockedUntilRelease;
     private QuickPlating() {}
     private enum Context implements IKeyConflictContext {
         INSTANCE;
@@ -39,7 +45,7 @@ public final class QuickPlating {
     public static boolean holdsUse(KeyMapping mapping) {
         var mc = Minecraft.getInstance();
         return owner != null && owner == mc.player && mapping == mc.options.keyUse
-                && mc.screen == null && owner.getInventory().selected == plateSlot
+                && KEY.isDown() && mc.screen == null && owner.getInventory().selected == plateSlot
                 && owner.isUsingItem() && owner.getUseItem().is(BlockzoneItems.ARMOR_PLATE.get());
     }
     private static void finish(boolean cancel) {
@@ -73,12 +79,21 @@ public final class QuickPlating {
     @SubscribeEvent public static void tick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
         var mc = Minecraft.getInstance();
+        boolean held = KEY.isDown();
+        while (KEY.consumeClick()) { /* Long presses use held state, never repeat-click events. */ }
+        if (!physicalDown) blockedUntilRelease = false;
+        else if (!Context.INSTANCE.isActive()) blockedUntilRelease = true;
         if (owner != null) {
             if (owner != mc.player || mc.screen != null || owner.isDeadOrDying()
-                    || owner.getInventory().selected != plateSlot || mc.options.keyAttack.isDown()) finish(true);
-            else {
+                    || owner.getInventory().selected != plateSlot || mc.options.keyAttack.isDown()) {
+                blockedUntilRelease = physicalDown;
+                finish(true);
+            } else {
                 var status = SquadClientState.members().stream().filter(m -> m.id().equals(owner.getUUID())).findFirst().orElse(null);
-                if (status == null || !status.living() || status.rescueState() != 0) finish(true);
+                if (status == null || !status.living() || status.rescueState() != 0) {
+                    blockedUntilRelease = physicalDown;
+                    finish(true);
+                } else if (!held && owner.isUsingItem()) finish(true);
                 else {
                     serverStarted |= status.plating();
                     if (!owner.isUsingItem()) {
@@ -90,12 +105,8 @@ public final class QuickPlating {
                 }
             }
         }
-        boolean clicked = false;
-        while (KEY.consumeClick()) clicked = true;
-        if (clicked && !keyWasDown) {
-            if (owner != null) finish(true); else begin();
-        }
-        keyWasDown = KEY.isDown();
+        if (owner == null && held && !blockedUntilRelease && Context.INSTANCE.isActive()
+                && !mc.options.keyAttack.isDown()) begin();
     }
     @Mod.EventBusSubscriber(modid = BlockZone.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
     public static final class Registration {

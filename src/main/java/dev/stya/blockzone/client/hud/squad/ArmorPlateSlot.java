@@ -30,7 +30,6 @@ final class ArmorPlateSlot {
         float width = mc.font.width(amount) * 1.5f;
         // Native item rendering uses a higher Z range; keep the count above the item.
         g.gui.pose().pushPose(); g.gui.pose().translate(0, 0, 300);
-        g.rect(x + 35 - width, y + 24, width + 4, 14, 0xAA10181E);
         g.text(amount, x + 37 - width, y + 25, 12, count == 0 ? SquadHudStyle.MUTED : SquadHudStyle.TEXT);
         g.gui.flush(); g.gui.pose().popPose();
         if (!QuickPlating.KEY.isUnbound()) InventoryPromptRenderer.renderKey(g.gui, mc.font, QuickPlating.KEY.getKey(), x + 10, y + 46, 20);

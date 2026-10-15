@@ -125,6 +125,7 @@ public final class BattlezoneMap extends BaseMap {
             case RESETTING -> tickResetting();
         }
         presentationSync.sync(false);
+        dev.stya.blockzone.squad.SquadStateSync.tick(this);
     }
 
     private void tickDeployment() {

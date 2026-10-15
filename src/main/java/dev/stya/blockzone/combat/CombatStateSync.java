@@ -11,6 +11,7 @@ public final class CombatStateSync {
     private static final Map<ServerPlayer, CombatStateS2CPacket> COMBAT_STATES = new WeakHashMap<>();
     private CombatStateSync() {}
     public static void clearPlayerState(ServerPlayer player) {
+        dev.stya.blockzone.squad.SquadStateSync.clear(player);
         syncCombat(player, false, CombatRecovery.PLATE_POINTS,
                 dev.stya.blockzone.equipment.PlateCapacity.slots(player));
         COMBAT_STATES.remove(player);

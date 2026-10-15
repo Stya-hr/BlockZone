@@ -11,11 +11,12 @@ import net.minecraftforge.network.PacketDistributor;
 /** Shared channel registration and transport. Feature state belongs to feature synchronizers. */
 public final class BlockzoneNetwork {
     private static final NetworkPacketRegister PACKETS = new NetworkPacketRegister(
-            ResourceLocation.fromNamespaceAndPath(BlockZone.MOD_ID, "main"), "26");
+            ResourceLocation.fromNamespaceAndPath(BlockZone.MOD_ID, "main"), "28");
 
     private BlockzoneNetwork() {}
 
     public static void register() {
+        PACKETS.registerPacket(SquadStateS2CPacket.class, NetworkDirection.PLAY_TO_CLIENT);
         PACKETS.registerPacket(SwapInventoryC2SPacket.class, NetworkDirection.PLAY_TO_SERVER);
         PACKETS.registerPacket(DiscardInventoryC2SPacket.class, NetworkDirection.PLAY_TO_SERVER);
         PACKETS.registerPacket(InventoryStateS2CPacket.class, NetworkDirection.PLAY_TO_CLIENT);

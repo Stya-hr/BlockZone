@@ -29,6 +29,7 @@ public final class DeploymentClientController {
     private static final KeyMapping PARACHUTE = new KeyMapping("key.blockzone.toggle_parachute",
             KeyConflictContext.IN_GAME, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_H, "key.categories.blockzone");
     private static int state;
+    public static boolean isAirborne() { return state != 0; }
     private static float cameraDistance = 4;
     private static float previousCameraDistance = 4;
 

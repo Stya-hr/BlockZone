@@ -17,13 +17,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 /** SVG is the source asset; GPU textures are rebuilt at the actual display resolution. */
-final class InventorySvgAssets {
-    record Texture(ResourceLocation id, int width, int height) { }
+public final class InventorySvgAssets {
+    public record Texture(ResourceLocation id, int width, int height) { }
     private static final Map<String, Texture> CACHE = new HashMap<>();
 
     private InventorySvgAssets() { }
 
-    static Texture get(String name, int width, int height) {
+    public static Texture get(String name, int width, int height) {
         Texture cached = CACHE.get(name);
         if (cached != null && cached.width == width && cached.height == height) return cached;
         Minecraft mc = Minecraft.getInstance();

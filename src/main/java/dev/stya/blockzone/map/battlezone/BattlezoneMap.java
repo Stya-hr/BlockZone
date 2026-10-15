@@ -658,6 +658,10 @@ public final class BattlezoneMap extends BaseMap {
         return isMatchActive() && landing.toggleParachute(player);
     }
 
+    public void controlDescent(ServerPlayer player, int forward, int left) {
+        if (isMatchActive()) landing.control(player, forward, left);
+    }
+
     public boolean hasDeploymentProtection(ServerPlayer player) {
         return deployment.protects(player) || landing.isDescending(player);
     }

@@ -12,6 +12,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Pose;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.InputEvent;
+import net.minecraftforge.client.event.MovementInputUpdateEvent;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.client.settings.KeyConflictContext;
 import net.minecraftforge.event.TickEvent;
@@ -26,6 +27,7 @@ public final class DeploymentClientController {
     private static final KeyMapping PARACHUTE = new KeyMapping("key.blockzone.toggle_parachute",
             KeyConflictContext.IN_GAME, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_H, "key.categories.blockzone");
     private static int state;
+    private static int sentForward, sentLeft, inputTicks;
     public static boolean isAirborne() { return state != 0; }
     public static int state() { return state; }
     public static KeyMapping releaseKey() { return RELEASE; }
@@ -43,6 +45,15 @@ public final class DeploymentClientController {
     private static CameraType previousCameraType;
 
     private DeploymentClientController() { }
+
+    @SubscribeEvent
+    public static void movementInput(MovementInputUpdateEvent event) {
+        if ((state == 2 || state == 3) && event.getEntity() == trackedPlayer) {
+            // Keys are sampled separately; vanilla air acceleration must not add a second steering force.
+            event.getInput().forwardImpulse = event.getInput().leftImpulse = 0;
+            event.getInput().jumping = false;
+        }
+    }
 
     @SubscribeEvent
     public static void onKeyInput(InputEvent.Key event) {
@@ -100,6 +111,7 @@ public final class DeploymentClientController {
         previousPose = null;
         previousCameraType = null;
         state = 0;
+        sentForward = sentLeft = inputTicks = 0;
         cameraDistance = previousCameraDistance = 4;
     }
 
@@ -137,11 +149,18 @@ public final class DeploymentClientController {
                 trackedPlayer.setDeltaMovement(0, 0, 0);
             } else {
                 trackedPlayer.getAbilities().flying = false;
+                var options = minecraft.options;
+                int forward = minecraft.screen == null ? (options.keyUp.isDown() ? 1 : 0) - (options.keyDown.isDown() ? 1 : 0) : 0;
+                int left = minecraft.screen == null ? (options.keyLeft.isDown() ? 1 : 0) - (options.keyRight.isDown() ? 1 : 0) : 0;
+                if (forward != sentForward || left != sentLeft || ++inputTicks >= 10) {
+                    BlockzoneNetwork.sendToServer(new dev.stya.blockzone.net.battlezone.DescentInputC2SPacket(forward, left));
+                    sentForward = forward; sentLeft = left; inputTicks = 0;
+                }
                 var movement = trackedPlayer.getDeltaMovement();
                 var motion = state == 2
                         ? ParachuteMotion.step(movement.x, movement.y, movement.z,
-                                trackedPlayer.getYRot(), trackedPlayer.getXRot())
-                        : ParachuteMotion.freefall(movement.x, movement.y, movement.z, trackedPlayer.getYRot());
+                                trackedPlayer.getYRot(), trackedPlayer.getXRot(), forward, left)
+                        : ParachuteMotion.freefall(movement.x, movement.y, movement.z, trackedPlayer.getYRot(), forward, left);
                 trackedPlayer.setDeltaMovement(motion.x(), motion.y(), motion.z());
             }
         }

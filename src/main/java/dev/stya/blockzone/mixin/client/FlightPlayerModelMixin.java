@@ -24,7 +24,7 @@ public abstract class FlightPlayerModelMixin<T extends LivingEntity> extends Hum
         float partialTick = Minecraft.getInstance().getFrameTime();
         body.xRot = body.yRot = body.zRot = 0;
         head.xRot = pose.state == 1 ? 0 : Mth.clamp(pitch * Mth.DEG_TO_RAD, -.35f, .35f);
-        head.yRot = pose.state == 1 ? 0 : Mth.clamp(yaw * Mth.DEG_TO_RAD, -.8f, .8f);
+        head.yRot = 0; // The flight renderer already aligns the whole body with the look heading.
         head.zRot = 0;
         hat.copyFrom(head);
         leftArm.xRot = rightArm.xRot = pose.value(1, partialTick);

@@ -41,11 +41,11 @@ public final class FlightInstruments {
         var value = FlightTelemetry.measure(net.minecraft.util.Mth.lerp(partial, player.yo, player.getY()), ground, motion.x, motion.y, motion.z);
         if (DeploymentClientController.state() == 1) value = new FlightTelemetry(value.altitude(), DeploymentVehicleState.speed(), 0);
         float y = g.height / 2 - 120;
-        gauge.render(g, g.width / 2 - 340, y, tr("altitude"), value.altitude(), 20, "m");
-        gauge.render(g, g.width / 2 + 204, y, tr("speed"), value.speed(), 5, "m/s");
+        gauge.render(g, g.width / 2 - 340, y, tr("altitude"), value.altitude(), 20, "m", true);
+        gauge.render(g, g.width / 2 + 244, y, tr("speed"), value.speed(), 5, "m/s", false);
         g.text(Component.translatable("hud.blockzone.flight.descent", Double.isFinite(value.descent())
                         ? String.format(Locale.ROOT, "%.1f", value.descent()) : "N/A"),
-                g.width / 2 + 216, y + 250, 12, HudCanvas.MUTED);
+                g.width / 2 + 272, y + 252, 12, HudCanvas.MUTED);
     }
     private static Component tr(String key) { return Component.translatable("hud.blockzone.flight." + key); }
 }

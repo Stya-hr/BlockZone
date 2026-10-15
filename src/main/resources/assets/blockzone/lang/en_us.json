@@ -166,5 +166,22 @@
   "hud.blockzone.squad.reviving": "Being revived",
   "hud.blockzone.squad.inventory": "Inventory",
   "key.blockzone.insert_plate": "Insert armor plate",
-  "key.blockzone.squad_page": "Next squad HUD page"
+  "key.blockzone.squad_page": "Next squad HUD page",
+  "hud.blockzone.action.plating": "INSERT ARMOR PLATE",
+  "hud.blockzone.action.rescuing": "REVIVE TEAMMATE",
+  "hud.blockzone.action.receiving_rescue": "BEING REVIVED",
+  "hud.blockzone.action.downed": "AWAITING REVIVE",
+  "hud.blockzone.action.bleeding": "BLEED OUT",
+  "hud.blockzone.action.hold_position": "Hold position",
+  "hud.blockzone.action.hold_use": "Keep holding the use key",
+  "hud.blockzone.action.rescue_ready": "%s  Hold crouch for %s s",
+  "hud.blockzone.flight.jump": "JUMP FROM AIRCRAFT",
+  "hud.blockzone.flight.open": "OPEN PARACHUTE",
+  "hud.blockzone.flight.close": "CUT PARACHUTE",
+  "hud.blockzone.flight.transport": "TRANSPORT FLIGHT",
+  "hud.blockzone.flight.gliding": "PARACHUTE GLIDE",
+  "hud.blockzone.flight.freefall": "FREEFALL",
+  "hud.blockzone.flight.altitude": "ALTITUDE AGL",
+  "hud.blockzone.flight.speed": "SPEED",
+  "hud.blockzone.flight.descent": "DESCENT %s m/s"
 }

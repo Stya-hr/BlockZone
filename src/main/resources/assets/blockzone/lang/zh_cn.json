@@ -166,5 +166,22 @@
   "hud.blockzone.squad.reviving": "救援中",
   "hud.blockzone.squad.inventory": "背包",
   "key.blockzone.insert_plate": "插入护甲板",
-  "key.blockzone.squad_page": "小队 HUD 下一页"
+  "key.blockzone.squad_page": "小队 HUD 下一页",
+  "hud.blockzone.action.plating": "插入护甲板",
+  "hud.blockzone.action.rescuing": "救援队友",
+  "hud.blockzone.action.receiving_rescue": "正在被救援",
+  "hud.blockzone.action.downed": "等待救援",
+  "hud.blockzone.action.bleeding": "流血倒计时",
+  "hud.blockzone.action.hold_position": "保持原位",
+  "hud.blockzone.action.hold_use": "保持按住使用键",
+  "hud.blockzone.action.rescue_ready": "%s  保持蹲下 %s 秒",
+  "hud.blockzone.flight.jump": "离机跳伞",
+  "hud.blockzone.flight.open": "打开降落伞",
+  "hud.blockzone.flight.close": "收起降落伞",
+  "hud.blockzone.flight.transport": "运输机飞行中",
+  "hud.blockzone.flight.gliding": "降落伞滑翔",
+  "hud.blockzone.flight.freefall": "自由落体",
+  "hud.blockzone.flight.altitude": "离地高度",
+  "hud.blockzone.flight.speed": "速度",
+  "hud.blockzone.flight.descent": "下降 %s m/s"
 }

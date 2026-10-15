@@ -12,6 +12,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Pose;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.InputEvent;
+import net.minecraftforge.client.event.MovementInputUpdateEvent;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.client.settings.KeyConflictContext;
 import net.minecraftforge.event.TickEvent;
@@ -44,6 +45,15 @@ public final class DeploymentClientController {
     private static CameraType previousCameraType;
 
     private DeploymentClientController() { }
+
+    @SubscribeEvent
+    public static void movementInput(MovementInputUpdateEvent event) {
+        if ((state == 2 || state == 3) && event.getEntity() == trackedPlayer) {
+            // Keys are sampled separately; vanilla air acceleration must not add a second steering force.
+            event.getInput().forwardImpulse = event.getInput().leftImpulse = 0;
+            event.getInput().jumping = false;
+        }
+    }
 
     @SubscribeEvent
     public static void onKeyInput(InputEvent.Key event) {

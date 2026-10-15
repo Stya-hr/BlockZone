@@ -18,6 +18,7 @@ public abstract class FlightPlayerRendererMixin {
         var pose = FlightVisualPose.get(player);
         if (pose != null) {
             stack.mulPose(Axis.YP.rotationDegrees(180 - (pose.state == 1 ? pose.routeYaw : yaw)));
+            stack.mulPose(Axis.ZP.rotationDegrees(pose.value(5, partialTick)));
             stack.mulPose(Axis.XP.rotationDegrees(pose.value(0, partialTick)));
             callback.cancel();
         }

@@ -64,6 +64,7 @@ public final class RouteVisuals {
             var position = player.getPosition(partialTick);
             stack.pushPose();
             orientModel(stack, position, camera, Mth.rotLerp(partialTick, player.yBodyRotO, player.yBodyRot));
+            stack.mulPose(Axis.ZP.rotationDegrees(pose.value(5, partialTick)));
             int light = LevelRenderer.getLightColor(minecraft.level, BlockPos.containing(position.add(0, 2, 0)));
             stack.pushPose();
             float bodyPitch = pose.value(0, partialTick);
@@ -74,13 +75,13 @@ public final class RouteVisuals {
                 stack.popPose();
                 continue;
             }
-            // The upright canopy follows the rotated pack's upper attachment point.
+            // Bank the whole rig together, keeping the lines attached to the harness.
             double pitch = bodyPitch * Mth.DEG_TO_RAD;
             stack.translate(0, 1.45 * Math.cos(pitch) - .32 * Math.sin(pitch),
                     1.45 * Math.sin(pitch) + .32 * Math.cos(pitch));
             double swing = animationTime * .09 + player.getId();
             stack.mulPose(Axis.ZP.rotationDegrees((float) Math.sin(swing) * 2));
-            stack.mulPose(Axis.XP.rotationDegrees((float) Math.cos(swing * .8) * 1.2f));
+            stack.mulPose(Axis.XP.rotationDegrees(bodyPitch * .45f + (float) Math.cos(swing * .8) * 1.2f));
             light = LevelRenderer.getLightColor(minecraft.level, BlockPos.containing(position.add(0, 4, 0)));
             AirborneModels.renderParachute(4, stack, vertices, light, pose.appearance);
             stack.popPose();

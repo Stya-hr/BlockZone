@@ -58,6 +58,15 @@ public final class LandingController {
         return players.containsKey(player.getUUID());
     }
 
+    public void control(ServerPlayer player, int forward, int left) {
+        var state = players.get(player.getUUID());
+        if (state == null || !player.isAlive() || player.isSpectator()
+                || Math.abs(forward) > 1 || Math.abs(left) > 1) return;
+        state.forward = forward;
+        state.left = left;
+        state.lastInputTick = player.level().getGameTime();
+    }
+
     /** Run at the end of the server player tick, after collision and fall damage callbacks. */
     public void tick(ServerPlayer player) {
         if (!isDescending(player)) {
@@ -73,9 +82,10 @@ public final class LandingController {
         player.setNoGravity(true);
         Vec3 movement = player.getDeltaMovement();
         LandingState state = players.get(player.getUUID());
+        if (player.level().getGameTime() - state.lastInputTick > 20) state.forward = state.left = 0;
         var motion = state.parachuteOpen
-                ? ParachuteMotion.step(movement.x, movement.y, movement.z, player.getYRot(), player.getXRot())
-                : ParachuteMotion.freefall(movement.x, movement.y, movement.z, player.getYRot());
+                ? ParachuteMotion.step(movement.x, movement.y, movement.z, player.getYRot(), player.getXRot(), state.forward, state.left)
+                : ParachuteMotion.freefall(movement.x, movement.y, movement.z, player.getYRot(), state.forward, state.left);
         player.setDeltaMovement(motion.x(), motion.y(), motion.z());
         player.connection.send(new ClientboundSetEntityMotionPacket(player));
     }
@@ -112,6 +122,8 @@ public final class LandingController {
         final boolean flying;
         final boolean noGravity;
         boolean parachuteOpen;
+        int forward, left;
+        long lastInputTick;
         long lastToggleTick = Long.MIN_VALUE / 2;
         final Pose pose;
         final net.minecraft.world.level.GameType gameMode;

@@ -64,15 +64,17 @@ public final class InventoryPanelScreen extends Screen {
             box(gui, cell.x(), cell.y(), cell.width(), cell.height(), cell == hovered || dragging && cell == pressedCell);
             boolean equipment = InventorySlot.FIRST_ROW.contains(cell.slot());
             boolean weapon = InventorySlot.WEAPONS.contains(cell.slot());
+            int iconX = cell.x() + (weapon ? -8 : 0);
+            int iconY = cell.y() + (weapon ? 6 : 0);
             int imageHeight = equipment || (!weapon && !item.isEmpty()) ? cell.height() : cell.height() - CAPTION_HEIGHT;
             if (item.isEmpty()) {
                 int w = weapon ? 156 : SLOT_ICON_SIZE;
                 int h = weapon ? 56 : SLOT_ICON_SIZE;
-                icon(gui, cell.slot().icon(), cell.x() + (cell.width() - w) / 2, cell.y() + (imageHeight - h) / 2, w, h);
-            } else if (!weapon || !GunHudIcon.draw(gui, item, cell.x() + GUN_MARGIN_X, cell.y() + GUN_MARGIN_Y, cell.width() - 2 * GUN_MARGIN_X, imageHeight - 2 * GUN_MARGIN_Y)) {
+                icon(gui, cell.slot().icon(), iconX + (cell.width() - w) / 2, iconY + (imageHeight - h) / 2, w, h);
+            } else if (!weapon || !GunHudIcon.draw(gui, item, iconX + GUN_MARGIN_X, iconY + GUN_MARGIN_Y, cell.width() - 2 * GUN_MARGIN_X, imageHeight - 2 * GUN_MARGIN_Y)) {
                 int size = weapon ? SLOT_ICON_SIZE : Math.min(cell.width(), cell.height()) - 12;
                 gui.pose().pushPose();
-                gui.pose().translate(cell.x() + (cell.width() - size) / 2F, cell.y() + (imageHeight - size) / 2F, 0);
+                gui.pose().translate(iconX + (cell.width() - size) / 2F, iconY + (imageHeight - size) / 2F, 0);
                 gui.pose().scale(size / 16F, size / 16F, 1); gui.renderItem(item, 0, 0); gui.pose().popPose();
             }
             if (!equipment) caption(gui, cell, item, weapon);

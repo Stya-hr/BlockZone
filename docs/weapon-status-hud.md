@@ -4,7 +4,7 @@
 
 ## 组件
 
-- `WeaponHud`：注册 FPSMatch `IHudRenderer`，仅在 battlezone 对局、本地玩家存活且面板库存有效时替换原版快捷栏、物品名和 TaCZ 武器弹药 HUD；离开对局恢复原版，旁观者不显示本地武器。
+- `WeaponHud`：注册 FPSMatch `IHudRenderer`，仅在 battlezone 对局、本地玩家存活且面板库存有效时替换原版快捷栏、物品名和 TaCZ 武器弹药 HUD，同时隐藏原版经验条及等级数字；离开对局恢复原版，旁观者不显示本地武器。
 - `WeaponStatusPanel`：读取现有 `PlayerPanelInventory`，布局两个武器卡及三个道具槽。切换主副武器时当前武器变为大卡；选中道具或临时插板时保留最近使用的武器排列，清除武器高亮。
 - `WeaponSlotCard`：皮肤感知的武器剪影、选中边框、实际快捷键。当前手持武器隐藏槽位按键提示，备用武器保留提示；主副武器的物理槽位身份保持不变。
 - `AmmoReadout` / `WeaponAmmo`：弹匣和膛内弹数、备用弹量。备用弹药来自换弹桥接实际使用的面板弹药槽，支持 TaCZ 弹药、弹药箱、虚拟弹药和 Unidict 普通物品弹药。不修改枪械 NBT。无限弹药显示 `INF`，空弹匣显示红色，长数字在自己的区域内缩放。

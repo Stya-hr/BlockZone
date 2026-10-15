@@ -30,6 +30,7 @@ public final class WeaponHud implements IHudRenderer {
     @SubscribeEvent public static void replaceHotbar(RenderGuiOverlayEvent.Pre event) {
         if (inventory() == null) return;
         if (event.getOverlay() == VanillaGuiOverlay.HOTBAR.type() || event.getOverlay() == VanillaGuiOverlay.ITEM_NAME.type()
+                || event.getOverlay() == VanillaGuiOverlay.EXPERIENCE_BAR.type()
                 || event.getOverlay().id().toString().equals("tacz:tac_gun_hud_overlay")) event.setCanceled(true);
     }
     @Override public void onRenderGuiOverlayPre(RenderGuiOverlayEvent.Pre event) {}

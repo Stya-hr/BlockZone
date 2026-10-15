@@ -9,12 +9,10 @@ import dev.stya.blockzone.net.battlezone.FlightStateS2CPacket;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Pose;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
-import net.minecraftforge.client.event.RenderGuiEvent;
 import net.minecraftforge.client.settings.KeyConflictContext;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -29,6 +27,9 @@ public final class DeploymentClientController {
             KeyConflictContext.IN_GAME, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_H, "key.categories.blockzone");
     private static int state;
     public static boolean isAirborne() { return state != 0; }
+    public static int state() { return state; }
+    public static KeyMapping releaseKey() { return RELEASE; }
+    public static KeyMapping parachuteKey() { return PARACHUTE; }
     private static float cameraDistance = 4;
     private static float previousCameraDistance = 4;
 
@@ -144,20 +145,6 @@ public final class DeploymentClientController {
                 trackedPlayer.setDeltaMovement(motion.x(), motion.y(), motion.z());
             }
         }
-    }
-
-    @SubscribeEvent
-    public static void overlay(RenderGuiEvent.Post event) {
-        if (state == 0 || Minecraft.getInstance().options.hideGui || Minecraft.getInstance().screen != null) {
-            return;
-        }
-        Minecraft minecraft = Minecraft.getInstance();
-        Component text = state == 1
-                ? Component.translatable("blockzone.deployment.release_hint", RELEASE.getTranslatedKeyMessage())
-                : Component.translatable(state == 2 ? "blockzone.deployment.close_hint" : "blockzone.deployment.open_hint",
-                        PARACHUTE.getTranslatedKeyMessage());
-        event.getGuiGraphics().drawCenteredString(minecraft.font, text,
-                event.getWindow().getGuiScaledWidth() / 2, event.getWindow().getGuiScaledHeight() - 65, 0xFFFFFF);
     }
 
     @Mod.EventBusSubscriber(modid = BlockZone.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)

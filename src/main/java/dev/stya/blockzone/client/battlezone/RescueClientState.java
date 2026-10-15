@@ -4,11 +4,9 @@ import dev.stya.blockzone.BlockZone;
 import dev.stya.blockzone.net.battlezone.RescueStateS2CPacket;
 import java.util.*;
 import net.minecraft.client.Minecraft;
-import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
-import net.minecraftforge.client.event.RenderGuiEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -52,38 +50,18 @@ public final class RescueClientState {
             if (player != null) pose(player, p.state());
         }
     }
+    public static RescueStateS2CPacket snapshot(UUID playerId) { return STATES.get(playerId); }
     public static int state(LivingEntity entity) {
         var p = STATES.get(entity.getUUID()); return p == null ? 0 : p.state();
     }
     @SubscribeEvent public static void logout(ClientPlayerNetworkEvent.LoggingOut e) {
+        clear();
+    }
+    @SubscribeEvent public static void reset(com.ptcrys.fpsmatch.common.client.event.FPSMClientResetEvent e) {
+        clear();
+    }
+    private static void clear() {
         for (var player : List.copyOf(POSES.keySet())) pose(player, 0);
         STATES.clear(); POSES.clear();
-    }
-    @SubscribeEvent public static void render(RenderGuiEvent.Post e) {
-        var mc = Minecraft.getInstance();
-        if (mc.player == null || mc.options.hideGui) return;
-        var p = STATES.get(mc.player.getUUID());
-        Component label;
-        if (p == null) {
-            if (!(mc.hitResult instanceof net.minecraft.world.phys.EntityHitResult hit)
-                    || !(hit.getEntity() instanceof net.minecraft.world.entity.player.Player target)
-                    || state(target) != 1 || !mc.player.isAlliedTo(target)
-                    || mc.player.distanceToSqr(target) > STATES.get(target.getUUID()).rescueDistance()
-                            * STATES.get(target.getUUID()).rescueDistance()) return;
-            label = Component.translatable("hud.blockzone.rescue_hint");
-        } else label = p.state() == 1
-                ? Component.translatable("hud.blockzone.downed", (p.bleedTicks() + 19) / 20)
-                : Component.translatable("hud.blockzone.rescuing");
-        var g = e.getGuiGraphics();
-        int x = g.guiWidth() / 2 - 110, y = g.guiHeight() / 2 + 40;
-        g.fill(x, y, x + 220, y + 30, 0xCC18202A);
-        g.drawCenteredString(mc.font, label, x + 110, y + 7, p != null && p.state() == 1 ? 0xFFFF6868 : 0xFFE7EEF4);
-        if (p != null) {
-            g.fill(x + 8, y + 22, x + 212, y + 25, 0xFF394450);
-            float progress = p.rescueTicks() > 0 ? p.rescueTicks() / (float)Math.max(1, p.rescueTotalTicks())
-                    : p.bleedTicks() / (float)Math.max(1, p.bleedTotalTicks());
-            g.fill(x + 8, y + 22, x + 8 + (int)(204 * net.minecraft.util.Mth.clamp(progress, 0, 1)), y + 25,
-                    p.rescueTicks() > 0 ? 0xFF65D6A4 : 0xFFFF6868);
-        }
     }
 }

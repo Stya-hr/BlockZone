@@ -35,6 +35,11 @@ public final class DeploymentVehicleState {
         return snapshot == null ? null : snapshot.route();
     }
 
+    public static double speed() {
+        var route = route();
+        return route == null ? Double.NaN : route.speed();
+    }
+
     static Vec3 position(float partialTick) {
         var route = route();
         if (route == null) return null;

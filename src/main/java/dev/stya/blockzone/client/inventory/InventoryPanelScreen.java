@@ -16,7 +16,7 @@ import net.minecraft.world.item.ItemStack;
 public final class InventoryPanelScreen extends Screen {
     private static final int FOREGROUND = 0xFFF3F7F8;
     private static final int SLOT_ICON_SIZE = 40;
-    private static final float COUNT_SCALE = 1.8F;
+    private static final float COUNT_SCALE = 2.2F;
     private static final int LIMIT_COLOR = 0xAAF3F7F8;
     private static final int HEADER_WIDTH = 720;
     private static final int HEADER_HEIGHT = 34;
@@ -64,31 +64,20 @@ public final class InventoryPanelScreen extends Screen {
             box(gui, cell.x(), cell.y(), cell.width(), cell.height(), cell == hovered || dragging && cell == pressedCell);
             boolean equipment = InventorySlot.FIRST_ROW.contains(cell.slot());
             boolean weapon = InventorySlot.WEAPONS.contains(cell.slot());
-            int imageHeight = cell.height() - (equipment ? 0 : CAPTION_HEIGHT);
-            if (!equipment) gui.fill(cell.x() + 3, cell.y() + cell.height() - CAPTION_HEIGHT, cell.x() + cell.width() - 3, cell.y() + cell.height() - 3, 0x66000000);
+            int iconX = cell.x() + (weapon ? -8 : 0);
+            int iconY = cell.y() + (weapon ? 6 : 0);
+            int imageHeight = equipment || (!weapon && !item.isEmpty()) ? cell.height() : cell.height() - CAPTION_HEIGHT;
             if (item.isEmpty()) {
                 int w = weapon ? 156 : SLOT_ICON_SIZE;
                 int h = weapon ? 56 : SLOT_ICON_SIZE;
-                icon(gui, cell.slot().icon(), cell.x() + (cell.width() - w) / 2, cell.y() + (imageHeight - h) / 2, w, h);
-            } else if (!weapon || !GunHudIcon.draw(gui, item, cell.x() + GUN_MARGIN_X, cell.y() + GUN_MARGIN_Y, cell.width() - 2 * GUN_MARGIN_X, imageHeight - 2 * GUN_MARGIN_Y)) {
+                icon(gui, cell.slot().icon(), iconX + (cell.width() - w) / 2, iconY + (imageHeight - h) / 2, w, h);
+            } else if (!weapon || !GunHudIcon.draw(gui, item, iconX + GUN_MARGIN_X, iconY + GUN_MARGIN_Y, cell.width() - 2 * GUN_MARGIN_X, imageHeight - 2 * GUN_MARGIN_Y)) {
+                int size = weapon ? SLOT_ICON_SIZE : Math.min(cell.width(), cell.height()) - 12;
                 gui.pose().pushPose();
-                gui.pose().translate(cell.x() + (cell.width() - SLOT_ICON_SIZE) / 2F, cell.y() + (imageHeight - SLOT_ICON_SIZE) / 2F, 0);
-                gui.pose().scale(SLOT_ICON_SIZE / 16F, SLOT_ICON_SIZE / 16F, 1); gui.renderItem(item, 0, 0); gui.pose().popPose();
+                gui.pose().translate(iconX + (cell.width() - size) / 2F, iconY + (imageHeight - size) / 2F, 0);
+                gui.pose().scale(size / 16F, size / 16F, 1); gui.renderItem(item, 0, 0); gui.pose().popPose();
             }
-            if (weapon) {
-                String label = font.plainSubstrByWidth((item.isEmpty() ? slotName(cell.slot()) : item.getHoverName()).getString(), (cell.width() - 12) / 2);
-                text(gui, label, cell.x() + (cell.width() - font.width(label) * 2F) / 2, cell.y() + cell.height() - 25, 2F, FOREGROUND);
-            } else if (!equipment) {
-                int limit = data() == null ? cell.slot().defaultLimit() : data().limit(cell.slot());
-                String count = Integer.toString(item.getCount());
-                String maximum = " / " + limit;
-                float countWidth = font.width(count) * COUNT_SCALE;
-                float totalWidth = countWidth + font.width(maximum) * COUNT_SCALE;
-                float x = cell.x() + (cell.width() - totalWidth) / 2;
-                float y = cell.y() + cell.height() - 6 - font.lineHeight * COUNT_SCALE;
-                text(gui, count, x, y, COUNT_SCALE, item.getCount() > limit ? 0xFFFF9E81 : FOREGROUND);
-                text(gui, maximum, x + countWidth, y, COUNT_SCALE, LIMIT_COLOR);
-            }
+            if (!equipment) caption(gui, cell, item, weapon);
         }
         // Draw flat attachment status last, above every item/HUD render pass.
         gui.flush();
@@ -110,6 +99,33 @@ public final class InventoryPanelScreen extends Screen {
             gui.renderItem(stack(pressedCell.slot()), mouseX - 8, mouseY - 8);
             gui.pose().popPose();
         }
+    }
+
+    private void caption(GuiGraphics gui, InventoryPanelLayout.Cell cell, ItemStack item, boolean weapon) {
+        gui.flush();
+        gui.pose().pushPose();
+        try {
+            // Overlay the icon rather than reserving part of its square for the quantity strip.
+            gui.pose().translate(0, 0, 400);
+            gui.fill(cell.x() + 3, cell.y() + cell.height() - CAPTION_HEIGHT,
+                    cell.x() + cell.width() - 3, cell.y() + cell.height() - 3, 0x66000000);
+            if (weapon) {
+                String label = font.plainSubstrByWidth((item.isEmpty() ? slotName(cell.slot()) : item.getHoverName()).getString(), (cell.width() - 12) / 2);
+                text(gui, label, cell.x() + (cell.width() - font.width(label) * 2F) / 2, cell.y() + cell.height() - 25, 2F, FOREGROUND);
+            } else {
+                int limit = data() == null ? cell.slot().defaultLimit() : data().limit(cell.slot());
+                String count = Integer.toString(item.getCount());
+                String maximum = " / " + limit;
+                float countScale = Math.min(COUNT_SCALE, (cell.width() - 12F) / (font.width(count) + font.width(maximum)));
+                float countWidth = font.width(count) * countScale;
+                float totalWidth = countWidth + font.width(maximum) * countScale;
+                float x = cell.x() + (cell.width() - totalWidth) / 2;
+                float y = cell.y() + cell.height() - 6 - font.lineHeight * countScale;
+                text(gui, count, x, y, countScale, item.getCount() > limit ? 0xFFFF9E81 : FOREGROUND);
+                text(gui, maximum, x + countWidth, y, countScale, LIMIT_COLOR);
+            }
+            gui.flush();
+        } finally { gui.pose().popPose(); }
     }
 
     private Component slotName(InventorySlot slot) { return Component.translatable("slot.blockzone." + slot.category()); }

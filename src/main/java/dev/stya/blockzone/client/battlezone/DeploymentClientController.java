@@ -14,8 +14,7 @@ import net.minecraft.world.entity.Pose;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
-import net.minecraftforge.client.event.RenderGuiOverlayEvent;
-import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
+import net.minecraftforge.client.event.RenderGuiEvent;
 import net.minecraftforge.client.settings.KeyConflictContext;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -148,8 +147,8 @@ public final class DeploymentClientController {
     }
 
     @SubscribeEvent
-    public static void overlay(RenderGuiOverlayEvent.Post event) {
-        if (state == 0 || event.getOverlay() != VanillaGuiOverlay.HOTBAR.type()) {
+    public static void overlay(RenderGuiEvent.Post event) {
+        if (state == 0 || Minecraft.getInstance().options.hideGui || Minecraft.getInstance().screen != null) {
             return;
         }
         Minecraft minecraft = Minecraft.getInstance();

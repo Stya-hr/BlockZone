@@ -14,11 +14,9 @@ public final class ActionProgressPanel {
             int gap = keyWidth == 0 ? 0 : 10;
             title = g.fit(status.title(), 420 - keyWidth - gap, 20);
             float x = centerX - (g.textWidth(title, 20) + keyWidth + gap) / 2;
-            dev.stya.blockzone.client.inventory.InventoryPromptRenderer.softShadow(g.gui, Math.round(x), Math.round(y + 12),
-                    Math.round(g.textWidth(title, 20) + keyWidth + gap), 20);
             g.key(status.key(), Math.round(x), Math.round(y + 12));
             float labelX = x + keyWidth + gap;
-            g.text(title, labelX, y + 12, 20, HudCanvas.TEXT);
+            g.textWithShadow(title, labelX, y + 12, 20, HudCanvas.TEXT);
             return;
         }
         float x = centerX - 210;

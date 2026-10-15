@@ -78,16 +78,15 @@ public final class InventoryPromptRenderer {
                     int width = keysWidth(font, prompt);
                     var description = Component.translatable(prompt.description);
                     int descriptionWidth = (int)Math.ceil(font.width(description) * LABEL_SCALE);
-                    softShadow(gui, x, 0, width + 5 + descriptionWidth, KEY_HEIGHT);
                     int keyX = x;
                     for (var key : prompt.keys) {
                         keyX += renderKey(gui, font, key, keyX, 0, KEY_HEIGHT,
-                                key.equals(options.keyShift.getKey()) && shift, false) + 3;
+                                key.equals(options.keyShift.getKey()) && shift) + 3;
                     }
                     gui.pose().pushPose();
                     gui.pose().translate(x + width + 5, (KEY_HEIGHT - font.lineHeight * LABEL_SCALE) / 2, 0);
                     gui.pose().scale(LABEL_SCALE, LABEL_SCALE, 1);
-                    gui.drawString(font, description, 0, 0, 0xFFF3F7F8, false);
+                    textWithShadow(gui, font, description, 0xFFF3F7F8);
                     gui.pose().popPose();
                     x += width + 5 + descriptionWidth + 12;
                 }
@@ -97,12 +96,9 @@ public final class InventoryPromptRenderer {
 
     /** Single-key HUD prompt with a caller-selected height. Uses the registered key, never a glyph alias. */
     public static int renderKey(GuiGraphics gui, Font font, InputConstants.Key key, int x, int y, int height) {
-        return renderKey(gui, font, key, x, y, height, false, true);
+        return renderKey(gui, font, key, x, y, height, false);
     }
-    public static int renderKey(GuiGraphics gui, Font font, InputConstants.Key key, int x, int y, int height, boolean shadow) {
-        return renderKey(gui, font, key, x, y, height, false, shadow);
-    }
-    private static int renderKey(GuiGraphics gui, Font font, InputConstants.Key key, int x, int y, int height, boolean held, boolean shadow) {
+    private static int renderKey(GuiGraphics gui, Font font, InputConstants.Key key, int x, int y, int height, boolean held) {
         resolve();
         boolean pressed = held || key.getType() == InputConstants.Type.KEYSYM && key.getValue() >= 0
                 && InputConstants.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), key.getValue());
@@ -113,7 +109,6 @@ public final class InventoryPromptRenderer {
         try {
             gui.pose().translate(x, y, 0);
             int measuredWidth = keyWidth(font, key, height);
-            if (shadow) softShadow(gui, 0, 0, measuredWidth, height);
             if (smartRenderer != null) {
                 gui.flush();
                 float scale = height / (float)KEY_HEIGHT;
@@ -134,11 +129,20 @@ public final class InventoryPromptRenderer {
         } finally { gui.pose().popPose(); }
     }
 
-    /** Low-opacity feathered backing for the complete prompt, without a crisp offset edge. */
-    public static void softShadow(GuiGraphics gui, int x, int y, int width, int height) {
-        for (int radius = 5; radius >= 1; radius--)
-            gui.fill(x - radius, y + 1 - radius, x + width + radius, y + height + 1 + radius,
-                    ((6 - radius) * 2) << 24);
+    /** Feather the glyph mask itself; never draw a rectangular prompt backdrop. */
+    public static void textWithShadow(GuiGraphics gui, Font font, Component text, int color) {
+        for (int ring = 1; ring <= 2; ring++) {
+            float radius = ring * .65f;
+            int shadow = ring == 1 ? 0x16000000 : 0x08000000;
+            for (int dx = -1; dx <= 1; dx++) for (int dy = -1; dy <= 1; dy++) {
+                if (dx == 0 && dy == 0) continue;
+                gui.pose().pushPose();
+                gui.pose().translate(dx * radius, dy * radius + .3f, 0);
+                gui.drawString(font, text, 0, 0, shadow, false);
+                gui.pose().popPose();
+            }
+        }
+        gui.drawString(font, text, 0, 0, color, false);
     }
 
     private static void drawKey(GuiGraphics gui, Font font, InputConstants.Key key, int x, int width, boolean pressed) {

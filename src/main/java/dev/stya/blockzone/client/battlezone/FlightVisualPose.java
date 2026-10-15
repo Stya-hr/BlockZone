@@ -32,9 +32,9 @@ public final class FlightVisualPose {
             POSES.remove(packet.playerId());
         } else {
             float[] target = switch (packet.state()) {
-                case 1 -> new float[] {-90, -2.8f, .2f, 0, .05f};
-                case 2 -> new float[] {12, -2.4f, .18f, -.45f, .06f};
-                case 3 -> new float[] {-60, -.4f, 1.1f, .2f, .2f};
+                case 1 -> new float[] {-90, -2.8f, .2f, 0, .05f, 0};
+                case 2 -> new float[] {4, -2.4f, .18f, -.25f, .06f, 0};
+                case 3 -> new float[] {-60, -.4f, 1.1f, .2f, .2f, 0};
                 default -> null;
             };
             if (target != null) {
@@ -66,10 +66,27 @@ public final class FlightVisualPose {
             POSES.clear();
             level = Minecraft.getInstance().level;
         }
-        for (Blend pose : POSES.values()) {
+        for (var entry : POSES.entrySet()) {
+            Blend pose = entry.getValue();
+            var player = Minecraft.getInstance().level == null ? null
+                    : Minecraft.getInstance().level.getPlayerByUUID(entry.getKey());
+            if (player != null && (pose.state == 2 || pose.state == 3)) {
+                var velocity = player == Minecraft.getInstance().player ? player.getDeltaMovement()
+                        : player.position().subtract(player.xo, player.yo, player.zo);
+                double yaw = player.getYRot() * Mth.DEG_TO_RAD;
+                double speed = pose.state == 2 ? .08 : .05;
+                float forward = (float) Mth.clamp((-Math.sin(yaw) * velocity.x + Math.cos(yaw) * velocity.z) / speed, -1, 1);
+                float left = (float) Mth.clamp((Math.cos(yaw) * velocity.x + Math.sin(yaw) * velocity.z) / speed, -1, 1);
+                pose.target[0] = pose.state == 2 ? 4 + forward * 24 : -60 - forward * 14;
+                pose.target[5] = left * (pose.state == 2 ? 28 : 16);
+                if (pose.state == 2) {
+                    pose.target[1] = -2.4f + forward * .2f;
+                    pose.target[3] = -.25f - forward * .3f;
+                }
+            }
             for (int i = 0; i < pose.current.length; i++) {
                 pose.previous[i] = pose.current[i];
-                pose.current[i] = Mth.lerp(.35f, pose.current[i], pose.target[i]);
+                pose.current[i] = Mth.lerp(.14f, pose.current[i], pose.target[i]);
             }
         }
     }

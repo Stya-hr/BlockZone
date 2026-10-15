@@ -1,0 +1,53 @@
+package dev.stya.blockzone.client.hud.weapon;
+
+import dev.stya.blockzone.client.inventory.GunHudIcon;
+import dev.stya.blockzone.client.inventory.InventoryPromptRenderer;
+import icyllis.modernui.mc.text.TextLayoutEngine;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.world.item.ItemStack;
+
+/** QHD design pixels, with Modern UI text and shared inventory gun/key renderers. */
+final class WeaponHudGraphics {
+    static final int WHITE = 0xFFF3F7F8, DIM = 0x73666666, RED = 0xFFFF6D76;
+    final GuiGraphics gui;
+    WeaponHudGraphics(GuiGraphics gui) { this.gui = gui; }
+    void rect(float x, float y, float w, float h, int color) {
+        var m = gui.pose().last().pose();
+        var b = gui.bufferSource().getBuffer(net.minecraft.client.renderer.RenderType.gui());
+        b.vertex(m, x, y + h, 0).color(color).endVertex();
+        b.vertex(m, x + w, y + h, 0).color(color).endVertex();
+        b.vertex(m, x + w, y, 0).color(color).endVertex();
+        b.vertex(m, x, y, 0).color(color).endVertex();
+    }
+    void box(int x, int y, int w, int h, boolean selected, boolean weapon) {
+        rect(x, y, w, h, weapon ? 0x3310181E : 0x33000000);
+        int t = selected ? 2 : 1, color = selected ? WHITE : DIM;
+        rect(x, y, w, t, color); rect(x, y + h - t, w, t, color);
+        rect(x, y + t, t, h - 2 * t, color); rect(x + w - t, y + t, t, h - 2 * t, color);
+    }
+    float width(String text, float size) { return Minecraft.getInstance().font.width(text) * size / 8f; }
+    void text(String text, float x, float y, float size, int color) {
+        gui.pose().pushPose();
+        gui.pose().translate(x, y, 0); gui.pose().scale(size / 8f, size / 8f, 1);
+        TextLayoutEngine.getInstance().getTextRenderer().drawText(text, 0, 0, color, false,
+                gui.pose().last().pose(), gui.bufferSource(), Font.DisplayMode.NORMAL, 0, 0xF000F0);
+        gui.pose().popPose();
+    }
+    void key(KeyMapping mapping, int x, int y) {
+        if (!mapping.isUnbound()) InventoryPromptRenderer.renderKey(gui, Minecraft.getInstance().font, mapping.getKey(), x, y, 20);
+    }
+    void item(ItemStack stack, int x, int y, int w, int h, boolean weapon) {
+        if (stack.isEmpty()) return;
+        if (weapon && GunHudIcon.draw(gui, stack, x, y, w, h)) return;
+        gui.flush();
+        int size = Math.min(w, h);
+        gui.pose().pushPose();
+        gui.pose().translate(x + (w - size) / 2f, y + (h - size) / 2f, 0);
+        gui.pose().scale(size / 16f, size / 16f, 1);
+        gui.renderItem(stack, 0, 0);
+        gui.flush(); gui.pose().popPose();
+    }
+}

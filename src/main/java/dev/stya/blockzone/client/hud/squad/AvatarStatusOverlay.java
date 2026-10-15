@@ -8,7 +8,7 @@ final class AvatarStatusOverlay {
         int border = !member.online() ? SquadHudStyle.MUTED : !member.living()
                 ? SquadHudStyle.DANGER : SquadHudStyle.TEXT;
         frame(g, x, y, size, border);
-        if (!member.online() || !member.living()) g.rect(x + 4, y + 4, size - 8, size - 8, 0x9910181E);
+        if (!member.online() || !member.living()) g.rect(x + 2, y + 2, size - 4, size - 4, 0x9910181E);
         if (!member.online()) {
             float inset = size * .27f;
             g.line(x + inset, y + inset, x + size - inset, y + size - inset, size / 12, SquadHudStyle.TEXT);

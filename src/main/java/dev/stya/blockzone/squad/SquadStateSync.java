@@ -26,8 +26,14 @@ public final class SquadStateSync {
             var data = roster.get(i);
             var player = map.getServerLevel().getServer().getPlayerList().getPlayer(data.getOwner());
             var rescue = player == null ? null : CombatStateSync.rescuePacket(player);
+            float maxHealth = player == null ? map.getCombatHealth() : player.getMaxHealth();
+            // DownedController initializes a separate downed health pool (usually 50, not 100).
+            // Send its actual configured capacity so the red bar starts full on every client.
+            if (rescue != null && rescue.state() == 1) {
+                maxHealth = Math.min(maxHealth, (float)map.getCombatConfig().downedHealth());
+            }
             members.add(new SquadMemberStatus(data.getOwner(), data.name().getString(), numbers.number(data.getOwner()), player != null, data.isLiving(),
-                    player == null ? 0 : player.getHealth(), player == null ? map.getCombatHealth() : player.getMaxHealth(),
+                    player == null ? 0 : player.getHealth(), maxHealth,
                     player == null ? 0 : player.getAbsorptionAmount(), map.getArmorPlatePoints(), player == null ? 0 : PlateCapacity.slots(player),
                     rescue == null ? 0 : rescue.state(), rescue == null ? 0 : rescue.bleedTicks(), rescue == null ? 0 : rescue.bleedTotalTicks(),
                     rescue == null ? 0 : rescue.rescueTicks(), rescue == null ? 0 : rescue.rescueTotalTicks(),

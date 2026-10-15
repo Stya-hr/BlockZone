@@ -27,6 +27,13 @@ class SquadMemberStatusTest {
         assertEquals(.5f, bleed.downedFraction());
         assertEquals(.25f, member(true, true, 50, 100, 0, 1, 40).downedFraction());
     }
+    @Test void downedHealthStartsFullAndUsesItsOwnCapacityWhenDamaged() {
+        var downed = member(true, true, 50, 50, 0, 1, 0);
+        assertTrue(downed.downed());
+        assertEquals(1, downed.healthFraction());
+        assertEquals(.5f, member(true, true, 25, 50, 0, 1, 0).healthFraction());
+        assertEquals(.5f, member(true, true, 50, 100, 0, 0, 0).healthFraction());
+    }
     @Test void invalidVitalsNeverProduceInvalidGeometry() {
         var m = member(true, true, Float.NaN, 0, Float.POSITIVE_INFINITY, 0, 0);
         assertEquals(0, m.healthFraction());

@@ -9,10 +9,11 @@ import net.minecraft.client.gui.GuiGraphics;
 public final class SquadStatusPanel {
     private final TeammateStatusRow teammate = new TeammateStatusRow();
     private final LocalPlayerStatus local = new LocalPlayerStatus();
-    private final PlayerActionHints hints = new PlayerActionHints();
+    private final SquadVitalsAnimation animations = new SquadVitalsAnimation();
     private int page;
     private String scope = "";
     public void render(GuiGraphics gui, List<SquadMemberStatus> members, UUID localId) {
+        animations.update(members, SquadClientState.scope(), System.nanoTime() / 1_000_000_000.0);
         var self = members.stream().filter(member -> member.id().equals(localId)).findFirst().orElse(null);
         if (self == null) return;
         var others = members.stream().filter(member -> !member.id().equals(localId))
@@ -27,7 +28,7 @@ public final class SquadStatusPanel {
             gui.pose().translate(SquadHudStyle.LEFT * scale,
                     viewportHeight - (SquadHudStyle.DESIGN_HEIGHT - SquadHudStyle.LOCAL_TOP) * scale, 0);
             gui.pose().scale(scale, scale, 1);
-            var g = new SquadHudGraphics(gui);
+            var g = new SquadHudGraphics(gui, animations);
             var layout = SquadRosterLayout.create(others.size(), (float)(viewportHeight / scale - 184), gui.guiWidth() / scale);
             if (!scope.equals(SquadClientState.scope())) {
                 scope = SquadClientState.scope(); page = 0;
@@ -49,7 +50,6 @@ public final class SquadStatusPanel {
                 g.text((page + 1) + " / " + layout.pages(), 308 + keyWidth, 80, 12, SquadHudStyle.TEXT);
             }
             local.render(g, self);
-            if (self.online() && self.living() && !self.downed()) hints.render(g, 76);
             gui.flush();
         } finally { gui.pose().popPose(); }
     }

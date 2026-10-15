@@ -7,7 +7,11 @@ import net.minecraft.client.gui.GuiGraphics;
 /** Modern UI text bridge in QHD design pixels; never creates an interactive screen. */
 final class SquadHudGraphics {
     final GuiGraphics gui;
-    SquadHudGraphics(GuiGraphics gui) { this.gui = gui; }
+    final SquadVitalsAnimation animations;
+    SquadHudGraphics(GuiGraphics gui, SquadVitalsAnimation animations) {
+        this.gui = gui;
+        this.animations = animations;
+    }
     void rect(float x, float y, float width, float height, int color) {
         if (!(width > 0 && height > 0)) return;
         // Keep fractional SVG dimensions (including 114.667px armor segments).

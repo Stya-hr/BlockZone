@@ -42,5 +42,3 @@ Windows 使用 `gradlew.bat` 替代 `./gradlew`。IDE 的项目 SDK 与 Gradle J
 构建产物位于 `build/libs/`。客户端和服务端运行目录分别为 `run/client/` 与 `run/server/`，地图需要通过 FPSMatch 配置。
 
 客户端测试流程见 [AGENTS.md](AGENTS.md)，提交规范见 [CONTRIBUTING.md](CONTRIBUTING.md)。
-
-MDK 原始压缩包 SHA-256：`73e0122becd05e39b47eced54e030380d66411850ed86786a2d58ecd886b0451`。Wrapper 文件直接取自该压缩包；MDK 的 Example Mod 示例代码由现有 BlockZone 实现替代。

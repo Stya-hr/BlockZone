@@ -17,10 +17,7 @@ final class PlayerAvatar {
         g.gui.blit(skin, 0, 0, size - 8, size - 8, 8, 8, 8, 8, 64, 64);
         g.gui.blit(skin, 0, 0, size - 8, size - 8, 40, 8, 8, 8, 64, 64);
         g.gui.pose().popPose();
-        int border = local ? 0x73666666 : !member.online() ? SquadHudStyle.MUTED
-                : !member.living() || member.downed() ? SquadHudStyle.DANGER : 0xFFFFCC00;
-        g.rect(x, y, size, 2, border); g.rect(x, y + size - 2, size, 2, border);
-        g.rect(x, y + 2, 2, size - 4, border); g.rect(x + size - 2, y + 2, 2, size - 4, border);
-        if (!member.online() || !member.living()) g.rect(x + 4, y + 4, size - 8, size - 8, 0x7710181E);
+        overlay.render(g, member, x, y, size);
     }
+    private final AvatarStatusOverlay overlay = new AvatarStatusOverlay();
 }

@@ -6,7 +6,7 @@ import java.util.UUID;
 public record SquadMemberStatus(UUID id, String name, int number, boolean online, boolean living,
                                 float health, float maxHealth, float armor, float platePoints, int plateSlots,
                                 int rescueState, int bleedTicks, int bleedTotalTicks,
-                                int rescueTicks, int rescueTotalTicks, boolean plating) {
+                                int rescueTicks, int rescueTotalTicks, boolean plating, boolean firing) {
     public SquadMemberStatus {
         maxHealth = positive(maxHealth);
         health = clamp(health, maxHealth);

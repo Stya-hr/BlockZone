@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class SquadMemberStatusTest {
     private SquadMemberStatus member(boolean online, boolean living, float hp, float max, float armor, int state, int rescue) {
         return new SquadMemberStatus(UUID.randomUUID(), "Player", 1, online, living, hp, max, armor, 50, 3,
-                state, 200, 400, rescue, 160, false);
+                state, 200, 400, rescue, 160, false, false);
     }
     @Test void healthUsesConfiguredMaximumAndArmorFillsSequentialSegments() {
         var m = member(true, true, 75, 100, 65, 0, 0);

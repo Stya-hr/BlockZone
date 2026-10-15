@@ -31,7 +31,8 @@ public final class SquadStateSync {
                     player == null ? 0 : player.getAbsorptionAmount(), map.getArmorPlatePoints(), player == null ? 0 : PlateCapacity.slots(player),
                     rescue == null ? 0 : rescue.state(), rescue == null ? 0 : rescue.bleedTicks(), rescue == null ? 0 : rescue.bleedTotalTicks(),
                     rescue == null ? 0 : rescue.rescueTicks(), rescue == null ? 0 : rescue.rescueTotalTicks(),
-                    player != null && player.isUsingItem() && player.getUseItem().is(BlockzoneItems.ARMOR_PLATE.get())));
+                    player != null && player.isUsingItem() && player.getUseItem().is(BlockzoneItems.ARMOR_PLATE.get()),
+                    player != null && data.isLiving() && SquadGunActivity.isFiring(player, map)));
         }
         return new SquadStateS2CPacket(map.getMapName(), team.getName(), members);
     }
@@ -48,6 +49,7 @@ public final class SquadStateSync {
     }
     public static void clear(ServerPlayer player) {
         SENT.remove(player);
+        SquadGunActivity.clear(player);
         BlockzoneNetwork.sendToPlayer(player, SquadStateS2CPacket.EMPTY);
     }
 }

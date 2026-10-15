@@ -25,6 +25,10 @@ final class SquadVitalsAnimation {
                 state = new State(member, mode, now);
                 states.put(member.id(), state);
             }
+            if (member.online() && member.living()
+                    && (member.health() < state.lastHealth || member.armor() < state.lastArmor)) state.hitAt = now;
+            state.lastHealth = member.health();
+            state.lastArmor = member.armor();
             state.health.update(member.healthFraction(), now);
             for (int i = 0; i < state.armor.length; i++) state.armor[i].update(member.armorFraction(i), now);
         }
@@ -33,10 +37,14 @@ final class SquadVitalsAnimation {
     State get(UUID id) { return states.get(id); }
     static final class State {
         final int mode;
+        float lastHealth, lastArmor;
+        double hitAt = Double.NEGATIVE_INFINITY;
         final VitalBarMotion health;
         final VitalBarMotion[] armor;
         State(SquadMemberStatus member, int mode, double now) {
             this.mode = mode;
+            lastHealth = member.health();
+            lastArmor = member.armor();
             health = new VitalBarMotion(member.healthFraction(), now);
             armor = new VitalBarMotion[member.plateSlots()];
             for (int i = 0; i < armor.length; i++) armor[i] = new VitalBarMotion(member.armorFraction(i), now);

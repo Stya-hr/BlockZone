@@ -22,6 +22,22 @@ final class SquadHudGraphics {
         vertices.vertex(matrix, x + width, y, 0).color(color).endVertex();
         vertices.vertex(matrix, x, y, 0).color(color).endVertex();
     }
+    void line(float x1, float y1, float x2, float y2, float thickness, int color) {
+        float length = (float)Math.hypot(x2 - x1, y2 - y1);
+        if (length == 0) return;
+        float dx = -(y2 - y1) * thickness / (2 * length);
+        float dy = (x2 - x1) * thickness / (2 * length);
+        var matrix = gui.pose().last().pose();
+        var vertices = gui.bufferSource().getBuffer(net.minecraft.client.renderer.RenderType.gui());
+        vertices.vertex(matrix, x1 + dx, y1 + dy, 0).color(color).endVertex();
+        vertices.vertex(matrix, x2 + dx, y2 + dy, 0).color(color).endVertex();
+        vertices.vertex(matrix, x2 - dx, y2 - dy, 0).color(color).endVertex();
+        vertices.vertex(matrix, x1 - dx, y1 - dy, 0).color(color).endVertex();
+    }
+    void centeredText(String text, float centerX, float y, float size, int color) {
+        float width = net.minecraft.client.Minecraft.getInstance().font.width(text) * size / 8f;
+        text(text, centerX - width / 2, y, size, color);
+    }
     void text(String text, float x, float y, float size, int color) {
         var engine = TextLayoutEngine.getInstance();
         gui.pose().pushPose();

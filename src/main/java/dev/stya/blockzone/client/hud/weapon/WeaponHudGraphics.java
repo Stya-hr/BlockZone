@@ -28,12 +28,12 @@ final class WeaponHudGraphics {
         if (weapon && selected) {
             // SVG: gray horizontal edges with white 10px brackets at either end.
             rect(x, y, w, 2, DIM); rect(x, y + h - 2, w, 2, DIM);
-            rect(x, y, 2, h, WHITE); rect(x + w - 2, y, 2, h, WHITE);
-            rect(x, y, 10, 2, WHITE); rect(x + w - 10, y, 10, 2, WHITE);
-            rect(x, y + h - 2, 10, 2, WHITE); rect(x + w - 10, y + h - 2, 10, 2, WHITE);
+            rect(x, y, 3, h, WHITE); rect(x + w - 3, y, 3, h, WHITE);
+            rect(x, y, 10, 3, WHITE); rect(x + w - 10, y, 10, 3, WHITE);
+            rect(x, y + h - 3, 10, 3, WHITE); rect(x + w - 10, y + h - 3, 10, 3, WHITE);
             return;
         }
-        int t = selected ? 2 : 1, color = selected ? WHITE : DIM;
+        int t = selected ? 3 : 2, color = selected ? WHITE : DIM;
         rect(x, y, w, t, color); rect(x, y + h - t, w, t, color);
         rect(x, y + t, t, h - 2 * t, color); rect(x + w - t, y + t, t, h - 2 * t, color);
     }

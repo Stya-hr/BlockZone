@@ -16,7 +16,7 @@ import net.minecraft.world.item.ItemStack;
 public final class InventoryPanelScreen extends Screen {
     private static final int FOREGROUND = 0xFFF3F7F8;
     private static final int SLOT_ICON_SIZE = 40;
-    private static final float COUNT_SCALE = 1.8F;
+    private static final float COUNT_SCALE = 2.2F;
     private static final int LIMIT_COLOR = 0xAAF3F7F8;
     private static final int HEADER_WIDTH = 720;
     private static final int HEADER_HEIGHT = 34;
@@ -82,12 +82,13 @@ public final class InventoryPanelScreen extends Screen {
                 int limit = data() == null ? cell.slot().defaultLimit() : data().limit(cell.slot());
                 String count = Integer.toString(item.getCount());
                 String maximum = " / " + limit;
-                float countWidth = font.width(count) * COUNT_SCALE;
-                float totalWidth = countWidth + font.width(maximum) * COUNT_SCALE;
+                float countScale = Math.min(COUNT_SCALE, (cell.width() - 12F) / (font.width(count) + font.width(maximum)));
+                float countWidth = font.width(count) * countScale;
+                float totalWidth = countWidth + font.width(maximum) * countScale;
                 float x = cell.x() + (cell.width() - totalWidth) / 2;
-                float y = cell.y() + cell.height() - 6 - font.lineHeight * COUNT_SCALE;
-                text(gui, count, x, y, COUNT_SCALE, item.getCount() > limit ? 0xFFFF9E81 : FOREGROUND);
-                text(gui, maximum, x + countWidth, y, COUNT_SCALE, LIMIT_COLOR);
+                float y = cell.y() + cell.height() - 6 - font.lineHeight * countScale;
+                text(gui, count, x, y, countScale, item.getCount() > limit ? 0xFFFF9E81 : FOREGROUND);
+                text(gui, maximum, x + countWidth, y, countScale, LIMIT_COLOR);
             }
         }
         // Draw flat attachment status last, above every item/HUD render pass.

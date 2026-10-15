@@ -34,7 +34,7 @@ public final class ActionHud implements IHudRenderer {
         var action = ActionStatusSource.read(partial);
         boolean airborne = DeploymentClientController.isAirborne();
         if (action == null && !airborne) return;
-        try (var g = new HudCanvas(gui)) {
+        try (var g = new HudCanvas(dev.stya.blockzone.client.ui.ModernUiLayer.hud())) {
             if (DeploymentClientController.state() == 2 || DeploymentClientController.state() == 3) flight.render(g, partial);
             progress.render(g, action != null ? action : flight.prompt(), g.width / 2, g.height - 300);
         }

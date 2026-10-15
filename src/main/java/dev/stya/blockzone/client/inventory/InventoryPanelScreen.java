@@ -8,12 +8,12 @@ import dev.stya.blockzone.net.BlockzoneNetwork;
 import dev.stya.blockzone.net.battlezone.DiscardInventoryC2SPacket;
 import java.util.List;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
 /** Non-pausing, server-authoritative inventory with shared render/hit-test geometry. */
-public final class InventoryPanelScreen extends Screen {
+public final class InventoryPanelScreen extends dev.stya.blockzone.client.ui.ModernUiScreen {
+    private final dev.stya.blockzone.client.ui.ModernUiPanel panel = new dev.stya.blockzone.client.ui.ModernUiPanel();
     private static final int FOREGROUND = 0xFFF3F7F8;
     private static final int SLOT_ICON_SIZE = 40;
     private static final float COUNT_SCALE = 2.2F;
@@ -40,6 +40,7 @@ public final class InventoryPanelScreen extends Screen {
         preserveSneak = net.minecraft.client.Minecraft.getInstance().options.keyShift.isDown();
     }
     @Override protected void init() {
+        super.init();
         if (preserveSneak) minecraft.options.keyShift.setDown(true);
         preserveSneak = false;
     }
@@ -54,7 +55,13 @@ public final class InventoryPanelScreen extends Screen {
     }
     private ItemStack stack(InventorySlot slot) { var data = data(); return data == null ? ItemStack.EMPTY : data.getStack(slot); }
 
-    @Override public void render(GuiGraphics gui, int mouseX, int mouseY, float partialTick) {
+    @Override public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        var gui = new dev.stya.blockzone.client.ui.ModernUiGraphics();
+        drawPanel(gui, mouseX, mouseY, partialTick);
+        panel.update(gui);
+        super.render(graphics, mouseX, mouseY, partialTick);
+    }
+    private void drawPanel(GuiGraphics gui, int mouseX, int mouseY, float partialTick) {
         hovered = at(mouseX, mouseY);
         attachmentName = null;
         gui.pose().pushPose(); gui.pose().translate(originX(), originY(), 0); gui.pose().scale(scale(), scale(), 1);
@@ -217,7 +224,11 @@ public final class InventoryPanelScreen extends Screen {
         if (all || minecraft.options.keyAttack.matches(keyCode, scanCode)) { discard(hovered, all); return true; }
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
-    @Override public void removed() { InventorySvgAssets.clear(); }
+    @Override public void removed() {
+        super.removed();
+        InventorySvgAssets.clear();
+    }
+    @Override public icyllis.modernui.fragment.Fragment getFragment() { return panel; }
     @Override public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
         if (minecraft.options.keyShift.matches(keyCode, scanCode)) minecraft.options.keyShift.setDown(false);
         return super.keyReleased(keyCode, scanCode, modifiers);

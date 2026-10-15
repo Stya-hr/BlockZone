@@ -62,6 +62,7 @@ public final class InventoryPreviewKeys {
                     manager -> {
                         InventorySvgAssets.clear();
                         GunHudIcon.clear();
+                        dev.stya.blockzone.client.ui.ModernUiLayer.clearAssets();
                     });
         }
     }

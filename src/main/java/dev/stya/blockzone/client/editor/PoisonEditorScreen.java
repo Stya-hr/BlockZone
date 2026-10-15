@@ -7,7 +7,6 @@ import dev.stya.blockzone.zone.ZoneShape;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.phys.Vec3;
 import org.lwjgl.glfw.GLFW;
@@ -124,7 +123,7 @@ public final class PoisonEditorScreen extends ModernEditorScreen {
             for (int i = 0; i < 6; i++) if (!values[i].equals(fields.get(i))) unapplied = true;
         }
         if (PoisonWorldEditor.dirty() || unapplied) {
-            minecraft.setScreen(new ConfirmScreen(yes -> { if (yes) PoisonWorldEditor.discard(); else minecraft.setScreen(this); },
+            minecraft.setScreen(EditorConfirmScreen.create(yes -> { if (yes) PoisonWorldEditor.discard(); else minecraft.setScreen(this); },
                     Component.translatable("editor.blockzone.discard"), Component.translatable("editor.blockzone.discard_hint")));
         } else PoisonWorldEditor.discard();
     }

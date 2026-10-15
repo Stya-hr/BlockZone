@@ -12,6 +12,12 @@ import static icyllis.modernui.view.ViewGroup.LayoutParams.*;
 /** All views live on Modern UI's thread; all draft mutations are queued on the game thread. */
 public final class EditorPanel extends Fragment {
     private final ModernEditorScreen screen;
+    private volatile java.util.List<dev.stya.blockzone.client.ui.ModernUiGraphics.Frame> overlayFrames=java.util.List.of();
+    private volatile dev.stya.blockzone.client.ui.ModernUiView overlay;
+    void overlay(dev.stya.blockzone.client.ui.ModernUiGraphics graphics) {
+        overlayFrames=java.util.List.of(graphics.frame());
+        var view=overlay;if(view!=null)view.postInvalidate();
+    }
     private volatile FrameLayout root;
     private LinearLayout body;
     private EditorStatusBar status;
@@ -86,6 +92,8 @@ public final class EditorPanel extends Fragment {
     }
     private void rebuild() {
         root.removeAllViews();
+        overlay=new dev.stya.blockzone.client.ui.ModernUiView(requireContext(),()->overlayFrames);
+        root.addView(overlay,new FrameLayout.LayoutParams(MATCH_PARENT,MATCH_PARENT));
         listView = null; listAdapter = null; lastRows = null;
         screen.textFocused = false;
         var sidebar = new EditorSidebar(requireContext(), controls, screen.getTitle().getString(),

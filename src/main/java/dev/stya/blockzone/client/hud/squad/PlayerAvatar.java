@@ -13,14 +13,13 @@ final class PlayerAvatar {
         ResourceLocation skin = info == null ? DefaultPlayerSkin.getDefaultSkin(member.id()) : info.getSkinLocation();
         g.gui.flush();
         g.gui.pose().pushPose();
-        g.gui.pose().translate(x + 4, y + 4, 0);
-        g.gui.blit(skin, 0, 0, size - 8, size - 8, 8, 8, 8, 8, 64, 64);
-        g.gui.blit(skin, 0, 0, size - 8, size - 8, 40, 8, 8, 8, 64, 64);
+        // Fill the inside of the 2px frame; no second dark inset around the face.
+        int inset = SquadHudStyle.AVATAR_BORDER;
+        g.gui.pose().translate(x + inset, y + inset, 0);
+        g.gui.blit(skin, 0, 0, size - 2 * inset, size - 2 * inset, 8, 8, 8, 8, 64, 64);
+        g.gui.blit(skin, 0, 0, size - 2 * inset, size - 2 * inset, 40, 8, 8, 8, 64, 64);
         g.gui.pose().popPose();
-        int border = local ? 0x73666666 : !member.online() ? SquadHudStyle.MUTED
-                : !member.living() || member.downed() ? SquadHudStyle.DANGER : 0xFFFFCC00;
-        g.rect(x, y, size, 2, border); g.rect(x, y + size - 2, size, 2, border);
-        g.rect(x, y + 2, 2, size - 4, border); g.rect(x + size - 2, y + 2, 2, size - 4, border);
-        if (!member.online() || !member.living()) g.rect(x + 4, y + 4, size - 8, size - 8, 0x7710181E);
+        overlay.render(g, member, x, y, size);
     }
+    private final AvatarStatusOverlay overlay = new AvatarStatusOverlay();
 }

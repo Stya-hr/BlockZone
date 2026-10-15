@@ -17,14 +17,14 @@ public record SquadStateS2CPacket(String map, String team, List<SquadMemberStatu
             out.writeFloat(m.health()); out.writeFloat(m.maxHealth()); out.writeFloat(m.armor());
             out.writeFloat(m.platePoints()); out.writeVarInt(m.plateSlots());
             out.writeVarInt(m.rescueState()); out.writeVarInt(m.bleedTicks()); out.writeVarInt(m.bleedTotalTicks());
-            out.writeVarInt(m.rescueTicks()); out.writeVarInt(m.rescueTotalTicks()); out.writeBoolean(m.plating());
+            out.writeVarInt(m.rescueTicks()); out.writeVarInt(m.rescueTotalTicks()); out.writeBoolean(m.plating()); out.writeBoolean(m.firing());
         });
     }
     public static SquadStateS2CPacket decode(FriendlyByteBuf b) {
         return new SquadStateS2CPacket(b.readUtf(), b.readUtf(), b.readList(in -> new SquadMemberStatus(
                 in.readUUID(), in.readUtf(), in.readVarInt(), in.readBoolean(), in.readBoolean(),
                 in.readFloat(), in.readFloat(), in.readFloat(), in.readFloat(), in.readVarInt(),
-                in.readVarInt(), in.readVarInt(), in.readVarInt(), in.readVarInt(), in.readVarInt(), in.readBoolean())));
+                in.readVarInt(), in.readVarInt(), in.readVarInt(), in.readVarInt(), in.readVarInt(), in.readBoolean(), in.readBoolean())));
     }
     public void handle(Supplier<NetworkEvent.Context> supplier) {
         var context = supplier.get();

@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class SquadMemberStatusTest {
     private SquadMemberStatus member(boolean online, boolean living, float hp, float max, float armor, int state, int rescue) {
         return new SquadMemberStatus(UUID.randomUUID(), "Player", 1, online, living, hp, max, armor, 50, 3,
-                state, 200, 400, rescue, 160, false);
+                state, 200, 400, rescue, 160, false, false);
     }
     @Test void healthUsesConfiguredMaximumAndArmorFillsSequentialSegments() {
         var m = member(true, true, 75, 100, 65, 0, 0);
@@ -26,6 +26,13 @@ class SquadMemberStatusTest {
         assertTrue(bleed.downed());
         assertEquals(.5f, bleed.downedFraction());
         assertEquals(.25f, member(true, true, 50, 100, 0, 1, 40).downedFraction());
+    }
+    @Test void downedHealthStartsFullAndUsesItsOwnCapacityWhenDamaged() {
+        var downed = member(true, true, 50, 50, 0, 1, 0);
+        assertTrue(downed.downed());
+        assertEquals(1, downed.healthFraction());
+        assertEquals(.5f, member(true, true, 25, 50, 0, 1, 0).healthFraction());
+        assertEquals(.5f, member(true, true, 50, 100, 0, 0, 0).healthFraction());
     }
     @Test void invalidVitalsNeverProduceInvalidGeometry() {
         var m = member(true, true, Float.NaN, 0, Float.POSITIVE_INFINITY, 0, 0);

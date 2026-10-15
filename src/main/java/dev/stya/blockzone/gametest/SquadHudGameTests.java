@@ -44,4 +44,18 @@ public final class SquadHudGameTests {
             map.getCapabilityMap().clear();
         });
     }
+    @GameTest(template = "empty")
+    public static void firingFlagsSurviveSquadSnapshotTransport(GameTestHelper helper) {
+        var member = new dev.stya.blockzone.squad.SquadMemberStatus(UUID.randomUUID(), "Shooter", 1,
+                true, true, 100, 100, 50, 50, 2, 0, 0, 0, 0, 0, false, true);
+        var packet = new SquadStateS2CPacket("map", "squad", java.util.List.of(member));
+        var buffer = new FriendlyByteBuf(Unpooled.buffer());
+        try {
+            SquadStateS2CPacket.encode(packet, buffer);
+            var decoded = SquadStateS2CPacket.decode(buffer);
+            helper.assertTrue(decoded.equals(packet) && decoded.members().get(0).firing(), "Keep accepted firing flag and roster intact");
+        } finally { buffer.release(); }
+        helper.succeed();
+    }
+
 }

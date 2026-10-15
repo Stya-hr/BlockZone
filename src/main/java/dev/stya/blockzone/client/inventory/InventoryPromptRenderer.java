@@ -43,8 +43,14 @@ public final class InventoryPromptRenderer {
     private static int keyWidth(Font font, InputConstants.Key key) {
         return font.width(label(key)) + 12;
     }
+    public static int keyWidth(Font font, InputConstants.Key key, int height) {
+        resolve();
+        if (smartRenderer != null) return (int)Math.ceil(keyWidth(font, key) * height / (float)KEY_HEIGHT);
+        float scale = height / (float)KEY_HEIGHT;
+        return Math.max(height, (int)Math.ceil(font.width(key.getDisplayName()) * scale) + 8);
+    }
     private static int keysWidth(Font font, Prompt prompt) {
-        return prompt.keys.stream().mapToInt(key -> keyWidth(font, key)).sum() + (prompt.keys.size() - 1) * 3;
+        return prompt.keys.stream().mapToInt(key -> keyWidth(font, key, KEY_HEIGHT)).sum() + (prompt.keys.size() - 1) * 4;
     }
     public static void render(GuiGraphics gui, Font font, boolean shift) {
         resolve();
@@ -56,57 +62,59 @@ public final class InventoryPromptRenderer {
                 new Prompt(List.of(options.keyShift.getKey(), left), "inventory.blockzone.drop_ten"),
                 new Prompt(List.of(right), "inventory.blockzone.drop_all"),
                 new Prompt(List.of(left), "inventory.blockzone.drag_swap"),
-                new Prompt(List.of(Minecraft.getInstance().options.keyInventory.getKey()), "inventory.blockzone.close_action"));
+                new Prompt(List.of(options.keyInventory.getKey()), "inventory.blockzone.close_action"));
         var rows = List.of(prompts.subList(0, 3), prompts.subList(3, prompts.size()));
+        int[] widths = rows.stream().mapToInt(row -> row.stream().mapToInt(prompt ->
+                keysWidth(font, prompt) + font.width(Component.translatable(prompt.description)) + 25).sum() - 18).toArray();
+        float scale = Math.min(2F, 1016F / Math.max(widths[0], widths[1]));
         for (int row = 0; row < rows.size(); row++) {
-            var rowPrompts = rows.get(row);
-            int total = rowPrompts.stream().mapToInt(p -> keysWidth(font, p) + font.width(Component.translatable(p.description)) + 22).sum();
-            float scale = Math.min(2F, 1040F / total);
-            gui.pose().pushPose(); gui.pose().translate((1040 - total * scale) / 2, 382 + row * 32, 0); gui.pose().scale(scale, scale, 1);
-            int x = 0;
-            for (var prompt : rowPrompts) {
-                int width = keysWidth(font, prompt);
-                int keyX = x;
-                for (var key : prompt.keys) {
-                    int keyWidth = keyWidth(font, key);
-                    boolean pressed = key.getType() == InputConstants.Type.KEYSYM && key.getValue() >= 0
-                            && InputConstants.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), key.getValue());
-                    if (key.getType() == InputConstants.Type.MOUSE)
-                        pressed = org.lwjgl.glfw.GLFW.glfwGetMouseButton(Minecraft.getInstance().getWindow().getWindow(), key.getValue())
-                                == org.lwjgl.glfw.GLFW.GLFW_PRESS;
-                    if (key.equals(options.keyShift.getKey())) pressed |= shift;
-                    drawKey(gui, font, key, keyX, keyWidth, pressed);
-                    keyX += keyWidth + 3;
+            gui.pose().pushPose();
+            try {
+                gui.pose().translate((1040 - widths[row] * scale) / 2, 380 + row * (KEY_HEIGHT + 10) * scale, 0);
+                gui.pose().scale(scale, scale, 1);
+                int x = 0;
+                for (var prompt : rows.get(row)) {
+                    int width = keysWidth(font, prompt);
+                    int keyX = x;
+                    for (var key : prompt.keys) {
+                        keyX += renderKey(gui, font, key, keyX, 0, KEY_HEIGHT,
+                                key.equals(options.keyShift.getKey()) && shift) + 4;
+                    }
+                    var description = Component.translatable(prompt.description);
+                    gui.drawString(font, description, x + width + 7, (KEY_HEIGHT - font.lineHeight) / 2, 0xFFF3F7F8, true);
+                    x += width + 7 + font.width(description) + 18;
                 }
-                var description = Component.translatable(prompt.description);
-                gui.drawString(font, description, x + width + 6, 3, 0xFFF3F7F8, false);
-                x += width + font.width(description) + 22;
-            }
-            gui.pose().popPose();
+            } finally { gui.pose().popPose(); }
         }
     }
 
     /** Single-key HUD prompt with a caller-selected height. Uses the registered key, never a glyph alias. */
     public static int renderKey(GuiGraphics gui, Font font, InputConstants.Key key, int x, int y, int height) {
+        return renderKey(gui, font, key, x, y, height, false);
+    }
+    private static int renderKey(GuiGraphics gui, Font font, InputConstants.Key key, int x, int y, int height, boolean held) {
         resolve();
-        boolean pressed = key.getType() == InputConstants.Type.KEYSYM && key.getValue() >= 0
+        boolean pressed = held || key.getType() == InputConstants.Type.KEYSYM && key.getValue() >= 0
                 && InputConstants.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), key.getValue());
         if (key.getType() == InputConstants.Type.MOUSE)
-            pressed = org.lwjgl.glfw.GLFW.glfwGetMouseButton(Minecraft.getInstance().getWindow().getWindow(), key.getValue())
+            pressed |= org.lwjgl.glfw.GLFW.glfwGetMouseButton(Minecraft.getInstance().getWindow().getWindow(), key.getValue())
                     == org.lwjgl.glfw.GLFW.GLFW_PRESS;
         gui.pose().pushPose();
         try {
             gui.pose().translate(x, y, 0);
+            int measuredWidth = keyWidth(font, key, height);
+            gui.fill(1, 2, measuredWidth + 1, height + 2, 0xB3000000);
             if (smartRenderer != null) {
+                gui.flush();
                 float scale = height / (float)KEY_HEIGHT;
                 gui.pose().scale(scale, scale, 1);
                 int width = keyWidth(font, key);
                 drawKey(gui, font, key, 0, width, pressed);
-                return Math.round(width * scale);
+                return measuredWidth;
             }
             String text = key.getDisplayName().getString();
-            float textScale = height * .075f;
-            int width = Math.max(height, (int)Math.ceil(font.width(text) * textScale) + 8);
+            float textScale = height / (float)KEY_HEIGHT;
+            int width = keyWidth(font, key, height);
             gui.fill(0, 0, width, height, pressed ? 0xFFE0E0E0 : 0xFFF3F7F8);
             gui.pose().translate((width - font.width(text) * textScale) / 2,
                     (height - font.lineHeight * textScale) / 2, 0);

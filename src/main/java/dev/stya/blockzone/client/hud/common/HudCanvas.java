@@ -63,5 +63,8 @@ public final class HudCanvas implements AutoCloseable {
         return key == null || key.isUnbound() ? 0 : InventoryPromptRenderer.renderKey(gui,
                 Minecraft.getInstance().font, key.getKey(), x, y, 20);
     }
+    public int keyWidth(KeyMapping key) {
+        return key == null || key.isUnbound() ? 0 : InventoryPromptRenderer.keyWidth(Minecraft.getInstance().font, key.getKey(), 20);
+    }
     @Override public void close() { gui.flush(); gui.pose().popPose(); }
 }

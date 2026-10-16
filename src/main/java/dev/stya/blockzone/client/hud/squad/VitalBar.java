@@ -8,7 +8,7 @@ final class VitalBar {
         float trail = motion.trail();
         float edge = Math.min(1, height / 5);
         float underline = Math.min(2, height / 3);
-        g.rect(x, y, width, height, 0xCC10181E);
+        g.rect(x, y, width, height, dev.stya.blockzone.client.hud.common.HudCanvas.PANEL_BACKGROUND);
         // A quiet outline keeps empty health and plate capacity readable over terrain.
         g.rect(x, y, width, edge, 0x997C8B95);
         g.rect(x, y + edge, edge, height - edge, 0x997C8B95);

@@ -17,7 +17,7 @@ final class WeaponHudGraphics {
         ((dev.stya.blockzone.client.ui.ModernUiGraphics)gui).rect(x, y, w, h, color);
     }
     void box(int x, int y, int w, int h, boolean selected, boolean weapon) {
-        rect(x, y, w, h, weapon ? 0x3310181E : 0x33000000);
+        rect(x, y, w, h, dev.stya.blockzone.client.hud.common.HudCanvas.PANEL_BACKGROUND);
         if (weapon && selected) {
             // SVG: gray horizontal edges with white 10px brackets at either end.
             rect(x, y, w, 2, DIM); rect(x, y + h - 2, w, 2, DIM);

@@ -71,9 +71,9 @@ public final class InventoryPanelScreen extends dev.stya.blockzone.client.ui.Mod
             box(gui, cell.x(), cell.y(), cell.width(), cell.height(), cell == hovered || dragging && cell == pressedCell);
             boolean equipment = InventorySlot.FIRST_ROW.contains(cell.slot());
             boolean weapon = InventorySlot.WEAPONS.contains(cell.slot());
-            int iconX = cell.x() + (weapon ? -8 : 0);
-            int iconY = cell.y() + (weapon ? 6 : 0);
-            int imageHeight = equipment || (!weapon && !item.isEmpty()) ? cell.height() : cell.height() - CAPTION_HEIGHT;
+            int iconX = cell.x();
+            int iconY = cell.y();
+            int imageHeight = equipment || weapon || !item.isEmpty() ? cell.height() : cell.height() - CAPTION_HEIGHT;
             if (item.isEmpty()) {
                 int w = weapon ? 156 : SLOT_ICON_SIZE;
                 int h = weapon ? 56 : SLOT_ICON_SIZE;

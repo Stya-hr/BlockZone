@@ -183,5 +183,8 @@
   "hud.blockzone.flight.freefall": "自由落体",
   "hud.blockzone.flight.altitude": "离地高度",
   "hud.blockzone.flight.speed": "速度",
-  "hud.blockzone.flight.descent": "下降 %s m/s"
+  "hud.blockzone.flight.descent": "下降 %s m/s",
+  "chat.blockzone.all": "全体",
+  "chat.blockzone.squad": "小队",
+  "chat.blockzone.command": "命令"
 }

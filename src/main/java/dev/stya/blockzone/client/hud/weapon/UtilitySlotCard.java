@@ -18,6 +18,9 @@ final class UtilitySlotCard {
             g.text(count, x + 60 - g.width(count, 16), 74, 16, WeaponHudGraphics.WHITE);
             g.gui.flush(); g.gui.pose().popPose();
         }
-        g.key(Minecraft.getInstance().options.keyHotbarSlots[slot], x + 23, 100);
+        var mc = Minecraft.getInstance();
+        var key = mc.options.keyHotbarSlots[slot];
+        int keyWidth = dev.stya.blockzone.client.inventory.InventoryPromptRenderer.keyWidth(mc.font, key.getKey(), 20);
+        g.key(key, x + (66 - keyWidth) / 2, 100);
     }
 }

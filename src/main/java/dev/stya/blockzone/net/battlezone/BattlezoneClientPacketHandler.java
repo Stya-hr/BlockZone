@@ -6,6 +6,9 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
 
 final class BattlezoneClientPacketHandler {
+    static void handle(MatchChatS2CPacket packet) {
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> dev.stya.blockzone.client.hud.chat.ChatHud.receive(packet));
+    }
     static void handle(InventoryStateS2CPacket packet) {
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
             var player = net.minecraft.client.Minecraft.getInstance().player;

@@ -44,7 +44,7 @@ public final class InventoryPanelScreen extends dev.stya.blockzone.client.ui.Mod
         if (preserveSneak) minecraft.options.keyShift.setDown(true);
         preserveSneak = false;
     }
-    private float scale() { return 1.2F * Math.min(width / 2560F, height / 1440F); }
+    private float scale() { return 1.1F * Math.min(width / 2560F, height / 1440F); }
     private float originX() { return (width - 1040 * scale()) / 2; }
     private float originY() { return height - 532 * scale(); }
     private InventoryPanelLayout.Cell at(double x, double y) {

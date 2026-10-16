@@ -8,7 +8,6 @@ import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
-import net.minecraftforge.client.event.RenderGuiEvent;
 
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -46,11 +45,6 @@ public final class InventoryPreviewKeys {
             return;
         }
         event.setNewScreen(new InventoryPanelScreen());
-    }
-
-    @SubscribeEvent
-    public static void hideHud(RenderGuiEvent.Pre event) {
-        if (Minecraft.getInstance().screen instanceof InventoryPanelScreen) event.setCanceled(true);
     }
 
     @Mod.EventBusSubscriber(modid = BlockZone.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)

@@ -17,7 +17,7 @@ final class ArmorPlateSlot {
         int count = stack.getCount();
         int border = plating ? SquadHudStyle.TEXT : 0x73666666;
         int thickness = plating ? 3 : 2;
-        g.rect(x, y, SIZE, SIZE, 0x33000000);
+        g.rect(x, y, SIZE, SIZE, dev.stya.blockzone.client.hud.common.HudCanvas.PANEL_BACKGROUND);
         g.rect(x, y, SIZE, thickness, border); g.rect(x, y + SIZE - thickness, SIZE, thickness, border);
         g.rect(x, y + thickness, thickness, SIZE - 2 * thickness, border);
         g.rect(x + SIZE - thickness, y + thickness, thickness, SIZE - 2 * thickness, border);
@@ -33,6 +33,9 @@ final class ArmorPlateSlot {
         g.gui.pose().pushPose(); g.gui.pose().translate(0, 0, 300);
         g.text(amount, x + SIZE - 3 - width, y + SIZE - 15, 12, count == 0 ? SquadHudStyle.MUTED : SquadHudStyle.TEXT);
         g.gui.flush(); g.gui.pose().popPose();
-        if (!QuickPlating.KEY.isUnbound()) InventoryPromptRenderer.renderKey(g.gui, mc.font, QuickPlating.KEY.getKey(), x + (SIZE - 20) / 2, y + SIZE + 6, 20);
+        if (!QuickPlating.KEY.isUnbound()) {
+            int keyWidth = InventoryPromptRenderer.keyWidth(mc.font, QuickPlating.KEY.getKey(), 20);
+            InventoryPromptRenderer.renderKey(g.gui, mc.font, QuickPlating.KEY.getKey(), x + (SIZE - keyWidth) / 2, y + SIZE + 6, 20);
+        }
     }
 }

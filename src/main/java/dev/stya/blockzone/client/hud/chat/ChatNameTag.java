@@ -8,8 +8,7 @@ public final class ChatNameTag {
         return Math.min(180, g.textWidth(Component.literal(name), 20) + 6);
     }
     public void render(HudCanvas g, String name, float x, float y, float width, int color, float opacity) {
-        g.rect(x, y, width, 28, ChatMessageRow.alpha(color, opacity));
         g.text(g.fit(Component.literal(name), width - 6, 20), x + 3, y + 4, 20,
-                ChatMessageRow.alpha(HudCanvas.TEXT, opacity));
+                ChatMessageRow.alpha(color, opacity));
     }
 }

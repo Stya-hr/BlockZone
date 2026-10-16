@@ -11,14 +11,49 @@ public final class ZoneStatusIndicator {
         if (state == null || state.phase() != MatchPhase.MATCH) return;
         float x = SquadHudStyle.LEFT;
         float y = g.height - (SquadHudStyle.DESIGN_HEIGHT - SquadHudStyle.LOCAL_TOP) + LocalPlayerStatus.HEIGHT + 22;
-        int color = HudCanvas.TEXT;
         float width = 320;
-        g.rect(x, y, width, 42, 0xB310181E);
-        g.rect(x, y, 3, 42, color);
-        var label = Component.translatable("hud.blockzone.zone_indicator." + (state.shrinking() ? "shrinking" : "waiting"));
-        g.textWithShadow(g.fit(label, 200, 16), x + 12, y + 8, 16, color);
-        g.right(Component.literal(formatTime(seconds)), x + width - 12, y + 4, 22, color);
-        g.progress(x + 12, y + 32, width - 24, 4, progress(seconds, state.totalTicks()), color);
+        var timer = Component.literal(formatTime(seconds));
+        Component label = Component.translatable("hud.blockzone.zone_indicator." + (state.shrinking() ? "shrinking" : "waiting"));
+        label = g.fit(label, 180, 16);
+        g.textWithShadow(timer, x, y, 22, HudCanvas.TEXT);
+        g.textWithShadow(label, x + width - g.textWidth(label, 16), y + 4, 16, HudCanvas.TEXT);
+
+        float trackY = y + 28, trackHeight = 7;
+        float filled = width * sequenceProgress(state.stage(), state.shrinking(), seconds, state.sequenceTicks());
+        g.rect(x, trackY, width, trackHeight, 0x9910181E);
+        g.rect(x, trackY, filled, trackHeight, 0x99F3F7F8);
+        var graphics = (dev.stya.blockzone.client.ui.ModernUiGraphics)g.gui;
+        double total = state.sequenceTicks().stream().mapToDouble(t -> Math.max(0, t)).sum();
+        float offset = 0;
+        for (int i = 0; i < state.sequenceTicks().size() && total > 0; i++) {
+            float segmentWidth = (float)(width * Math.max(0, state.sequenceTicks().get(i)) / total);
+            if (i % 2 == 1) {
+                for (float arrow = offset + 2; arrow + 4 < offset + segmentWidth; arrow += 10) {
+                    graphics.line(x + arrow, trackY, x + arrow + 4, trackY + trackHeight / 2, 1, 0xB3F3F7F8);
+                    graphics.line(x + arrow + 4, trackY + trackHeight / 2, x + arrow, trackY + trackHeight, 1, 0xB3F3F7F8);
+                }
+            }
+            offset += segmentWidth;
+            if (i % 2 == 1 && i + 1 < state.sequenceTicks().size()) {
+                g.rect(x + offset - 1, trackY - 1, 2, trackHeight + 2, 0xFF10181E);
+            }
+        }
+        // A bright moving edge keeps progress readable without a large panel background.
+        float marker = x + Math.min(width - 2, filled);
+        g.rect(marker - 1, trackY - 3, 4, trackHeight + 6, 0x9910181E);
+        g.rect(marker, trackY - 2, 2, trackHeight + 4, HudCanvas.TEXT);
+    }
+    public static float sequenceProgress(int stage, boolean shrinking, float seconds, java.util.List<Integer> ticks) {
+        double total = ticks.stream().mapToDouble(t -> Math.max(0, t)).sum();
+        if (total <= 0) return 1;
+        int current = Math.max(0, (stage - 1) * 2 + (shrinking ? 1 : 0));
+        double elapsed = 0;
+        for (int i = 0; i < ticks.size(); i++) {
+            int duration = Math.max(0, ticks.get(i));
+            if (i < current) elapsed += duration;
+            else if (i == current) elapsed += duration * progress(seconds, duration);
+        }
+        return (float)Math.max(0, Math.min(1, elapsed / total));
     }
     public static float progress(float seconds, int totalTicks) {
         if (totalTicks <= 0) return 1;

@@ -92,6 +92,7 @@ public final class PoisonZoneController {
     }
     public ZoneGeometry initial() { return state.sequence().get(0); }
     public int sequenceNumber() { return sequenceNumber; }
+    public List<Integer> sequenceTicks() { return state.sequenceTicks(); }
     public PoisonZoneState.Timing timing() { return state.timing(); }
     public void restart() { state.restart(); }
     public void reset(ZoneGeometry initial) { state.reset(initial); activePaths = List.of(); }

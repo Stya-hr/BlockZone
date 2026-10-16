@@ -73,6 +73,10 @@ public final class PoisonZoneState {
     public ZoneGeometry current(double centerY) { return new ZoneGeometry(centerX, centerY, centerZ, radius, shape()); }
     public ZoneShape shape() { return path == null ? ZoneShape.CYLINDER : path.shape(); }
     public List<ZoneGeometry> sequence() { return sequence; }
+    public List<Integer> sequenceTicks() {
+        return phases.stream().flatMap(p -> java.util.stream.Stream.of(
+                Math.max(0, p.waitSeconds()) * 20, Math.max(0, p.shrinkSeconds()) * 20)).toList();
+    }
     public record Timing(int stage, boolean shrinking, int remainingTicks, int totalTicks) {
         public boolean startsShrinkingAfter(Timing previous) {
             return shrinking && (!previous.shrinking || previous.stage != stage);

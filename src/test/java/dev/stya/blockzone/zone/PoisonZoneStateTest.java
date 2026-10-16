@@ -51,6 +51,10 @@ class PoisonZoneStateTest {
         assertEquals(new PoisonZoneState.Timing(1, false, 20, 20), state.timing());
     }
 
+    @Test void sequenceTimingIncludesEveryWaitingAndShrinkingSegment() {
+        assertEquals(List.of(20, 40), state(1, 2).sequenceTicks());
+        assertEquals(List.of(0, 0), state(0, 0).sequenceTicks());
+    }
     @Test void zeroDurationTransitionCompletesOnItsFirstTick() {
         var state = state(0, 0);
         assertEquals(40, state.current(0).radius());

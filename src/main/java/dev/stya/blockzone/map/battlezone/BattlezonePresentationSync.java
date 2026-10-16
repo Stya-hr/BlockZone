@@ -41,7 +41,7 @@ final class BattlezonePresentationSync {
                 && !map.hasDeploymentProtection(player) && player.serverLevel() == map.getServerLevel()
                 && !map.zoneCapability().controller().current().contains(player.getX(), player.getY(), player.getZ());
         BlockzoneNetwork.sendToPlayer(player, new dev.stya.blockzone.net.battlezone.MatchGuidanceS2CPacket(
-                map.getMapName(), map.isMatchActive(), map.getPhase(), timing.stage(), timing.shrinking(), timing.remainingTicks(), timing.totalTicks(), outside));
+                map.getMapName(), map.isMatchActive(), map.getPhase(), timing.stage(), timing.shrinking(), timing.remainingTicks(), timing.totalTicks(), outside, map.zoneCapability().controller().sequenceTicks()));
     }
 
     private ZoneStateS2CPacket packet(ServerPlayer player, boolean boundaryVisible) {

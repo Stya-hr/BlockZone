@@ -19,7 +19,7 @@ public final class NoticeGameTests {
             HudAnnouncementS2CPacket.encode(announcement, buffer);
             helper.assertTrue(announcement.equals(HudAnnouncementS2CPacket.decode(buffer)), "Announcement content and priority round trip");
             buffer.clear();
-            var guidance = new MatchGuidanceS2CPacket("arena", true, BattlezoneMap.MatchPhase.MATCH, 2, true, 119, 1200, true);
+            var guidance = new MatchGuidanceS2CPacket("arena", true, BattlezoneMap.MatchPhase.MATCH, 2, true, 119, 1200, true, java.util.List.of(600, 1200, 300, 1200));
             MatchGuidanceS2CPacket.encode(guidance, buffer);
             helper.assertTrue(guidance.equals(MatchGuidanceS2CPacket.decode(buffer)), "Guidance countdown and individual danger round trip");
         } finally { buffer.release(); }

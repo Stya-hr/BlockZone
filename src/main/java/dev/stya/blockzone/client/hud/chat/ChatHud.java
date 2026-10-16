@@ -23,13 +23,13 @@ public final class ChatHud {
     private static final List<ChatMessage> messages = new ArrayList<>();
     private static final ChatMessagePanel panel = new ChatMessagePanel();
     private ChatHud() {}
-    private static boolean active() {
+    public static boolean active() {
         return FPSMGameHudManager.shouldRender()
                 && FPSMClient.getGlobalData().isCurrentGameType(BattlezoneMap.GAME_TYPE);
     }
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void received(ClientChatReceivedEvent event) {
-        if (!active() || event instanceof ClientChatReceivedEvent.System system && system.isOverlay()) return;
+        if (event instanceof ClientChatReceivedEvent.System system && system.isOverlay()) return;
         String name = "", body = event.getMessage().getString();
         if (event instanceof ClientChatReceivedEvent.Player player) {
             var original = player.getPlayerChatMessage();
@@ -46,12 +46,19 @@ public final class ChatHud {
         if (messages.size() > 100) messages.remove(0);
         // Do not cancel: vanilla still owns chat history, signatures, reporting and interactive links.
     }
+    static List<ChatMessage> messages() { return List.copyOf(messages); }
+    @SubscribeEvent
+    public static void open(net.minecraftforge.client.event.ScreenEvent.Opening event) {
+        if (active() && event.getNewScreen() instanceof net.minecraft.client.gui.screens.ChatScreen chat)
+            event.setNewScreen(new ModernChatScreen(((dev.stya.blockzone.mixin.client.ChatScreenInitialAccessor)chat).blockzone$initial()));
+    }
     @SubscribeEvent
     public static void render(RenderGuiOverlayEvent.Pre event) {
         var mc = Minecraft.getInstance();
         if (event.getOverlay() != VanillaGuiOverlay.CHAT_PANEL.type() || !active()
                 || !ModernUiLayer.hudVisible()) return;
         event.setCanceled(true);
+        if (mc.screen instanceof ModernChatScreen) return;
         if (mc.options.chatVisibility().get() == ChatVisiblity.HIDDEN) return;
         var visible = mc.options.chatVisibility().get() == ChatVisiblity.SYSTEM
                 ? messages.stream().filter(m -> m.name().isEmpty()).toList() : List.copyOf(messages);

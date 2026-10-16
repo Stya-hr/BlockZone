@@ -6,6 +6,12 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
 
 final class BattlezoneClientPacketHandler {
+    static void handle(HudAnnouncementS2CPacket packet) {
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> dev.stya.blockzone.client.hud.notice.NoticeClientState.announce(packet));
+    }
+    static void handle(MatchGuidanceS2CPacket packet) {
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> dev.stya.blockzone.client.hud.notice.NoticeClientState.apply(packet));
+    }
     static void handle(MatchChatS2CPacket packet) {
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> dev.stya.blockzone.client.hud.chat.ChatHud.receive(packet));
     }

@@ -34,7 +34,15 @@ final class BattlezonePresentationSync {
     }
 
     void send(ServerPlayer player) { send(player, map.isMatchActive()); }
-    void send(ServerPlayer player, boolean boundaryVisible) { BlockzoneNetwork.sendToPlayer(player, packet(player, boundaryVisible)); }
+    void send(ServerPlayer player, boolean boundaryVisible) {
+        BlockzoneNetwork.sendToPlayer(player, packet(player, boundaryVisible));
+        var timing = map.zoneCapability().controller().timing();
+        boolean outside = map.getPhase() == BattlezoneMap.MatchPhase.MATCH && !player.isSpectator()
+                && !map.hasDeploymentProtection(player) && player.serverLevel() == map.getServerLevel()
+                && !map.zoneCapability().controller().current().contains(player.getX(), player.getY(), player.getZ());
+        BlockzoneNetwork.sendToPlayer(player, new dev.stya.blockzone.net.battlezone.MatchGuidanceS2CPacket(
+                map.getMapName(), map.isMatchActive(), map.getPhase(), timing.stage(), timing.shrinking(), timing.remainingTicks(), outside));
+    }
 
     private ZoneStateS2CPacket packet(ServerPlayer player, boolean boundaryVisible) {
         var area = map.getMapArea();

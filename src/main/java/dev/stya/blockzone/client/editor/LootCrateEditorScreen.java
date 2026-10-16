@@ -97,6 +97,7 @@ public final class LootCrateEditorScreen extends ModernEditorScreen {
     LootEditorS2CPacket packet() { return packet; }
     LootCrateDraft draft() { return draft; }
     double mapTop() { return Math.max(packet.pos1().getY(), packet.pos2().getY()); }
+    @Override void viewportChanged() { if (LootEditorCamera.active()) LootEditorCamera.focus(); }
     ZoneGeometry focusArea() {
         var selected = draft.entries().stream().filter(draft::selected).toList();
         var crates = selected.isEmpty() ? draft.entries() : selected;
@@ -106,13 +107,11 @@ public final class LootCrateEditorScreen extends ModernEditorScreen {
         double maxZ = crates.stream().mapToDouble(LootCrateEdit::z).max().orElse(Math.max(packet.pos1().getZ(), packet.pos2().getZ()));
         double y = crates.stream().mapToDouble(LootCrateEdit::y).max().orElse(packet.pos1().getY()) + .5;
         double radius = Math.max(2, Math.max(maxX - minX, maxZ - minZ) / 2 + 2);
-        double height = Math.max(mapTop() + 24, y + radius + Math.max(32, radius * 1.25));
         var mc = Minecraft.getInstance();
         double w = mc.getWindow().getGuiScaledWidth(), h = mc.getWindow().getGuiScaledHeight();
-        // Place the focus under the world viewport, leaving room for the parameter panel.
-        double offset = (height - y) * Math.tan(Math.toRadians(mc.options.fov().get()) / 2) * w / h * (panelFraction + 12 / w);
-        return new ZoneGeometry((minX + maxX) / 2 + .5 + offset, y,
-                (minZ + maxZ) / 2 + .5, radius, ZoneShape.CYLINDER);
+        var area = new ZoneGeometry((minX + maxX) / 2 + .5, y, (minZ + maxZ) / 2 + .5, radius, ZoneShape.CYLINDER);
+        return dev.stya.blockzone.editor.zone.PoisonEditorGeometry.focusForViewport(area, mapTop(),
+                mc.options.fov().get(), (int)w, (int)h, (w * (1 - panelFraction) - 12) / 2);
     }
     private LootEditorProjection.Point project(LootCrateEdit entry) {
         var camera = minecraft.gameRenderer.getMainCamera();

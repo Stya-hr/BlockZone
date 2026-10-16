@@ -38,8 +38,8 @@ public final class PoisonWorldEditor {
                 JsonParser.parseString(packet.pathsJson())).getOrThrow(false, m -> {}));
         savedJson = PoisonPath.CODEC.listOf().encodeStart(JsonOps.INSTANCE, draft.paths()).getOrThrow(false, m -> {}).toString();
         saving = false; message = "";
-        if (!PoisonEditorCamera.start()) message = Component.translatable("editor.blockzone.camera_busy").getString();
         mc.setScreen(new PoisonEditorScreen());
+        if (!PoisonEditorCamera.start()) message = Component.translatable("editor.blockzone.camera_busy").getString();
     }
     public static boolean hasFreeCamera() { return session != null && PoisonEditorCamera.active(); }
     static BoundaryGeometry bounds() {

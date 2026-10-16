@@ -21,6 +21,7 @@ public abstract class ModernEditorScreen extends ModernUiScreen {
     abstract void buildPanel(EditorPanel ui);
     void updatePanel(EditorPanel ui) {}
     void save() {}
+    void viewportChanged() {}
     boolean hasSaveAction() { return true; }
     final boolean editingText() { return textFocused; }
     final int panelLeft() { return Math.max(0, width - Math.round(width * panelFraction)); }

@@ -78,6 +78,12 @@ public final class PoisonEditorScreen extends ModernEditorScreen {
         ui.button(ui.row(body), EditorPanel.tr("editor.blockzone.observe"), () -> { if (apply()) minecraft.setScreen(null); });
         ui.help("editor.blockzone.drag_controls", "editor.blockzone.colors", "editor.blockzone.camera_controls");
     }
+    @Override void viewportChanged() { if (PoisonEditorCamera.active()) PoisonEditorCamera.focus(); }
+    private List<Boolean> invalidFields() {
+        var invalid = new ArrayList<Boolean>();
+        for (int i = 0; i < fields.size(); i++) invalid.add(!dev.stya.blockzone.editor.zone.PoisonEditorInput.valid(i, fields.get(i)));
+        return List.copyOf(invalid);
+    }
     @Override void save() { if (apply()) PoisonWorldEditor.save(); }
     @Override void updatePanel(EditorPanel ui) {
         if (PoisonWorldEditor.draft == null) return;
@@ -89,7 +95,9 @@ public final class PoisonEditorScreen extends ModernEditorScreen {
                 warning = EditorPanel.tr("editor.blockzone.adjusted", String.format(java.util.Locale.ROOT, "%.2f", actual.centerX()),
                         String.format(java.util.Locale.ROOT, "%.2f", actual.centerZ()));
         } catch (IllegalArgumentException bad) { warning = EditorPanel.tr("editor.blockzone.too_large"); }
-        ui.status("", warning, PoisonWorldEditor.dirty(), PoisonWorldEditor.saving);
+        var invalid = invalidFields();
+        ui.invalidFields(invalid);
+        ui.status("", warning, PoisonWorldEditor.dirty() && !invalid.contains(true), PoisonWorldEditor.saving);
     }
     private void change(Runnable action) {
         if (!apply()) return;
@@ -98,11 +106,12 @@ public final class PoisonEditorScreen extends ModernEditorScreen {
     }
     private boolean apply() {
         if (fields.size() != 6 || PoisonWorldEditor.saving) return false;
+        if (invalidFields().contains(true)) {
+            PoisonWorldEditor.message = Component.translatable("editor.blockzone.invalid").getString(); return false;
+        }
         try {
             double x = number(0), z = number(1), radius = number(2), damage = number(5);
             int wait = Integer.parseInt(fields.get(3)), transition = Integer.parseInt(fields.get(4));
-            if (radius < 0 || radius > 30000000 || wait < 0 || transition < 0 || wait > 1000000
-                    || transition > 1000000 || damage < 0 || damage > Float.MAX_VALUE) throw new IllegalArgumentException();
             PoisonWorldEditor.draft.replace(new PoisonPath.Circle(x, z, radius, wait, transition, damage));
             PoisonWorldEditor.message = ""; return true;
         } catch (RuntimeException invalid) {

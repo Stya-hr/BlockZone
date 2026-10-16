@@ -64,8 +64,12 @@ final class PoisonEditorCamera {
     static net.minecraft.world.phys.Vec3 position() { return active() ? motion.position() : null; }
     private static ZoneGeometry selectedCircle() {
         var c = PoisonWorldEditor.draft.selected();
-        return new ZoneGeometry(c.x(), PoisonWorldEditor.y(), c.z(), Math.min(c.radius(), Math.min(PoisonWorldEditor.bounds().maxX()-PoisonWorldEditor.bounds().minX(),
+        var circle = new ZoneGeometry(c.x(), PoisonWorldEditor.y(), c.z(), Math.min(c.radius(), Math.min(PoisonWorldEditor.bounds().maxX()-PoisonWorldEditor.bounds().minX(),
                         PoisonWorldEditor.bounds().maxZ()-PoisonWorldEditor.bounds().minZ())/2), PoisonWorldEditor.draft.path().shape()).fitInside(PoisonWorldEditor.bounds());
+        var mc = Minecraft.getInstance();
+        if (!(mc.screen instanceof PoisonEditorScreen screen)) return circle;
+        return dev.stya.blockzone.editor.zone.PoisonEditorGeometry.focusForViewport(circle, mapTop(),
+                mc.options.fov().get(), mc.getWindow().getGuiScaledWidth(), mc.getWindow().getGuiScaledHeight(), screen.panelLeft() / 2.0);
     }
     private static double mapTop() { return Math.max(PoisonWorldEditor.session.pos1().getY(), PoisonWorldEditor.session.pos2().getY()); }
     static boolean key(int key, int scan, int action) {

@@ -37,6 +37,7 @@ public final class DeploymentController {
                 || !isParticipant(player)) {
             return;
         }
+        player.closeContainer();
         player.stopRiding();
         flights.put(player.getUUID(), new Flight(player));
         player.getAbilities().mayfly = true;

@@ -36,6 +36,12 @@ public final class InventoryPreviewKeys {
 
     @SubscribeEvent
     public static void openInventory(ScreenEvent.Opening event) {
+        if (dev.stya.blockzone.client.battlezone.DeploymentClientController.state() == 1
+                && (event.getNewScreen() instanceof InventoryPanelScreen
+                    || event.getNewScreen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>)) {
+            event.setCanceled(true);
+            return;
+        }
         if (!(event.getNewScreen() instanceof InventoryScreen)
                 && !(event.getNewScreen() instanceof CreativeModeInventoryScreen)) return;
         Minecraft mc = Minecraft.getInstance();

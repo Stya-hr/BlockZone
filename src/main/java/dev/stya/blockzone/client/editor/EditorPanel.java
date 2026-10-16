@@ -111,7 +111,11 @@ public final class EditorPanel extends Fragment {
         panel.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob) -> {
             int target = panelWidth();
             if (params.width != target) { params.width = target; panel.setLayoutParams(params); }
-            screen.panelFraction = Math.min(1f, (float) (target + gap) / Math.max(1, root.getWidth()));
+            float fraction = Math.min(1f, (float) (target + gap) / Math.max(1, root.getWidth()));
+            if (screen.panelFraction != fraction) {
+                screen.panelFraction = fraction;
+                action(screen::viewportChanged);
+            }
             status.resize(Math.max(0, root.getWidth() - target - gap));
             if (listView != null) sizeList();
         });
@@ -119,7 +123,7 @@ public final class EditorPanel extends Fragment {
         builtWidth = root.getWidth(); builtHeight = root.getHeight();
         var metrics = requireContext().getResources().getDisplayMetrics();
         builtDensity = metrics.density; builtScaledDensity = metrics.scaledDensity;
-        action(() -> screen.updatePanel(this));
+        action(() -> { screen.viewportChanged(); screen.updatePanel(this); });
     }
     private int panelWidth() {
         return root.getWidth() == 0 ? root.dp(280) : Math.max(1, Math.min(root.dp(280), Math.round(root.getWidth() * .35f) - root.dp(8)));
@@ -171,6 +175,10 @@ public final class EditorPanel extends Fragment {
         if (params.width != width || params.bottomMargin != bottom) {
             params.width = width; params.setMargins(gap, gap, gap, bottom); listView.setLayoutParams(params);
         }
+    }
+    void invalidFields(java.util.List<Boolean> invalid) {
+        var view = root;
+        if (view != null) view.post(() -> { if (root == view) form.invalidFields(invalid); });
     }
     void syncValues(java.util.List<String> values) {
         var view = root;

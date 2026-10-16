@@ -26,7 +26,7 @@ final class EditorForm {
         this.context = context; this.controls = controls; this.dispatch = dispatch; this.focus = focus; this.helpOpen = helpOpen;
     }
     boolean helpOpen() { return helpOpen; }
-    void reset(LinearLayout body) { this.body = body; fields.clear(); }
+    void reset(LinearLayout body) { this.body = body; fields.clear(); invalidFields = java.util.List.of(); }
     private void action(Runnable callback) { dispatch.accept(callback); }
     EditText field(LinearLayout parent, String caption, String value, int max, Consumer<String> changed) {
         var box = controls.column();
@@ -46,6 +46,12 @@ final class EditorForm {
         });
         fields.add(field);
         box.addView(field, new LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)); return field;
+    }
+    private java.util.List<Boolean> invalidFields = java.util.List.of();
+    void invalidFields(java.util.List<Boolean> invalid) {
+        if (invalid.equals(invalidFields) || fields.size() != invalid.size()) return;
+        invalidFields = invalid;
+        for (int i = 0; i < fields.size(); i++) EditorTheme.styleInput(fields.get(i), invalid.get(i));
     }
     void syncValues(java.util.List<String> values) {
         if (fields.size() != values.size()) return;

@@ -24,6 +24,11 @@ public final class WeaponSlotSelection {
     }
     @SubscribeEvent public static void keys(TickEvent.ClientTickEvent event) {
         var mc = Minecraft.getInstance();
+        if (event.phase == TickEvent.Phase.END && WeaponHud.inventory() != null
+                && mc.player.getInventory().selected != 0 && mc.player.getMainHandItem().isEmpty()) {
+            mc.player.getInventory().selected = 0;
+            if (mc.gameMode != null) ((CarriedItemSyncAccess)mc.gameMode).blockzone$syncCarriedItem();
+        }
         if (event.phase != TickEvent.Phase.START || mc.screen != null || WeaponHud.inventory() == null) return;
         // Consume before vanilla handleKeybinds runs; do not touch selected or the plating key's held state.
         for (int i = 5; i < mc.options.keyHotbarSlots.length; i++)

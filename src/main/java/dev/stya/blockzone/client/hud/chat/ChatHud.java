@@ -30,6 +30,7 @@ public final class ChatHud {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void received(ClientChatReceivedEvent event) {
         if (event instanceof ClientChatReceivedEvent.System system && system.isOverlay()) return;
+        if (active() && event instanceof ClientChatReceivedEvent.Player) return;
         String name = "", body = event.getMessage().getString();
         if (event instanceof ClientChatReceivedEvent.Player player) {
             var original = player.getPlayerChatMessage();
@@ -46,7 +47,19 @@ public final class ChatHud {
         if (messages.size() > 100) messages.remove(0);
         // Do not cancel: vanilla still owns chat history, signatures, reporting and interactive links.
     }
-    static List<ChatMessage> messages() { return List.copyOf(messages); }
+    public static void receive(dev.stya.blockzone.net.battlezone.MatchChatS2CPacket packet) {
+        var mc = Minecraft.getInstance();
+        var data = FPSMClient.getGlobalData();
+        if (mc.player == null || !data.isCurrentGameType(BattlezoneMap.GAME_TYPE) || !data.isCurrentMap(packet.map())
+                || mc.isBlocked(packet.sender()) || mc.options.chatVisibility().get() != ChatVisiblity.FULL) return;
+        messages.add(new ChatMessage(packet.sender(), packet.name(), packet.text(), net.minecraft.Util.getMillis(), packet.channel()));
+        if (messages.size() > 100) messages.remove(0);
+        mc.gui.getChat().addMessage(net.minecraft.network.chat.Component.literal(packet.name() + ": " + packet.text()));
+    }
+    static List<ChatMessage> messages() {
+        return Minecraft.getInstance().options.chatVisibility().get() == ChatVisiblity.SYSTEM
+                ? messages.stream().filter(m -> m.name().isEmpty()).toList() : List.copyOf(messages);
+    }
     @SubscribeEvent
     public static void open(net.minecraftforge.client.event.ScreenEvent.Opening event) {
         if (active() && event.getNewScreen() instanceof net.minecraft.client.gui.screens.ChatScreen chat)

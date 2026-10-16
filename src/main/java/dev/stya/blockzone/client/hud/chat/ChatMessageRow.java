@@ -26,7 +26,7 @@ public final class ChatMessageRow {
         return new Layout(message, tagWidth, List.copyOf(lines));
     }
     public void render(HudCanvas g, Layout layout, float x, float y, int nameColor, float opacity) {
-        if (layout.tagWidth() > 0) tag.render(g, layout.message().name(), x, y,
+        if (!layout.message().name().isEmpty()) tag.render(g, layout.message().name(), x, y,
                 layout.tagWidth() - 8, nameColor, opacity);
         for (int i = 0; i < layout.lines().size(); i++)
             g.text(layout.lines().get(i), x + layout.tagWidth(), y + 4 + i * 24, 20,

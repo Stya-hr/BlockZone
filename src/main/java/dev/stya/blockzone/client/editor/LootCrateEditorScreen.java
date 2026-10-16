@@ -12,7 +12,6 @@ import dev.stya.blockzone.zone.ZoneGeometry;
 import dev.stya.blockzone.zone.ZoneShape;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.network.chat.Component;
 
 public final class LootCrateEditorScreen extends ModernEditorScreen {
@@ -125,6 +124,7 @@ public final class LootCrateEditorScreen extends ModernEditorScreen {
     }
     private boolean inPane(double x, double y) { return x >= 12 && x <= 12 + paneWidth && y >= 12 && y <= 12 + paneHeight; }
     @Override public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        var nativeGraphics = new dev.stya.blockzone.client.ui.ModernUiGraphics();
         right = panelLeft(); paneWidth = Math.max(0, right - 24); paneHeight = Math.max(0, height - 24);
         var visible = draft.visible();
         if (!list) {
@@ -132,16 +132,17 @@ public final class LootCrateEditorScreen extends ModernEditorScreen {
                 var point = project(entry);
                 if (!visiblePoint(point)) continue;
                 int x = (int)point.x(), y = (int)point.y();
-                graphics.renderOutline(x - 4, y - 4, 9, 9, draft.selected(entry) ? 0xff65e096 : 0xffd2ac61);
+                nativeGraphics.renderOutline(x - 4, y - 4, 9, 9, draft.selected(entry) ? 0xff65e096 : 0xffd2ac61);
                 if (Math.abs(mouseX - x) <= 5 && Math.abs(mouseY - y) <= 5)
-                    graphics.renderComponentTooltip(font, java.util.List.of(
+                    nativeGraphics.renderComponentTooltip(font, java.util.List.of(
                             Component.literal(entry.x() + ", " + entry.y() + ", " + entry.z()),
                             Component.literal(entry.block()),
                             Component.literal(entry.table())), mouseX, mouseY);
             }
-            if (dragging) graphics.renderOutline((int)Math.min(startX, endX), (int)Math.min(startY, endY),
+            if (dragging) nativeGraphics.renderOutline((int)Math.min(startX, endX), (int)Math.min(startY, endY),
                     (int)Math.abs(endX - startX) + 1, (int)Math.abs(endY - startY) + 1, 0xff65e096);
         }
+        fragment.overlay(nativeGraphics);
         super.render(graphics, mouseX, mouseY, partialTick);
     }
     @Override public boolean mouseClicked(double x, double y, int button) {
@@ -195,7 +196,7 @@ public final class LootCrateEditorScreen extends ModernEditorScreen {
     }
     @Override public void onClose() {
         if (saving) return;
-        if (draft.dirty()) minecraft.setScreen(new ConfirmScreen(confirmed -> { if (confirmed) finish(); else minecraft.setScreen(this); }, text("discard"), text("discard_hint")));
+        if (draft.dirty()) minecraft.setScreen(EditorConfirmScreen.create(confirmed -> { if (confirmed) finish(); else minecraft.setScreen(this); }, text("discard"), text("discard_hint")));
         else finish();
     }
     private void finish() { LootWorldEditor.stop(); minecraft.setScreen(null); }

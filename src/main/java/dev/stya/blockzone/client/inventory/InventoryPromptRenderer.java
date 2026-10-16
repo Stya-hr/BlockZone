@@ -114,7 +114,11 @@ public final class InventoryPromptRenderer {
                 float scale = height / (float)KEY_HEIGHT;
                 gui.pose().scale(scale, scale, 1);
                 int width = keyWidth(font, key);
-                drawKey(gui, font, key, 0, width, pressed);
+                if (gui instanceof dev.stya.blockzone.client.ui.ModernUiGraphics nativeGraphics) {
+                    boolean keyPressed = pressed;
+                    nativeGraphics.asset("key:" + label(key) + ":" + pressed, width, KEY_HEIGHT,
+                            graphics -> drawKey(graphics, font, key, 0, width, keyPressed));
+                } else drawKey(gui, font, key, 0, width, pressed);
                 return measuredWidth;
             }
             String text = key.getDisplayName().getString();

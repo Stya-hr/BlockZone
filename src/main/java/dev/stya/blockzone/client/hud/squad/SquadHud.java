@@ -26,7 +26,7 @@ public final class SquadHud implements IHudRenderer {
     }
     @Override public void onPlayerRender(ForgeGui forge, GuiGraphics gui, float partial, int width, int height) {
         var mc = Minecraft.getInstance();
-        if (mc.player == null || mc.options.hideGui || mc.screen != null) return;
-        panel.render(gui, SquadClientState.members(), mc.player.getUUID());
+        if (!dev.stya.blockzone.client.ui.ModernUiLayer.hudVisible()) return;
+        panel.render(dev.stya.blockzone.client.ui.ModernUiLayer.hud(), SquadClientState.members(), mc.player.getUUID());
     }
 }

@@ -19,8 +19,7 @@ public final class SquadStatusPanel {
         var others = members.stream().filter(member -> !member.id().equals(localId))
                 .sorted(java.util.Comparator.comparingInt(SquadMemberStatus::number)).toList();
         var window = net.minecraft.client.Minecraft.getInstance().getWindow();
-        float scale = (float)(Math.min(window.getWidth() / (float)SquadHudStyle.DESIGN_WIDTH,
-                window.getHeight() / (float)SquadHudStyle.DESIGN_HEIGHT) / window.getGuiScale());
+        float scale = dev.stya.blockzone.client.hud.common.HudCanvas.scale();
         double viewportHeight = window.getHeight() / window.getGuiScale();
         gui.pose().pushPose();
         try {

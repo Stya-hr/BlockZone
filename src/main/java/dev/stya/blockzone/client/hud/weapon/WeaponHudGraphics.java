@@ -2,10 +2,8 @@ package dev.stya.blockzone.client.hud.weapon;
 
 import dev.stya.blockzone.client.inventory.GunHudIcon;
 import dev.stya.blockzone.client.inventory.InventoryPromptRenderer;
-import icyllis.modernui.mc.text.TextLayoutEngine;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
@@ -16,12 +14,7 @@ final class WeaponHudGraphics {
     final GuiGraphics gui;
     WeaponHudGraphics(GuiGraphics gui) { this.gui = gui; }
     void rect(float x, float y, float w, float h, int color) {
-        var m = gui.pose().last().pose();
-        var b = gui.bufferSource().getBuffer(net.minecraft.client.renderer.RenderType.gui());
-        b.vertex(m, x, y + h, 0).color(color).endVertex();
-        b.vertex(m, x + w, y + h, 0).color(color).endVertex();
-        b.vertex(m, x + w, y, 0).color(color).endVertex();
-        b.vertex(m, x, y, 0).color(color).endVertex();
+        ((dev.stya.blockzone.client.ui.ModernUiGraphics)gui).rect(x, y, w, h, color);
     }
     void box(int x, int y, int w, int h, boolean selected, boolean weapon) {
         rect(x, y, w, h, weapon ? 0x3310181E : 0x33000000);
@@ -45,8 +38,7 @@ final class WeaponHudGraphics {
     void text(Component text, float x, float y, float size, int color) {
         gui.pose().pushPose();
         gui.pose().translate(x, y, 0); gui.pose().scale(size / 8f, size / 8f, 1);
-        TextLayoutEngine.getInstance().getTextRenderer().drawText(text, 0, 0, color, false,
-                gui.pose().last().pose(), gui.bufferSource(), Font.DisplayMode.NORMAL, 0, 0xF000F0);
+        gui.drawString(net.minecraft.client.Minecraft.getInstance().font, text, 0, 0, color, false);
         gui.pose().popPose();
     }
     void key(KeyMapping mapping, int x, int y) {

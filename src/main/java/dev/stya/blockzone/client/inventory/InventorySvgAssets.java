@@ -55,6 +55,7 @@ public final class InventorySvgAssets {
             DynamicTexture texture = new DynamicTexture(image);
             texture.setFilter(true, false);
             mc.getTextureManager().register(id, texture);
+            dev.stya.blockzone.client.ui.ModernUiLayer.invalidateTexture(id);
             Texture result = new Texture(id, width, height);
             CACHE.put(name, result);
             return result;

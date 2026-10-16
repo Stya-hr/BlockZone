@@ -49,7 +49,11 @@ public final class PoisonZoneController {
     }
 
     public void tick() {
+        var before = state.timing();
         state.tick();
+        var after = state.timing();
+        if (after.startsShrinkingAfter(before))
+            map.announce("zone_shrinking", 0xFFFFC76D, 50);
         double damage = state.damage();
         if (damage <= 0 || map.getServerLevel().getGameTime() % 20 != 0) return;
         var zone = current();
@@ -88,6 +92,8 @@ public final class PoisonZoneController {
     }
     public ZoneGeometry initial() { return state.sequence().get(0); }
     public int sequenceNumber() { return sequenceNumber; }
+    public List<Integer> sequenceTicks() { return state.sequenceTicks(); }
+    public PoisonZoneState.Timing timing() { return state.timing(); }
     public void restart() { state.restart(); }
     public void reset(ZoneGeometry initial) { state.reset(initial); activePaths = List.of(); }
 }

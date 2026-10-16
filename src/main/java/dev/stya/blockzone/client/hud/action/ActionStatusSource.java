@@ -1,7 +1,6 @@
 package dev.stya.blockzone.client.hud.action;
 
 import dev.stya.blockzone.client.battlezone.RescueClientState;
-import dev.stya.blockzone.client.equipment.QuickPlating;
 import dev.stya.blockzone.client.hud.common.HudCanvas;
 import dev.stya.blockzone.client.hud.common.HudProgress;
 import dev.stya.blockzone.registry.BlockzoneItems;
@@ -27,11 +26,9 @@ final class ActionStatusSource {
         if (player.isUsingItem()) {
             var item = player.getUseItem();
             int duration = item.getUseDuration();
-            if (duration > 0 && duration <= 1200) {
-                boolean plate = item.is(BlockzoneItems.ARMOR_PLATE.get());
-                return new ActionStatus(plate ? tr("plating") : item.getHoverName(), tr("hold_use"),
-                        plate && QuickPlating.KEY.isDown() ? QuickPlating.KEY : mc.options.keyUse,
-                        HudProgress.elapsed(player.getTicksUsingItem() + partial, duration, 20), plate ? HudCanvas.GREEN : HudCanvas.TEXT);
+            if (!item.is(BlockzoneItems.ARMOR_PLATE.get()) && duration > 0 && duration <= 1200) {
+                return new ActionStatus(item.getHoverName(), tr("hold_use"), mc.options.keyUse,
+                        HudProgress.elapsed(player.getTicksUsingItem() + partial, duration, 20), HudCanvas.TEXT);
             }
         }
         if (mc.hitResult instanceof EntityHitResult hit && hit.getEntity() instanceof net.minecraft.world.entity.player.Player target

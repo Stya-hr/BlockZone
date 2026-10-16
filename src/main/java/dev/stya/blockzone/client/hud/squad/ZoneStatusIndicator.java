@@ -14,13 +14,14 @@ public final class ZoneStatusIndicator {
         int color = state.outside() ? HudCanvas.RED : state.shrinking() ? 0xFFFFC76D : HudCanvas.TEXT;
         var graphics = (dev.stya.blockzone.client.ui.ModernUiGraphics)g.gui;
         float cx = x + 14, cy = y + 14, radius = 13;
+        graphics.circle(cx, cy, radius, 0xD910181E);
         for (int i = 0; i < 32; i++) {
             double a = i * Math.PI / 16, b = (i + 1) * Math.PI / 16;
             graphics.line(cx + (float)Math.cos(a) * radius, cy + (float)Math.sin(a) * radius,
                     cx + (float)Math.cos(b) * radius, cy + (float)Math.sin(b) * radius, 1.5f, color);
         }
         var number = Component.literal(Integer.toString(state.stage()));
-        g.text(number, cx - g.textWidth(number, 15) / 2, y + 6, 15, color);
+        g.textWithShadow(number, cx - g.textWidth(number, 15) / 2, y + 6, 15, color);
         var timer = Component.literal(formatTime(seconds));
         g.textWithShadow(timer, x + 40, y + 2, 24, color);
         var label = Component.translatable("hud.blockzone.zone_indicator." + (state.shrinking() ? "shrinking" : "waiting"));

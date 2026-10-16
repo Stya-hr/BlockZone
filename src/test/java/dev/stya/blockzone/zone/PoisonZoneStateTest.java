@@ -35,20 +35,20 @@ class PoisonZoneStateTest {
 
     @Test void guidanceCountdownTracksActualWaitingAndShrinkingBoundaries() {
         var state = state(1, 1);
-        assertEquals(new PoisonZoneState.Timing(1, false, 20), state.timing());
+        assertEquals(new PoisonZoneState.Timing(1, false, 20, 20), state.timing());
         for (int i = 0; i < 20; i++) state.tick();
-        assertEquals(new PoisonZoneState.Timing(1, false, 0), state.timing());
+        assertEquals(new PoisonZoneState.Timing(1, false, 0, 20), state.timing());
         var waiting = state.timing();
         state.tick();
-        assertEquals(new PoisonZoneState.Timing(1, true, 19), state.timing());
+        assertEquals(new PoisonZoneState.Timing(1, true, 19, 20), state.timing());
         assertTrue(state.timing().startsShrinkingAfter(waiting));
         var shrinking = state.timing();
         state.tick();
         assertFalse(state.timing().startsShrinkingAfter(shrinking));
         for (int i = 0; i < 18; i++) state.tick();
-        assertEquals(new PoisonZoneState.Timing(2, false, 0), state.timing());
+        assertEquals(new PoisonZoneState.Timing(2, false, 0, 0), state.timing());
         state.restart();
-        assertEquals(new PoisonZoneState.Timing(1, false, 20), state.timing());
+        assertEquals(new PoisonZoneState.Timing(1, false, 20, 20), state.timing());
     }
 
     @Test void zeroDurationTransitionCompletesOnItsFirstTick() {

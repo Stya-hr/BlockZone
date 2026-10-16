@@ -11,7 +11,7 @@ import net.minecraftforge.network.PacketDistributor;
 /** Shared channel registration and transport. Feature state belongs to feature synchronizers. */
 public final class BlockzoneNetwork {
     private static final NetworkPacketRegister PACKETS = new NetworkPacketRegister(
-            ResourceLocation.fromNamespaceAndPath(BlockZone.MOD_ID, "main"), "31");
+            ResourceLocation.fromNamespaceAndPath(BlockZone.MOD_ID, "main"), "32");
 
     private BlockzoneNetwork() {}
 

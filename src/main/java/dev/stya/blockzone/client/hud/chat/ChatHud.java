@@ -30,7 +30,7 @@ public final class ChatHud {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void received(ClientChatReceivedEvent event) {
         if (event instanceof ClientChatReceivedEvent.System system && system.isOverlay()) return;
-        if (active() && event instanceof ClientChatReceivedEvent.Player) return;
+        if (active() && (event instanceof ClientChatReceivedEvent.Player || HudChatFilter.replaced(event.getMessage()))) return;
         String name = "", body = event.getMessage().getString();
         if (event instanceof ClientChatReceivedEvent.Player player) {
             var original = player.getPlayerChatMessage();

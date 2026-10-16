@@ -17,11 +17,12 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 
-/** One actionbar-positioned card arbitrates operation progress and flight prompts. */
+/** Operation progress stays at the actionbar; contextual actions stay below the crosshair. */
 @Mod.EventBusSubscriber(modid = BlockZone.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class ActionHud implements IHudRenderer {
     private final ActionProgressPanel progress = new ActionProgressPanel();
     private final FlightInstruments flight = new FlightInstruments();
+    private final ContextActionPrompt context = new ContextActionPrompt();
     @SubscribeEvent public static void setup(FMLClientSetupEvent event) {
         event.enqueueWork(() -> FPSMGameHudManager.INSTANCE.registerHud(BattlezoneMap.GAME_TYPE, new ActionHud()));
     }
@@ -33,10 +34,19 @@ public final class ActionHud implements IHudRenderer {
                 || mc.player.isSpectator() || PlayerPanelInventory.get(mc.player).filter(PlayerPanelInventory::active).isEmpty()) return;
         var action = ActionStatusSource.read(partial);
         boolean airborne = DeploymentClientController.isAirborne();
-        if (action == null && !airborne) return;
+        var feedback = dev.stya.blockzone.client.hud.notice.NoticeClientState.actionFeedback();
+        if (action == null && !airborne && feedback == null) return;
         try (var g = new HudCanvas(dev.stya.blockzone.client.ui.ModernUiLayer.hud())) {
             if (DeploymentClientController.state() == 2 || DeploymentClientController.state() == 3) flight.render(g, partial);
-            progress.render(g, action != null ? action : flight.prompt(), g.width / 2, g.height - 300);
+            if (action != null && action.progress() != null) progress.render(g, action, g.width / 2, g.height - 300);
+            else if (feedback != null) {
+                float y = g.height - 300;
+                int alpha = Math.round(255 * dev.stya.blockzone.client.hud.notice.NoticeClientState.actionOpacity());
+                var title = g.fit(feedback.title(), 388, 20);
+                g.textWithShadow(title, (g.width - g.textWidth(title, 20)) / 2, y + 20, 20,
+                        (alpha << 24) | (feedback.color() & 0xFFFFFF));
+            }
+            else if (action != null || airborne) context.render(g, action != null ? action : flight.prompt(), g.width / 2, g.height / 2 + 170);
         }
     }
 }

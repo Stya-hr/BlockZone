@@ -280,7 +280,7 @@ public final class BattlezoneMap extends BaseMap {
         victoryAnnounced = false;
         resetMatchClock();
         deployment.start(route.get());
-        broadcast(Component.literal("Battlezone match started; poison sequence " + poison().sequenceNumber() + "."));
+        announce("match_start", 0xFF49C7A4, 20);
         presentationSync.sync(true);
         return true;
     }
@@ -408,7 +408,7 @@ public final class BattlezoneMap extends BaseMap {
         clearAirbornePlayer(player);
         // FPSMatch records elimination and restores entity health; the game type owns spectator mode.
         player.setGameMode(net.minecraft.world.level.GameType.SPECTATOR);
-        player.displayClientMessage(Component.translatable("blockzone.match.eliminated"), false);
+        announce(player, "eliminated", 0xFFFF6D76, 80);
         presentationSync.send(player);
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(
                 new dev.stya.blockzone.combat.BattlezoneDeathEvent(this, context, reason));
@@ -425,12 +425,12 @@ public final class BattlezoneMap extends BaseMap {
         victoryAnnounced = true;
         statistics().prepareResult(result);
         if (result.reason() == BattlezoneResultReason.DRAW) {
-            broadcast(Component.literal("Battlezone ended in a draw."));
+            announce("draw", 0xFFF3F7F8, 100);
         } else {
             getMapTeams().getTeamByName(result.winner()).ifPresent(winner -> {
-                winner.sendMessage(Component.literal("Your team won the Battlezone."));
+                winner.getOnline().forEach(player -> announce(player, "victory", 0xFF49C7A4, 100));
                 for (ServerTeam team : getMapTeams().getNormalTeams()) {
-                    if (team != winner) team.sendMessage(Component.literal("Your team was eliminated from the Battlezone."));
+                    if (team != winner) team.getOnline().forEach(player -> announce(player, "defeat", 0xFFFF6D76, 100));
                 }
             });
         }
@@ -442,6 +442,15 @@ public final class BattlezoneMap extends BaseMap {
 
     public dev.stya.blockzone.map.battlezone.capability.BattlezoneStatisticsCapability statistics() {
         return getCapabilityMap().get(dev.stya.blockzone.map.battlezone.capability.BattlezoneStatisticsCapability.class).orElseThrow();
+    }
+
+    public void announce(String key, int color, int priority) {
+        getMapTeams().getOnlineWithSpec().forEach(player -> announce(player, key, color, priority));
+    }
+    public void announce(ServerPlayer player, String key, int color, int priority) {
+        BlockzoneNetwork.sendToPlayer(player, new dev.stya.blockzone.net.battlezone.HudAnnouncementS2CPacket(
+                getMapName(), key, Component.translatable("hud.blockzone.notice." + key + ".title"),
+                Component.translatable("hud.blockzone.notice." + key + ".detail"), color, priority, priority >= 80 ? 80 : 60));
     }
 
     public Optional<BattlezoneMatchResult> getMatchResult() { return statistics().result(); }

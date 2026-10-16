@@ -22,7 +22,8 @@ public final class ModernUiLayer {
     public static boolean hudVisible() {
         var mc=net.minecraft.client.Minecraft.getInstance();
         return mc.player!=null&&!mc.options.hideGui
-                &&(mc.screen==null||mc.screen instanceof dev.stya.blockzone.client.inventory.InventoryPanelScreen);
+                &&(mc.screen==null||mc.screen instanceof dev.stya.blockzone.client.inventory.InventoryPanelScreen
+                    ||mc.screen instanceof dev.stya.blockzone.client.hud.chat.ModernChatScreen);
     }
     public static ModernUiGraphics hud() {
         var graphics=new ModernUiGraphics();pending.add(graphics);return graphics;

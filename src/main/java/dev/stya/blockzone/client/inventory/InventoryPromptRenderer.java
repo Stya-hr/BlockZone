@@ -48,7 +48,8 @@ public final class InventoryPromptRenderer {
         resolve();
         if (smartRenderer != null) return (int)Math.ceil(keyWidth(font, key) * height / (float)KEY_HEIGHT);
         float scale = height / (float)KEY_HEIGHT * 1.1f;
-        return Math.max(height, (int)Math.ceil(font.width(key.getDisplayName()) * scale) + 4);
+        return Math.max((int)Math.ceil(font.lineHeight * scale) + 2,
+                (int)Math.ceil(font.width(key.getDisplayName()) * scale) + 4);
     }
     private static int keysWidth(Font font, Prompt prompt) {
         return prompt.keys.stream().mapToInt(key -> keyWidth(font, key, KEY_HEIGHT)).sum() + (prompt.keys.size() - 1) * 3;
@@ -124,7 +125,9 @@ public final class InventoryPromptRenderer {
             String text = key.getDisplayName().getString();
             float textScale = height / (float)KEY_HEIGHT * 1.1f;
             int width = keyWidth(font, key, height);
-            gui.fill(0, 0, width, height, pressed ? 0xFFE0E0E0 : 0xFFF3F7F8);
+            int capHeight = Math.min(height, (int)Math.ceil(font.lineHeight * textScale) + 2);
+            int top = (height - capHeight) / 2;
+            gui.fill(0, top, width, top + capHeight, pressed ? 0xFFE0E0E0 : 0xFFF3F7F8);
             gui.pose().translate((width - font.width(text) * textScale) / 2,
                     (height - font.lineHeight * textScale) / 2, 0);
             gui.pose().scale(textScale, textScale, 1);

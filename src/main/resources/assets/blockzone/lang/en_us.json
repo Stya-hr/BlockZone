@@ -183,5 +183,8 @@
   "hud.blockzone.flight.freefall": "FREEFALL",
   "hud.blockzone.flight.altitude": "ALTITUDE AGL",
   "hud.blockzone.flight.speed": "SPEED",
-  "hud.blockzone.flight.descent": "DESCENT %s m/s"
+  "hud.blockzone.flight.descent": "DESCENT %s m/s",
+  "chat.blockzone.all": "All",
+  "chat.blockzone.squad": "Squad",
+  "chat.blockzone.command": "Command"
 }

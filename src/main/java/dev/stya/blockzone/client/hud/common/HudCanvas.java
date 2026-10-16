@@ -10,6 +10,7 @@ import net.minecraft.network.chat.Component;
 /** Reusable, aspect-preserving QHD canvas for passive HUD components. */
 public final class HudCanvas implements AutoCloseable {
     public static final int TEXT = 0xFFF3F7F8, MUTED = 0xFFC3CED3, BORDER = 0x73666666;
+    public static final int PANEL_BACKGROUND = 0x4D10181E;
     public static final int GREEN = 0xFF49C7A4, RED = 0xFFFF6D76;
     public final GuiGraphics gui;
     public final float width, height;

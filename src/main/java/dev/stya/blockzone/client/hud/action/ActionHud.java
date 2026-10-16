@@ -34,10 +34,18 @@ public final class ActionHud implements IHudRenderer {
                 || mc.player.isSpectator() || PlayerPanelInventory.get(mc.player).filter(PlayerPanelInventory::active).isEmpty()) return;
         var action = ActionStatusSource.read(partial);
         boolean airborne = DeploymentClientController.isAirborne();
-        if (action == null && !airborne) return;
+        var feedback = dev.stya.blockzone.client.hud.notice.NoticeClientState.actionFeedback();
+        if (action == null && !airborne && feedback == null) return;
         try (var g = new HudCanvas(dev.stya.blockzone.client.ui.ModernUiLayer.hud())) {
             if (DeploymentClientController.state() == 2 || DeploymentClientController.state() == 3) flight.render(g, partial);
             if (action != null && action.progress() != null) progress.render(g, action, g.width / 2, g.height - 300);
+            else if (feedback != null) {
+                float y = g.height - 300;
+                int alpha = Math.round(255 * dev.stya.blockzone.client.hud.notice.NoticeClientState.actionOpacity());
+                var title = g.fit(feedback.title(), 388, 20);
+                g.textWithShadow(title, (g.width - g.textWidth(title, 20)) / 2, y + 20, 20,
+                        (alpha << 24) | (feedback.color() & 0xFFFFFF));
+            }
             else if (action != null || airborne) context.render(g, action != null ? action : flight.prompt(), g.width / 2, g.height / 2 + 170);
         }
     }

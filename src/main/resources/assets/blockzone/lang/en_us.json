@@ -221,5 +221,9 @@
   "hud.blockzone.guide.shrink_in": "Safe zone shrinks in %s s",
   "hud.blockzone.guide.watch_zone": "Watch the safe zone and your squad",
   "hud.blockzone.zone_indicator.waiting": "Next shrink",
-  "hud.blockzone.zone_indicator.shrinking": "Shrinking"
+  "hud.blockzone.zone_indicator.shrinking": "Shrinking",
+  "hud.blockzone.notice.action.rescued.title": "Rescue complete",
+  "hud.blockzone.notice.action.rescued.detail": "",
+  "hud.blockzone.notice.action.revived.title": "Revived",
+  "hud.blockzone.notice.action.revived.detail": ""
 }

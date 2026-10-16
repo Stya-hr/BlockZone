@@ -17,6 +17,8 @@ public final class NoticeClientState {
     private static HudAnnouncementS2CPacket announcement;
     private static AnnouncementLifetime lifetime;
     private static long generation;
+    private static HudAnnouncementS2CPacket actionFeedback;
+    private static AnnouncementLifetime actionLifetime;
     private NoticeClientState() {}
     private static boolean matches(String map) {
         var data = FPSMClient.getGlobalData();
@@ -32,6 +34,11 @@ public final class NoticeClientState {
     public static void announce(HudAnnouncementS2CPacket packet) {
         if (!matches(packet.map())) return;
         long now = net.minecraft.Util.getMillis();
+        if (packet.key().startsWith("action.")) {
+            actionFeedback = packet;
+            actionLifetime = new AnnouncementLifetime(now, 1500);
+            return;
+        }
         if (announcement != null && matches(announcement.map()) && now < lifetime.startedAt() + lifetime.durationMillis()
                 && (announcement.key().equals(packet.key()) || announcement.priority() > packet.priority())) return;
         announcement = packet;
@@ -47,7 +54,11 @@ public final class NoticeClientState {
         return announcement != null && matches(announcement.map()) ? announcement : null;
     }
     static float opacity() { return lifetime == null ? 0 : lifetime.opacity(net.minecraft.Util.getMillis()); }
-    private static void clear() { guidance = null; announcement = null; lifetime = null; receivedTick = 0; generation++; }
+    public static HudAnnouncementS2CPacket actionFeedback() {
+        return actionFeedback != null && matches(actionFeedback.map()) && actionOpacity() > 0 ? actionFeedback : null;
+    }
+    public static float actionOpacity() { return actionLifetime == null ? 0 : actionLifetime.opacity(net.minecraft.Util.getMillis()); }
+    private static void clear() { actionFeedback = null; actionLifetime = null; guidance = null; announcement = null; lifetime = null; receivedTick = 0; generation++; }
     @SubscribeEvent public static void logout(ClientPlayerNetworkEvent.LoggingOut event) { clear(); }
     @SubscribeEvent public static void reset(com.ptcrys.fpsmatch.common.client.event.FPSMClientResetEvent event) { clear(); }
 }

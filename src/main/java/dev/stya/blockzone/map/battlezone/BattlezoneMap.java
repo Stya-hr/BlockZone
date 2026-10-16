@@ -447,7 +447,7 @@ public final class BattlezoneMap extends BaseMap {
     public void announce(String key, int color, int priority) {
         getMapTeams().getOnlineWithSpec().forEach(player -> announce(player, key, color, priority));
     }
-    private void announce(ServerPlayer player, String key, int color, int priority) {
+    public void announce(ServerPlayer player, String key, int color, int priority) {
         BlockzoneNetwork.sendToPlayer(player, new dev.stya.blockzone.net.battlezone.HudAnnouncementS2CPacket(
                 getMapName(), key, Component.translatable("hud.blockzone.notice." + key + ".title"),
                 Component.translatable("hud.blockzone.notice." + key + ".detail"), color, priority, priority >= 80 ? 80 : 60));

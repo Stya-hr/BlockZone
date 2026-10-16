@@ -135,6 +135,8 @@ public final class DownedController {
                         : BattlezoneDeathEvent.Reason.TEAM_WIPE);
             } else if (entry.timer.rescued()) {
                 clear(player);
+                entry.map.announce(player, "action.revived", 0xFF49C7A4, 10);
+                if (helper != null) entry.map.announce(helper, "action.rescued", 0xFF49C7A4, 10);
                 player.setHealth((float) (player.getMaxHealth() * entry.map.getCombatConfig().reviveHealthFraction()));
                 entry.map.combatHurt(player);
             } else {

@@ -91,6 +91,24 @@ public final class PlayerInventoryGameTests {
     }
 
     @GameTest(template = "empty")
+    public static void emptySelectionReturnsToPrimaryWithoutReplacingHeldItems(GameTestHelper helper) {
+        var player = player(helper);
+        var data = PlayerPanelInventory.get(player).orElseThrow();
+        data.insert(gun(), false);
+        player.getInventory().selected = 1;
+        data.normalize();
+        check(player.getInventory().selected == 0 && !player.getMainHandItem().isEmpty(), "Empty secondary returns to primary");
+        data.insert(gun(), false);
+        player.getInventory().selected = 1;
+        data.normalize();
+        check(player.getInventory().selected == 1, "Occupied secondary remains selected");
+        player.getInventory().selected = 2;
+        data.normalize();
+        check(player.getInventory().selected == 0, "Empty utility returns to primary");
+        data.end(); helper.succeed();
+    }
+
+    @GameTest(template = "empty")
     public static void weaponSwapPreservesFullStacksAndHeldGunAndRejectsStaleRequests(GameTestHelper helper) {
         var player = player(helper);
         var data = PlayerPanelInventory.get(player).orElseThrow();

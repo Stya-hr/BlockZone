@@ -422,6 +422,11 @@ public final class PlayerPanelInventory {
             player.containerMenu.setCarried(ItemStack.EMPTY);
             returnRemainder(insert(carried, false));
         }
+        if (player.getInventory().selected != 0 && player.getMainHandItem().isEmpty()) {
+            player.getInventory().selected = 0;
+            if (player instanceof net.minecraft.server.level.ServerPlayer server)
+                server.connection.send(new net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket(0));
+        }
     }
 
     private void relocate(ItemStack stack) {

@@ -89,6 +89,13 @@ public final class DeploymentClientController {
             setCameraType(minecraft, CameraType.THIRD_PERSON_BACK);
         }
         int previous = state;
+        if (packet.state() == 1) {
+            var minecraft = Minecraft.getInstance();
+            if (minecraft.screen instanceof dev.stya.blockzone.client.inventory.InventoryPanelScreen
+                    || minecraft.screen instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>) {
+                player.closeContainer();
+            }
+        }
         state = packet.state();
         if (state == 3 && previous < 2) {
             player.setDeltaMovement(0, -0.8, 0);

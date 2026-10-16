@@ -4,7 +4,6 @@ import dev.stya.blockzone.client.inventory.InventoryPromptRenderer;
 import icyllis.modernui.mc.text.TextLayoutEngine;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
@@ -14,21 +13,19 @@ public final class HudCanvas implements AutoCloseable {
     public static final int GREEN = 0xFF49C7A4, RED = 0xFFFF6D76;
     public final GuiGraphics gui;
     public final float width, height;
+    public static float scale() {
+        var window = Minecraft.getInstance().getWindow();
+        return (float)(1.12 * Math.min(window.getWidth() / 2560f, window.getHeight() / 1440f) / window.getGuiScale());
+    }
     public HudCanvas(GuiGraphics gui) {
         this.gui = gui;
-        var window = Minecraft.getInstance().getWindow();
-        float scale = (float)(Math.min(window.getWidth() / 2560f, window.getHeight() / 1440f) / window.getGuiScale());
+        float scale = scale();
         width = gui.guiWidth() / scale; height = gui.guiHeight() / scale;
         gui.pose().pushPose(); gui.pose().scale(scale, scale, 1);
     }
     public void rect(float x, float y, float w, float h, int color) {
         if (w <= 0 || h <= 0) return;
-        var m = gui.pose().last().pose();
-        var b = gui.bufferSource().getBuffer(net.minecraft.client.renderer.RenderType.gui());
-        b.vertex(m, x, y + h, 0).color(color).endVertex();
-        b.vertex(m, x + w, y + h, 0).color(color).endVertex();
-        b.vertex(m, x + w, y, 0).color(color).endVertex();
-        b.vertex(m, x, y, 0).color(color).endVertex();
+        ((dev.stya.blockzone.client.ui.ModernUiGraphics)gui).rect(x, y, w, h, color);
     }
     public void panel(float x, float y, float w, float h) {
         rect(x, y, w, h, 0x3310181E);
@@ -49,8 +46,7 @@ public final class HudCanvas implements AutoCloseable {
         gui.pose().pushPose();
         try {
             gui.pose().translate(x, y, 0); gui.pose().scale(size / 8f, size / 8f, 1);
-            TextLayoutEngine.getInstance().getTextRenderer().drawText(text, 0, 0, color, false,
-                    gui.pose().last().pose(), gui.bufferSource(), Font.DisplayMode.NORMAL, 0, 0xF000F0);
+            gui.drawString(net.minecraft.client.Minecraft.getInstance().font, text, 0, 0, color, false);
         } finally { gui.pose().popPose(); }
     }
     public void text(String text, float x, float y, float size, int color) { text(Component.literal(text), x, y, size, color); }

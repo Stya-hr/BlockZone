@@ -36,9 +36,8 @@ public final class WeaponHud implements IHudRenderer {
     @Override public void onRenderGuiOverlayPre(RenderGuiOverlayEvent.Pre event) {}
     @Override public void onSpectatorRender(ForgeGui forge, GuiGraphics gui, float partial, int width, int height) {}
     @Override public void onPlayerRender(ForgeGui forge, GuiGraphics gui, float partial, int width, int height) {
-        var mc = Minecraft.getInstance();
         var data = inventory();
-        if (data != null && !mc.options.hideGui && mc.screen == null) panel.render(gui, data);
+        if (data != null && dev.stya.blockzone.client.ui.ModernUiLayer.hudVisible()) panel.render(dev.stya.blockzone.client.ui.ModernUiLayer.hud(), data);
     }
     @Mod.EventBusSubscriber(modid = BlockZone.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
     public static final class Registration {

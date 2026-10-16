@@ -29,12 +29,12 @@ public final class ActionHud implements IHudRenderer {
     @Override public void onSpectatorRender(ForgeGui forge, GuiGraphics gui, float partial, int width, int height) {}
     @Override public void onPlayerRender(ForgeGui forge, GuiGraphics gui, float partial, int width, int height) {
         var mc = Minecraft.getInstance();
-        if (mc.player == null || mc.level == null || mc.options.hideGui || mc.screen != null || !mc.player.isAlive()
+        if (!dev.stya.blockzone.client.ui.ModernUiLayer.hudVisible() || mc.level == null || !mc.player.isAlive()
                 || mc.player.isSpectator() || PlayerPanelInventory.get(mc.player).filter(PlayerPanelInventory::active).isEmpty()) return;
         var action = ActionStatusSource.read(partial);
         boolean airborne = DeploymentClientController.isAirborne();
         if (action == null && !airborne) return;
-        try (var g = new HudCanvas(gui)) {
+        try (var g = new HudCanvas(dev.stya.blockzone.client.ui.ModernUiLayer.hud())) {
             if (DeploymentClientController.state() == 2 || DeploymentClientController.state() == 3) flight.render(g, partial);
             progress.render(g, action != null ? action : flight.prompt(), g.width / 2, g.height - 300);
         }

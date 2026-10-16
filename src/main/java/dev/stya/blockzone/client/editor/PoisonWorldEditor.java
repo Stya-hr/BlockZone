@@ -122,7 +122,7 @@ public final class PoisonWorldEditor {
     @SubscribeEvent public static void hud(RenderGuiEvent.Post event) {
         var mc = Minecraft.getInstance();
         if (session == null || mc.screen != null) return;
-        var graphics = event.getGuiGraphics();
+        var graphics = dev.stya.blockzone.client.ui.ModernUiLayer.hud();
         graphics.fill(6, 6, 440, 63, 0xb0000000);
         graphics.drawString(mc.font, Component.translatable("editor.blockzone.observing", draft.sequence()+1, draft.circle()+1,
                 String.format(java.util.Locale.ROOT, "%.1f", draft.selected().radius())), 10, 10, 0xffffff);

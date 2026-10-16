@@ -16,6 +16,7 @@ public final class NoticeClientState {
     private static long receivedTick;
     private static HudAnnouncementS2CPacket announcement;
     private static AnnouncementLifetime lifetime;
+    private static long generation;
     private NoticeClientState() {}
     private static boolean matches(String map) {
         var data = FPSMClient.getGlobalData();
@@ -37,6 +38,7 @@ public final class NoticeClientState {
         lifetime = new AnnouncementLifetime(now, Math.max(20, Math.min(200, packet.durationTicks())) * 50L);
     }
     static MatchGuidanceS2CPacket guidance() { return guidance != null && matches(guidance.map()) ? guidance : null; }
+    static String scope() { return (guidance == null ? "" : guidance.map()) + ":" + generation; }
     static float remainingSeconds(float partial) {
         var level = Minecraft.getInstance().level;
         return guidance == null || level == null ? 0 : Math.max(0, (guidance.remainingTicks() - (level.getGameTime() - receivedTick + partial)) / 20f);
@@ -45,7 +47,7 @@ public final class NoticeClientState {
         return announcement != null && matches(announcement.map()) ? announcement : null;
     }
     static float opacity() { return lifetime == null ? 0 : lifetime.opacity(net.minecraft.Util.getMillis()); }
-    private static void clear() { guidance = null; announcement = null; lifetime = null; receivedTick = 0; }
+    private static void clear() { guidance = null; announcement = null; lifetime = null; receivedTick = 0; generation++; }
     @SubscribeEvent public static void logout(ClientPlayerNetworkEvent.LoggingOut event) { clear(); }
     @SubscribeEvent public static void reset(com.ptcrys.fpsmatch.common.client.event.FPSMClientResetEvent event) { clear(); }
 }

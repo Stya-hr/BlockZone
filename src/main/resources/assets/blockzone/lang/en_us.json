@@ -219,5 +219,7 @@
   "hud.blockzone.guide.loot_survive": "Gather supplies and stay alert",
   "hud.blockzone.guide.shrink_remaining": "Shrinking ends in %s s",
   "hud.blockzone.guide.shrink_in": "Safe zone shrinks in %s s",
-  "hud.blockzone.guide.watch_zone": "Watch the safe zone and your squad"
+  "hud.blockzone.guide.watch_zone": "Watch the safe zone and your squad",
+  "hud.blockzone.zone_indicator.waiting": "Next shrink",
+  "hud.blockzone.zone_indicator.shrinking": "Shrinking"
 }

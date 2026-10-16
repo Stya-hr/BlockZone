@@ -6,17 +6,12 @@ import net.minecraft.network.chat.Component;
 
 /** Reusable operation progress and unframed key prompt; reads no gameplay state. */
 public final class ActionProgressPanel {
+    private final ContextActionPrompt context = new ContextActionPrompt();
     public void render(HudCanvas g, ActionStatus status, float centerX, float y) {
         var title = g.fit(status.title(), 388, 20);
         float titleX = centerX - g.textWidth(title, 20) / 2;
         if (status.progress() == null) {
-            int keyWidth = g.keyWidth(status.key());
-            int gap = keyWidth == 0 ? 0 : 10;
-            title = g.fit(status.title(), 420 - keyWidth - gap, 20);
-            float x = centerX - (g.textWidth(title, 20) + keyWidth + gap) / 2;
-            g.key(status.key(), Math.round(x), Math.round(y + 12));
-            float labelX = x + keyWidth + gap;
-            g.textWithShadow(title, labelX, y + 12, 20, HudCanvas.TEXT);
+            context.render(g, status, centerX, y);
             return;
         }
         float x = centerX - 210;

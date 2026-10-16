@@ -219,5 +219,7 @@
   "hud.blockzone.guide.loot_survive": "搜集物资，保持警戒",
   "hud.blockzone.guide.shrink_remaining": "收缩剩余 %s s",
   "hud.blockzone.guide.shrink_in": "距离安全区收缩 %s s",
-  "hud.blockzone.guide.watch_zone": "留意安全区与队友状态"
+  "hud.blockzone.guide.watch_zone": "留意安全区与队友状态",
+  "hud.blockzone.zone_indicator.waiting": "等待缩圈",
+  "hud.blockzone.zone_indicator.shrinking": "正在收缩"
 }

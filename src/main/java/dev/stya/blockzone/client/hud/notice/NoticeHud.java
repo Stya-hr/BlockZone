@@ -18,6 +18,7 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 public final class NoticeHud implements IHudRenderer {
     private final AnnouncementBanner banner = new AnnouncementBanner();
     private final ActionGuidancePanel guidance = new ActionGuidancePanel();
+    private final dev.stya.blockzone.client.hud.squad.ZoneStatusIndicator zone = new dev.stya.blockzone.client.hud.squad.ZoneStatusIndicator();
     @SubscribeEvent public static void setup(FMLClientSetupEvent event) {
         event.enqueueWork(() -> FPSMGameHudManager.INSTANCE.registerHud(BattlezoneMap.GAME_TYPE, new NoticeHud()));
     }
@@ -29,6 +30,9 @@ public final class NoticeHud implements IHudRenderer {
         if (!ModernUiLayer.hudVisible()) return;
         try (var g = new HudCanvas(ModernUiLayer.hud())) {
             guidance.render(g, guidance.read(partial));
+            var player = net.minecraft.client.Minecraft.getInstance().player;
+            if (!player.isSpectator() && dev.stya.blockzone.client.hud.squad.SquadClientState.members().stream().anyMatch(m -> m.id().equals(player.getUUID())))
+                zone.render(g, NoticeClientState.guidance(), NoticeClientState.remainingSeconds(partial));
             banner.render(g, NoticeClientState.announcement(), NoticeClientState.opacity());
         }
     }

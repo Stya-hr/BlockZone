@@ -15,13 +15,15 @@ public final class ChatMessagePanel {
     }
     public void render(GuiGraphics graphics, List<ChatMessage> messages, UUID localPlayer, long now, float opacity,
                        boolean expanded, int scroll) {
+        float fade = expanded ? 1 : messages.isEmpty() ? 0 : messages.get(messages.size() - 1).opacity(now);
+        opacity *= fade;
+        if (opacity <= 0) return;
         try (var g = new HudCanvas(graphics)) {
             float width = Math.min(WIDTH, g.width - X * 2);
             var visible = new ArrayList<ChatMessageRow.Layout>();
             float height = 0;
             for (int i = messages.size() - 1 - scroll; i >= 0; i--) {
                 var message = messages.get(i);
-                if (!expanded && message.opacity(now) <= 0) continue;
                 var layout = row.layout(g, message, width - 8);
                 if (height + layout.height() > (expanded ? EXPANDED_HEIGHT - INPUT_HEIGHT - 12 : 192)) break;
                 visible.add(0, layout); height += layout.height();
@@ -34,7 +36,7 @@ public final class ChatMessagePanel {
                 var sender = layout.message().sender();
                 boolean teammate = localPlayer.equals(sender) || SquadClientState.members().stream().anyMatch(m -> m.id().equals(sender));
                 row.render(g, layout, 80, y, teammate ? 0xFF2DC653 : 0xFFF87882,
-                        (expanded ? 1 : layout.message().opacity(now)) * opacity);
+                        opacity);
                 y += layout.height();
             }
         }

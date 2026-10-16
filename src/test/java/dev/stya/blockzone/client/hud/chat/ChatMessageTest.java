@@ -9,6 +9,8 @@ class ChatMessageTest {
         assertEquals(1, message.opacity(1000));
         assertEquals(1, message.opacity(9000));
         assertEquals(.5f, message.opacity(10000));
+        assertEquals(.84375f, message.opacity(9500));
+        assertEquals(.15625f, message.opacity(10500));
         assertEquals(0, message.opacity(11000));
         assertEquals(0, message.opacity(12000));
     }

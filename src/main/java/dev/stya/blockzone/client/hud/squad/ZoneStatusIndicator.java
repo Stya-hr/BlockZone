@@ -21,18 +21,12 @@ public final class ZoneStatusIndicator {
         float trackY = y + 28, trackHeight = 7;
         float filled = width * sequenceProgress(state.stage(), state.shrinking(), seconds, state.sequenceTicks());
         g.rect(x, trackY, width, trackHeight, 0x9910181E);
-        g.rect(x, trackY, filled, trackHeight, 0x99F3F7F8);
-        var graphics = (dev.stya.blockzone.client.ui.ModernUiGraphics)g.gui;
         double total = state.sequenceTicks().stream().mapToDouble(t -> Math.max(0, t)).sum();
         float offset = 0;
         for (int i = 0; i < state.sequenceTicks().size() && total > 0; i++) {
             float segmentWidth = (float)(width * Math.max(0, state.sequenceTicks().get(i)) / total);
-            if (i % 2 == 1) {
-                for (float arrow = offset + 2; arrow + 4 < offset + segmentWidth; arrow += 10) {
-                    graphics.line(x + arrow, trackY, x + arrow + 4, trackY + trackHeight / 2, 1, 0xB3F3F7F8);
-                    graphics.line(x + arrow + 4, trackY + trackHeight / 2, x + arrow, trackY + trackHeight, 1, 0xB3F3F7F8);
-                }
-            }
+            int color = i % 2 == 0 ? 0xFFBFC8CE : 0xFF5797C5;
+            g.rect(x + offset, trackY, segmentWidth, trackHeight, color);
             offset += segmentWidth;
             if (i % 2 == 1 && i + 1 < state.sequenceTicks().size()) {
                 g.rect(x + offset - 1, trackY - 1, 2, trackHeight + 2, 0xFF10181E);

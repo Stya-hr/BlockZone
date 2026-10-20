@@ -201,7 +201,6 @@ public final class LootCrateEditorScreen extends ModernEditorScreen {
     private void finish() { LootWorldEditor.stop(); minecraft.setScreen(null); }
     @Override public void removed() { LootEditorCamera.clearMovement(); super.removed(); }
     @Override public boolean keyPressed(int key, int scan, int modifiers) {
-        if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_F6) { LootEditorCamera.focus(); return true; }
         if (LootEditorCamera.key(key, scan, org.lwjgl.glfw.GLFW.GLFW_PRESS)) return true;
         return super.keyPressed(key, scan, modifiers);
     }

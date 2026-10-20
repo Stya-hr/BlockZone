@@ -4,9 +4,6 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import dev.stya.blockzone.loot.LootDropEntity;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.OutlineBufferSource;
-import net.minecraft.client.Minecraft;
-import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.ItemRenderer;
@@ -22,25 +19,27 @@ public final class LootDropRenderer extends EntityRenderer<LootDropEntity> {
     public LootDropRenderer(EntityRendererProvider.Context context) {
         super(context);
         items = context.getItemRenderer();
-        shadowRadius = 0.2F;
-        shadowStrength = 0.65F;
+        shadowRadius = 0;
+        shadowStrength = 0;
     }
 
     @Override
     public void render(LootDropEntity entity, float yaw, float partialTicks, PoseStack pose,
                        MultiBufferSource buffers, int light) {
+        renderItem(entity, partialTicks, pose, buffers, light);
+        super.render(entity, yaw, partialTicks, pose, buffers, light);
+    }
+
+    public void renderItem(LootDropEntity entity, float partialTicks, PoseStack pose, MultiBufferSource buffers, int light) {
         var stack = entity.getItem();
         if (stack.isEmpty()) return;
-        if (buffers instanceof OutlineBufferSource outline) {
-            boolean pointed = Minecraft.getInstance().hitResult instanceof EntityHitResult hit && hit.getEntity() == entity;
-            outline.setColor(255, pointed ? 200 : 255, pointed ? 60 : 255, 255);
-        }
         var model = items.getModel(stack, entity.level(), null, entity.getId());
         pose.pushPose();
         pose.mulPose(Axis.YP.rotation(entity.getSpin(partialTicks)));
         var itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
         if (itemId.getNamespace().equals("tacz") && itemId.getPath().equals("modern_kinetic_gun")) {
-            // TaCZ's default GROUND pose stands the weapon on its magazine. Turn it onto its side.
+            // TaCZ's ground origin is offset from the weapon mesh; compensate before laying it sideways.
+            pose.translate(0.2, 0, 0);
             pose.translate(0, 0.08, 0);
             pose.mulPose(Axis.ZP.rotationDegrees(90));
         } else if (model.isCustomRenderer()) {
@@ -60,7 +59,6 @@ public final class LootDropRenderer extends EntityRenderer<LootDropEntity> {
             LootRenderBuffers.set(previous);
         }
         pose.popPose();
-        super.render(entity, yaw, partialTicks, pose, buffers, light);
     }
 
     @Override

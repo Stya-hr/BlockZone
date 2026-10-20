@@ -6,6 +6,17 @@ import static org.junit.jupiter.api.Assertions.*;
 class BoundaryGeometryTest {
     private final BoundaryGeometry bounds = BoundaryGeometry.of(0, 0, 15, 15);
 
+    @Test void mapClipIncludesFinalBlockButRejectsFarEdgesAndNonFinitePositions() {
+        var reversed = BoundaryGeometry.of(15, 15, -16, -16);
+        assertTrue(reversed.containsHorizontal(-16, -16));
+        assertTrue(reversed.containsHorizontal(15.999, 15.999));
+        assertFalse(reversed.containsHorizontal(16, 0));
+        assertFalse(reversed.containsHorizontal(0, 16));
+        assertFalse(reversed.containsHorizontal(-16.001, 0));
+        assertFalse(reversed.containsHorizontal(Double.NaN, 0));
+        assertFalse(reversed.containsHorizontal(0, Double.POSITIVE_INFINITY));
+    }
+
     @Test
     void merelyBeingWithinEightBlocksDoesNotShowPanel() {
         assertFalse(bounds.touchesX(0, 3.7, 4.3, 7.7, 8.3));

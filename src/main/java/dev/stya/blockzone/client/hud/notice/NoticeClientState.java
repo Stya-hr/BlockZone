@@ -48,7 +48,7 @@ public final class NoticeClientState {
     static String scope() { return (guidance == null ? "" : guidance.map()) + ":" + generation; }
     static float remainingSeconds(float partial) {
         var level = Minecraft.getInstance().level;
-        return guidance == null || level == null ? 0 : Math.max(0, (guidance.remainingTicks() - (level.getGameTime() - receivedTick + partial)) / 20f);
+        return guidance == null || level == null ? 0 : Math.max(0, (guidance.remainingTicks() - (guidance.phase() == BattlezoneMap.MatchPhase.MATCH ? level.getGameTime() - receivedTick + partial : 0)) / 20f);
     }
     static HudAnnouncementS2CPacket announcement() {
         return announcement != null && matches(announcement.map()) ? announcement : null;

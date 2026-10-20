@@ -1,0 +1,1 @@
+{"targets":["mask","edge"],"passes":[{"name":"blockzone:drop_edge","intarget":"mask","outtarget":"edge"}]}

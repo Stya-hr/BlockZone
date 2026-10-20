@@ -14,6 +14,7 @@ import net.minecraftforge.fml.common.Mod;
 public final class CombatHud {
     private static boolean active;
     private CombatHud() {}
+    public static boolean isActive() { return active; }
     public static void setActive(boolean value) {
         active = value;
         if (!value) SquadClientState.clear();

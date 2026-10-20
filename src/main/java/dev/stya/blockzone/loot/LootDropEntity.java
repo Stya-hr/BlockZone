@@ -19,7 +19,6 @@ import java.util.UUID;
 public final class LootDropEntity extends ItemEntity {
     private String mapName = "";
     private UUID roundId;
-    private boolean clientHighlighted;
 
     public LootDropEntity(EntityType<? extends LootDropEntity> type, Level level) {
         super(type, level);
@@ -34,13 +33,9 @@ public final class LootDropEntity extends ItemEntity {
 
     public boolean belongsToMap(String name) { return mapName.equals(name); }
 
-    public void setClientHighlighted(boolean highlighted) {
-        if (level().isClientSide) clientHighlighted = highlighted;
-    }
-
-    @Override public boolean isCurrentlyGlowing() {
-        return level().isClientSide ? clientHighlighted : super.isCurrentlyGlowing();
-    }
+    // Keep vanilla's ray close to the visible model; client targeting adds a small upward bias
+    // because the rendered ground item sits above the entity's physics-box center.
+    @Override public float getPickRadius() { return 0.2F; }
 
     @Override public boolean isPickable() { return isAlive(); }
 

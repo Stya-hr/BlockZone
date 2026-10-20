@@ -23,6 +23,7 @@ public final class ActionHud implements IHudRenderer {
     private final ActionProgressPanel progress = new ActionProgressPanel();
     private final FlightInstruments flight = new FlightInstruments();
     private final ContextActionPrompt context = new ContextActionPrompt();
+    private final GroundItemPanel loot = new GroundItemPanel();
     @SubscribeEvent public static void setup(FMLClientSetupEvent event) {
         event.enqueueWork(() -> FPSMGameHudManager.INSTANCE.registerHud(BattlezoneMap.GAME_TYPE, new ActionHud()));
     }
@@ -33,10 +34,12 @@ public final class ActionHud implements IHudRenderer {
         if (!dev.stya.blockzone.client.ui.ModernUiLayer.hudVisible() || mc.level == null || !mc.player.isAlive()
                 || mc.player.isSpectator() || PlayerPanelInventory.get(mc.player).filter(PlayerPanelInventory::active).isEmpty()) return;
         var action = ActionStatusSource.read(partial);
+        var drop = dev.stya.blockzone.client.loot.DropTargeting.target();
         boolean airborne = DeploymentClientController.isAirborne();
         var feedback = dev.stya.blockzone.client.hud.notice.NoticeClientState.actionFeedback();
-        if (action == null && !airborne && feedback == null) return;
+        if (action == null && drop == null && !airborne && feedback == null) return;
         try (var g = new HudCanvas(dev.stya.blockzone.client.ui.ModernUiLayer.hud())) {
+            if (drop != null) loot.render(g, drop, partial);
             if (DeploymentClientController.state() == 2 || DeploymentClientController.state() == 3) flight.render(g, partial);
             if (action != null && action.progress() != null) progress.render(g, action, g.width / 2, g.height - 300);
             else if (feedback != null) {

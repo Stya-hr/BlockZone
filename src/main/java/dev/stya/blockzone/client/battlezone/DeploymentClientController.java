@@ -23,9 +23,9 @@ import org.lwjgl.glfw.GLFW;
 @Mod.EventBusSubscriber(modid = BlockZone.MOD_ID, value = Dist.CLIENT)
 public final class DeploymentClientController {
     private static final KeyMapping RELEASE = new KeyMapping("key.blockzone.release_deployment",
-            KeyConflictContext.IN_GAME, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, "key.categories.blockzone");
+            KeyConflictContext.IN_GAME, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, "key.categories.blockzone.gameplay");
     private static final KeyMapping PARACHUTE = new KeyMapping("key.blockzone.toggle_parachute",
-            KeyConflictContext.IN_GAME, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_H, "key.categories.blockzone");
+            KeyConflictContext.IN_GAME, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_SPACE, "key.categories.blockzone.gameplay");
     private static int state;
     private static int sentForward, sentLeft, inputTicks;
     public static boolean isAirborne() { return state != 0; }

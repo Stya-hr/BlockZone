@@ -11,6 +11,11 @@ public record BoundaryGeometry(double minX, double maxX, double minZ, double max
                 Math.min(z1, z2), Math.max(z1, z2) + 1.0);
     }
 
+    /** Half-open world footprint: the final block is included, its far edge is outside. */
+    public boolean containsHorizontal(double x, double z) {
+        return x >= minX && x < maxX && z >= minZ && z < maxZ;
+    }
+
     public boolean touchesX(double plane, double boxMinX, double boxMaxX, double boxMinZ, double boxMaxZ) {
         return touchesPlane(plane, boxMinX, boxMaxX) && boxMaxZ >= minZ && boxMinZ <= maxZ;
     }

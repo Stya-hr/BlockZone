@@ -154,7 +154,6 @@ public final class PoisonEditorScreen extends ModernEditorScreen {
         syncFields(); fragment.syncValues(List.copyOf(fields));
     }
     @Override public boolean keyPressed(int key, int scan, int modifiers) {
-        if (key == GLFW.GLFW_KEY_F6) { PoisonEditorCamera.focus(); return true; }
         if (PoisonEditorCamera.key(key, scan, GLFW.GLFW_PRESS)) return true;
         return super.keyPressed(key, scan, modifiers);
     }

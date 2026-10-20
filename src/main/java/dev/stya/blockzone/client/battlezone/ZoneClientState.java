@@ -78,7 +78,17 @@ public final class ZoneClientState {
                 Mth.lerp(progress, previous.radius(), target.radius()), target.boundaryTexture(), target.shape());
     }
 
-    record Snapshot(String mapName, ResourceLocation dimension, boolean whiteoutActive,
+    /** Scoped, interpolated state shared by the world walls and tactical minimap. */
+    public static Snapshot minimap(float partialTick) {
+        var state = current(partialTick);
+        var mc = Minecraft.getInstance();
+        var data = com.ptcrys.fpsmatch.common.client.FPSMClient.getGlobalData();
+        return state != null && mc.level != null && mc.level.dimension().location().equals(state.dimension())
+                && data.isCurrentGameType(dev.stya.blockzone.map.battlezone.BattlezoneMap.GAME_TYPE)
+                && data.isCurrentMap(state.mapName()) ? state : null;
+    }
+
+    public record Snapshot(String mapName, ResourceLocation dimension, boolean whiteoutActive,
                     int x1, int y1, int z1, int x2, int y2, int z2,
                     double centerX, double centerZ, float radius, String boundaryTexture, ZoneShape shape) {
         double centerY() {

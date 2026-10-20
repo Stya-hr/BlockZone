@@ -383,13 +383,12 @@ public final class PlayerPanelInventory {
     }
 
     private dev.stya.blockzone.loot.LootDropEntity createDiscardEntity(ItemStack stack) {
-        var entity = new dev.stya.blockzone.loot.LootDropEntity(dev.stya.blockzone.registry.BlockzoneEntities.LOOT_DROP.get(), player.level());
-        entity.setItem(stack.copy());
+        var map = player instanceof net.minecraft.server.level.ServerPlayer server
+                ? dev.stya.blockzone.combat.MatchRegeneration.map(server).filter(this::matches).orElse(null) : null;
+        var entity = dev.stya.blockzone.loot.MatchDrops.create(player.level(), stack, map);
         entity.setPos(player.getX(), player.getEyeY() - .3, player.getZ());
         entity.setDeltaMovement(player.getLookAngle().scale(.25).add(0, .1, 0));
         entity.setPickUpDelay(20);
-        if (player instanceof net.minecraft.server.level.ServerPlayer server)
-            dev.stya.blockzone.combat.MatchRegeneration.map(server).filter(this::matches).ifPresent(entity::bindToMatch);
         return entity;
     }
 
@@ -477,11 +476,9 @@ public final class PlayerPanelInventory {
     }
 
     private void drop(BattlezoneMap map, ItemStack stack) {
-        var drop = new dev.stya.blockzone.loot.LootDropEntity(dev.stya.blockzone.registry.BlockzoneEntities.LOOT_DROP.get(), player.level());
-        drop.setItem(stack.copy());
+        var drop = dev.stya.blockzone.loot.MatchDrops.create(player.level(), stack, map);
         drop.setPos(player.getX(), player.getY() + .2, player.getZ());
         drop.setDefaultPickUpDelay();
-        drop.bindToMatch(map);
         player.level().addFreshEntity(drop);
     }
 

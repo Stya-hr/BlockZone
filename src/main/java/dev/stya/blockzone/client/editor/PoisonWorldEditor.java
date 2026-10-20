@@ -20,7 +20,6 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.*;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import org.lwjgl.glfw.GLFW;
 
 @Mod.EventBusSubscriber(modid = BlockZone.MOD_ID, value = Dist.CLIENT)
 public final class PoisonWorldEditor {
@@ -100,15 +99,8 @@ public final class PoisonWorldEditor {
     }
     @SubscribeEvent public static void logout(ClientPlayerNetworkEvent.LoggingOut event) { session = null; draft = null; PoisonEditorCamera.stop(); }
     @SubscribeEvent public static void key(InputEvent.Key event) {
-        var mc = Minecraft.getInstance();
         if (session == null) return;
         PoisonEditorCamera.key(event.getKey(), event.getScanCode(), event.getAction());
-        if (mc.screen != null || event.getAction() != GLFW.GLFW_PRESS) return;
-        if (event.getKey() == GLFW.GLFW_KEY_F6) PoisonEditorCamera.focus();
-        if (saving) return;
-        if (event.getKey() == GLFW.GLFW_KEY_O) mc.setScreen(new PoisonEditorScreen());
-        if (event.getKey() == GLFW.GLFW_KEY_LEFT_BRACKET) draft.selectCircle(draft.circle() - 1);
-        if (event.getKey() == GLFW.GLFW_KEY_RIGHT_BRACKET) draft.selectCircle(draft.circle() + 1);
     }
     @SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.LOWEST)
     public static void fog(ViewportEvent.RenderFog event) {

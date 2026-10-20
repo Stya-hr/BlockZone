@@ -102,6 +102,8 @@ dependencies {
     runtimeOnly fg.deobf("maven.modrinth:kotlin-for-forge:${kotlin_forge_version}")
     runtimeOnly fg.deobf("maven.modrinth:timeless-and-classics-zero:${tacz_version}")
     compileOnly fg.deobf("maven.modrinth:timeless-and-classics-zero:${tacz_version}")
+    // Optional minimap integration; never bundle or require Xaero.
+    compileOnly fg.deobf('maven.modrinth:xaeros-minimap:forge-1.20.1-26.6.0')
     // Optional accessory API; never require Curios for a standalone installation.
     compileOnly fg.deobf('maven.modrinth:curios:IPQlZkz1')
     implementation fg.deobf("icyllis.modernui:ModernUI-Forge:${minecraft_version}-${modernui_forge_version}")

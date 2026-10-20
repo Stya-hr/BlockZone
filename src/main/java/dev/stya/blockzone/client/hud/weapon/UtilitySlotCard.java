@@ -19,7 +19,7 @@ final class UtilitySlotCard {
             g.gui.flush(); g.gui.pose().popPose();
         }
         var mc = Minecraft.getInstance();
-        var key = mc.options.keyHotbarSlots[slot];
+        var key = WeaponSlotSelection.itemKey(slot);
         int keyWidth = dev.stya.blockzone.client.inventory.InventoryPromptRenderer.keyWidth(mc.font, key.getKey(), 20);
         g.key(key, x + (66 - keyWidth) / 2, 100);
     }

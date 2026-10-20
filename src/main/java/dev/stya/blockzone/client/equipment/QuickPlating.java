@@ -21,7 +21,7 @@ import org.lwjgl.glfw.GLFW;
 public final class QuickPlating {
     private static boolean physicalDown;
     public static final KeyMapping KEY = new KeyMapping("key.blockzone.insert_plate", Context.INSTANCE,
-            InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, "key.categories.blockzone") {
+            InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_V, "key.categories.blockzone.gameplay") {
         @Override public void setDown(boolean down) {
             super.setDown(down);
             physicalDown = down;

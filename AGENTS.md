@@ -19,6 +19,7 @@
 # 仓库协作习惯
 
 - 每个功能的开发工作从 `main` 创建功能或修复分支，不直接在 `main` 上实现。
-- 按功能范围提交，提交标题遵循 [CONTRIBUTING.md](CONTRIBUTING.md) 的 Conventional Commits 规范。
+- 按功能范围提交，使用 Conventional Commits：`<type>(<scope>)!: <简短描述>`；`scope` 与 `!` 可省略，冒号后留一个空格。
+- `type` 使用 `feat`、`fix`、`docs`、`style`、`refactor`、`perf`、`test`、`build`、`ci`、`chore` 或 `revert`；不兼容变更使用 `!` 并在正文说明迁移方式。
 - 完成实现后等待用户测试和验证通过，同意后将分支合并回 `main`；有远端协作流程时使用 Pull Request 和评审，没有远端时使用本地合并。
 - 不把工作区中与当前任务无关的改动加入提交，也不覆盖他人的未提交工作。

@@ -1,11 +1,11 @@
 package dev.stya.blockzone.client.hud.action;
 
+import com.tacz.guns.client.input.InteractKey;
 import dev.stya.blockzone.client.hud.common.HudCanvas;
 import dev.stya.blockzone.client.inventory.GunHudIcon;
 import dev.stya.blockzone.client.loot.DropOutlines;
 import dev.stya.blockzone.client.ui.ModernUiGraphics;
 import dev.stya.blockzone.loot.LootDropEntity;
-import net.minecraft.client.Minecraft;
 import net.minecraft.util.Mth;
 
 /** REDSEC-style name, item preview and action strip, tethered to the actual ground item. */
@@ -55,7 +55,7 @@ final class GroundItemPanel {
         }
 
         float promptY = y + HEIGHT - FOOTER + 14;
-        int keyWidth = g.key(Minecraft.getInstance().options.keyUse, Math.round(x + 16), Math.round(promptY));
+        int keyWidth = g.key(InteractKey.INTERACT_KEY, Math.round(x + 16), Math.round(promptY));
         g.text(ActionStatusSource.tr("pickup"), x + 16 + keyWidth + 10, promptY, 20, HudCanvas.TEXT);
     }
 }

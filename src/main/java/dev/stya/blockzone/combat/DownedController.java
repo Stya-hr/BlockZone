@@ -54,6 +54,7 @@ public final class DownedController {
             speed.addTransientModifier(new AttributeModifier(SLOW, "Downed crawl", config.downedSpeedFraction() - 1,
                     AttributeModifier.Operation.MULTIPLY_TOTAL));
         sync(player, 1, DOWN.get(player).timer.bleedTicks(), 0);
+        KillFeedBroadcast.downed(map, DOWN.get(player).context);
         return true;
     }
     public static boolean duplicateBulletDamage(ServerPlayer player, DamageSource source) {

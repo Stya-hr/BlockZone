@@ -6,6 +6,9 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
 
 final class BattlezoneClientPacketHandler {
+    static void handle(KillFeedS2CPacket packet) {
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> dev.stya.blockzone.client.hud.killfeed.KillFeedHud.receive(packet));
+    }
     static void handle(HudAnnouncementS2CPacket packet) {
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> dev.stya.blockzone.client.hud.notice.NoticeClientState.announce(packet));
     }

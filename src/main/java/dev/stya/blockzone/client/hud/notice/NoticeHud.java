@@ -41,6 +41,7 @@ public final class NoticeHud implements IHudRenderer {
         if (!ModernUiLayer.hudVisible()) return;
         try (var g = new HudCanvas(ModernUiLayer.hud())) {
             status.render(g, NoticeClientState.guidance());
+            dev.stya.blockzone.client.hud.killfeed.KillFeedHud.render(g, NoticeClientState.guidance());
             guidance.render(g, guidance.read(partial));
             var player = net.minecraft.client.Minecraft.getInstance().player;
             if (!dev.stya.blockzone.client.compat.XaeroMinimapCompat.active()

@@ -26,7 +26,7 @@ public final class NoticeClientState {
     }
     public static void apply(MatchGuidanceS2CPacket packet) {
         if (!matches(packet.map())) return;
-        if (!packet.active()) { clear(); return; }
+        if (!packet.active()) { clear(); dev.stya.blockzone.client.hud.killfeed.KillFeedHud.clear(); return; }
         guidance = packet;
         var level = Minecraft.getInstance().level;
         receivedTick = level == null ? 0 : level.getGameTime();

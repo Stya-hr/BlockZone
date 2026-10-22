@@ -414,6 +414,54 @@ public final class BattlezoneMap extends BaseMap {
                 new dev.stya.blockzone.combat.BattlezoneDeathEvent(this, context, reason));
     }
 
+    /** Server API for future revival items. Downed players are still living and are ineligible. */
+    public boolean canRevivePlayer(ServerPlayer player) {
+        return player != null && getServerLevel().getServer().isSameThread() && isMatchActive() && phase == MatchPhase.MATCH
+                && !victoryAnnounced && !scene.isBusy() && player.serverLevel() == getServerLevel()
+                && player.connection != null && !player.hasDisconnected() && player.isAlive() && player.isSpectator()
+                && originalPlayerStates.containsKey(player.getUUID())
+                && getMapTeams().getTeamByPlayer(player).filter(team -> !team.isSpectator())
+                    .flatMap(team -> team.getPlayerData(player.getUUID())).map(data -> !data.isLiving()).orElse(false);
+    }
+
+    /**
+     * Revives an eliminated participant at a caller-selected position, with full match health and empty equipment.
+     * Call on the server thread. A null source means system revival; item cost/authorization belongs to the caller.
+     * Returns false without changing state when the player, source, phase or destination is ineligible.
+     */
+    public boolean revivePlayer(ServerPlayer player, net.minecraft.world.phys.Vec3 position,
+                                @javax.annotation.Nullable ServerPlayer source) {
+        if (!canRevivePlayer(player) || position == null || !Double.isFinite(position.x)
+                || !Double.isFinite(position.y) || !Double.isFinite(position.z)) return false;
+        if (source != null && (source.serverLevel() != getServerLevel() || source.isSpectator() || !source.isAlive()
+                || source.connection == null || source.hasDisconnected()
+                || getMapTeams().getTeamByPlayer(source).filter(team -> !team.isSpectator())
+                    .flatMap(team -> team.getPlayerData(source.getUUID())).map(data -> !data.isLiving()).orElse(true))) return false;
+        var block = net.minecraft.core.BlockPos.containing(position);
+        if (!getMapArea().isBlockPosInHorizontalArea(block) || !getServerLevel().getWorldBorder().isWithinBounds(block)
+                || position.y < getServerLevel().getMinBuildHeight()
+                || position.y + player.getBbHeight() >= getServerLevel().getMaxBuildHeight()
+                || !getServerLevel().hasChunkAt(block)
+                || !getServerLevel().noCollision(player, player.getBoundingBox().move(position.subtract(player.position())))) return false;
+        var inventory = dev.stya.blockzone.inventory.PlayerPanelInventory.get(player).orElse(null);
+        if (inventory == null) return false;
+        inventory.begin(this);
+        StartingLoadout.apply(player, java.util.List.of());
+        clearAirbornePlayer(player);
+        player.setCamera(player);
+        combat().initialize(player);
+        player.teleportTo(getServerLevel(), position.x, position.y, position.z, player.getYRot(), player.getXRot());
+        var team = getMapTeams().getTeamByPlayer(player).orElseThrow();
+        team.getPlayerData(player.getUUID()).orElseThrow().setLiving(true);
+        for (var recipient : getMapTeams().getOnlineWithSpec()) team.sync(recipient);
+        dev.stya.blockzone.combat.CombatStateSync.syncCombat(player, true, getArmorPlatePoints(),
+                dev.stya.blockzone.equipment.PlateCapacity.slots(player));
+        presentationSync.sync(true);
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(
+                new dev.stya.blockzone.combat.BattlezoneReviveEvent(this, source, player));
+        return true;
+    }
+
     @Override
     public void victory() {
         if (phase != MatchPhase.MATCH || victoryAnnounced) {

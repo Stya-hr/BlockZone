@@ -18,6 +18,10 @@ public final class GunHudIcon {
     private static final Map<ResourceLocation, Optional<Size>> SIZES = new HashMap<>();
 
     public static boolean draw(GuiGraphics gui, ItemStack stack, int x, int y, int width, int height) {
+        return draw(gui, stack, x, y, width, height, 1);
+    }
+
+    public static boolean draw(GuiGraphics gui, ItemStack stack, int x, int y, int width, int height, float opacity) {
         if (!ModList.get().isLoaded("tacz")) return false;
         var texture = Tacz.texture(stack);
         if (texture.isEmpty()) return false;
@@ -25,7 +29,7 @@ public final class GunHudIcon {
         if (size.isEmpty()) return false;
         float factor = Math.min((float) width / size.get().width, (float) height / size.get().height);
         gui.flush();
-        gui.setColor(1, 1, 1, 1);
+        gui.setColor(1, 1, 1, opacity);
         RenderSystem.enableBlend(); RenderSystem.defaultBlendFunc();
         gui.pose().pushPose();
         gui.pose().translate(x + (width - size.get().width * factor) / 2F,
@@ -33,7 +37,7 @@ public final class GunHudIcon {
         gui.pose().scale(factor, factor, 1);
         gui.blit(texture.get(), 0, 0, 0, 0, size.get().width, size.get().height, size.get().width, size.get().height);
         gui.pose().popPose();
-        gui.flush(); RenderSystem.disableBlend();
+        gui.flush(); RenderSystem.disableBlend(); gui.setColor(1, 1, 1, 1);
         return true;
     }
 
